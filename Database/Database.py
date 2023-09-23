@@ -7,9 +7,10 @@ from pathlib import Path
 db = pony.orm.Database()
 
 if "pytest" in sys.modules:
-    db.bind(provider='sqlite', filename=':sharedmemory:')
+    db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
-    db.bind(provider='sqlite', filename='lacosa.sqlite', create_db=True)
+    db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
+
 
 class Match(db.Entity):
     name = PrimaryKey(str)
@@ -22,6 +23,7 @@ class Match(db.Entity):
     current_player = Optional(int, default=0)
     deck = Set("Deck")
 
+
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str, unique=True)
@@ -32,6 +34,7 @@ class Player(db.Entity):
     rol = Optional(int)
     is_alive = Optional(bool)
 
+
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str)
@@ -40,6 +43,7 @@ class Card(db.Entity):
     number = Required(int)
     player = Optional(Player)
     deck = Optional("Deck")
+
 
 class Deck(db.Entity):
     match = Required(Match)
@@ -50,3 +54,21 @@ class Deck(db.Entity):
 
 db.generate_mapping(create_tables=True)
 
+
+@db_session
+def _get_match(match_name: str) -> Match:
+    if not Match.exists(name=match_name):
+        raise Exception("Match not found")
+    return Match[match_name]
+
+
+@db_session
+def db_get_players(match_name: str) -> list[str]:
+    """
+    Returns the players names from a match
+    """
+    match = _get_match(match_name)
+    players = []
+    for p in match.players:
+        players.append(p.name)
+    return players
