@@ -1,4 +1,13 @@
-from fastapi import *
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    status,
+    File,
+    UploadFile,
+    Depends,
+    Form,
+    WebSocketDisconnect,
+)
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
@@ -19,7 +28,8 @@ origins = [
 ]
 
 tags_metadata = [
-    {"name": "Matches", "description": "Operations with users."},
+    {"name": "Player", "description": "Operations with players."},
+    {"name": "Matches", "description": "Operations with matchs."},
     {"name": "Cards", "description": "Operations with cards."},
 ]
 
@@ -34,4 +44,20 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],)
+    allow_headers=["*"],
+)
+
+
+@app.post("/player/create", tags=["Player"], status_code=200)
+async def player_creator(name_player: str = Form()):
+    """
+    Create a new player
+    """
+
+    if player_exists(name_player):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Name Player already exists"
+        )
+    else:
+        create_player(name_player)
+        return {"detail": "Player created successfully"}
