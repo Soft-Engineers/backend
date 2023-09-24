@@ -45,6 +45,7 @@ def get_players(match_name: str):
     """
     try:
         players = db_get_players(match_name)
-    except Exception:
-        raise HTTPException(status_code=404, detail="Match not found")
-    return {"players": players}
+        response = {"status": "ok", "players": players}
+    except Exception as e:
+        response = {"status": "error", "message": str(e)}
+    return response
