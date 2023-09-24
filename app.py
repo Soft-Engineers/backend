@@ -34,4 +34,26 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],)
+    allow_headers=["*"],
+)
+
+
+@app.post("/partida/unir", tags=["Matches"], status_code=status.HTTP_200_OK)
+def join_game(user_id: int, match_name: str, password: str = ""):
+    """
+    Join player to a match
+    """
+    try:
+        if db_is_match_initiated(match_name):
+            response = {"status": "error", "message": "Match already started"}
+        elif (
+            db_match_has_password(match_name)
+            and db_get_match_password(match_name) != password
+        ):
+            response = {"status": "error", "message": "Wrong password"}
+        else:
+            db_add_player(user_id, match_name)
+            response = {"status": "ok"}
+    except Exception as e:
+        response = {"status": "error", "message": str(e)}
+    return response

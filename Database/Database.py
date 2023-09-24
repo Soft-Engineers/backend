@@ -7,9 +7,10 @@ from pathlib import Path
 db = pony.orm.Database()
 
 if "pytest" in sys.modules:
-    db.bind(provider='sqlite', filename=':sharedmemory:')
+    db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
-    db.bind(provider='sqlite', filename='lacosa.sqlite', create_db=True)
+    db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
+
 
 class Match(db.Entity):
     name = PrimaryKey(str)
@@ -22,6 +23,7 @@ class Match(db.Entity):
     current_player = Optional(int, default=0)
     deck = Set("Deck")
 
+
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str, unique=True)
@@ -32,6 +34,7 @@ class Player(db.Entity):
     rol = Optional(int)
     is_alive = Optional(bool)
 
+
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str)
@@ -40,6 +43,7 @@ class Card(db.Entity):
     number = Required(int)
     player = Optional(Player)
     deck = Optional("Deck")
+
 
 class Deck(db.Entity):
     match = Required(Match)
@@ -50,3 +54,47 @@ class Deck(db.Entity):
 
 db.generate_mapping(create_tables=True)
 
+
+@db_session
+def _get_player(player_id: int) -> Player:
+    if not Player.exists(id=player_id):
+        raise Exception("Player not found")
+    return Player[player_id]
+
+
+@db_session
+def _get_match(match_name: str) -> Match:
+    if not Match.exists(name=match_name):
+        raise Exception("Match not found")
+    return Match[match_name]
+
+
+@db_session
+def db_get_match_password(match_name: str) -> str:
+    match = _get_match(match_name)
+    return match.password
+
+
+@db_session
+def db_match_has_password(match_name: str) -> bool:
+    match = _get_match(match_name)
+    return match.password != ""
+
+
+@db_session
+def db_is_match_initiated(match_name: str) -> bool:
+    match = _get_match(match_name)
+    return match.initiated
+
+
+@db_session
+def db_add_player(player_id: int, match_name: str) -> int:
+    player = _get_player(player_id)
+    match = _get_match(match_name)
+    if player.match:
+        raise Exception("Player already in a match")
+    if len(match.players) >= match.max_players:
+        raise Exception("Match is full")
+
+    match.players.add(player)
+    player.match = match
