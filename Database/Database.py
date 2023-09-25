@@ -13,7 +13,8 @@ else:
 
 
 class Match(db.Entity):
-    name = PrimaryKey(str)
+    id = PrimaryKey(int, auto=True)
+    name = Required(str, unique=True)
     password = Optional(str, default="")
     min_players = Required(int)
     max_players = Required(int)
@@ -56,18 +57,18 @@ db.generate_mapping(create_tables=True)
 
 
 @db_session
-def _get_match(match_name: str) -> Match:
-    if not Match.exists(name=match_name):
+def _get_match(match_id: int) -> Match:
+    if not Match.exists(id=match_id):
         raise Exception("Match not found")
-    return Match[match_name]
+    return Match[match_id]
 
 
 @db_session
-def db_get_players(match_name: str) -> list[str]:
+def db_get_players(match_id: int) -> list[str]:
     """
     Returns the players names from a match
     """
-    match = _get_match(match_name)
+    match = _get_match(match_id)
     players = []
     for p in match.players:
         players.append(p.name)

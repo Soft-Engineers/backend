@@ -38,13 +38,13 @@ app.add_middleware(
 )
 
 
-@app.get("/partida/jugadores", tags=["Matches"], status_code=status.HTTP_200_OK)
-def get_players(match_name: str):
+@app.get("/match/players", tags=["Matches"], status_code=status.HTTP_200_OK)
+def get_players(match_id: int):
     """
     Get players names from a match
     """
     try:
-        players = db_get_players(match_name)
+        players = db_get_players(match_id)
         response = {"status": "ok", "players": players}
     except Exception as e:
         response = {"status": "error", "message": str(e)}
