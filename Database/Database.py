@@ -50,3 +50,32 @@ class Deck(db.Entity):
 
 db.generate_mapping(create_tables=True)
 
+
+@db_session
+def _match_exists(match_name):
+    return Match.exists(name=match_name)
+
+@db_session
+def _get_player(player_id: int) -> Player:
+    if not Player.exists(id=player_id):
+        raise Exception("Player not found")
+    return Player[player_id]
+
+
+@db_session
+def db_create_match(match_name: str, user_id: int, min_players: int, max_players: int):
+
+    creator = _get_player(user_id)
+
+    if _match_exists(match_name):
+        raise Exception("Match name already used")
+    if creator.match:
+        raise Exception("Player already in a match")
+    if min_players < 4 or max_players > 12:
+        raise Exception("Invalid number of players")
+    
+    match = Match(name=match_name, min_players=min_players, max_players=max_players)
+    match.players.add(creator)
+    creator.match = match
+    creator.is_host = True
+
