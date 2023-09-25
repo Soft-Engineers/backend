@@ -38,21 +38,25 @@ app.add_middleware(
 )
 
 
-@app.post("/partida/unir", tags=["Matches"], status_code=status.HTTP_200_OK)
-def join_game(user_id: int, match_name: str, password: str = ""):
+def is_correct_password(match_id: int, password: str) -> bool:
+    is_correct = True
+    if db_match_has_password(match_id):
+        is_correct = db_get_match_password(match_id) == password
+    return is_correct
+
+
+@app.post("/match/join", tags=["Matches"], status_code=status.HTTP_200_OK)
+def join_game(user_id: int, match_id: int, password: str = ""):
     """
     Join player to a match
     """
     try:
-        if db_is_match_initiated(match_name):
+        if db_is_match_initiated(match_id):
             response = {"status": "error", "message": "Match already started"}
-        elif (
-            db_match_has_password(match_name)
-            and db_get_match_password(match_name) != password
-        ):
+        elif not is_correct_password(match_id, password):
             response = {"status": "error", "message": "Wrong password"}
         else:
-            db_add_player(user_id, match_name)
+            db_add_player(user_id, match_id)
             response = {"status": "ok"}
     except Exception as e:
         response = {"status": "error", "message": str(e)}

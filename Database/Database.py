@@ -13,7 +13,8 @@ else:
 
 
 class Match(db.Entity):
-    name = PrimaryKey(str)
+    id = PrimaryKey(int, auto=True)
+    name = Required(str, unique=True)
     password = Optional(str, default="")
     min_players = Required(int)
     max_players = Required(int)
@@ -63,34 +64,34 @@ def _get_player(player_id: int) -> Player:
 
 
 @db_session
-def _get_match(match_name: str) -> Match:
-    if not Match.exists(name=match_name):
+def _get_match(match_id: int) -> Match:
+    if not Match.exists(id=match_id):
         raise Exception("Match not found")
-    return Match[match_name]
+    return Match[match_id]
 
 
 @db_session
-def db_get_match_password(match_name: str) -> str:
-    match = _get_match(match_name)
+def db_get_match_password(match_id: int) -> str:
+    match = _get_match(match_id)
     return match.password
 
 
 @db_session
-def db_match_has_password(match_name: str) -> bool:
-    match = _get_match(match_name)
+def db_match_has_password(match_id: int) -> bool:
+    match = _get_match(match_id)
     return match.password != ""
 
 
 @db_session
-def db_is_match_initiated(match_name: str) -> bool:
-    match = _get_match(match_name)
+def db_is_match_initiated(match_id: int) -> bool:
+    match = _get_match(match_id)
     return match.initiated
 
 
 @db_session
-def db_add_player(player_id: int, match_name: str) -> int:
+def db_add_player(player_id: int, match_id: int):
     player = _get_player(player_id)
-    match = _get_match(match_name)
+    match = _get_match(match_id)
     if player.match:
         raise Exception("Player already in a match")
     if len(match.players) >= match.max_players:
