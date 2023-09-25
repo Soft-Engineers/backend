@@ -13,7 +13,8 @@ else:
 
 
 class Match(db.Entity):
-    name = PrimaryKey(str)
+    id = PrimaryKey(int, auto=True)
+    name = Required(str)
     password = Optional(str, default="")
     min_players = Required(int)
     max_players = Required(int)
@@ -26,7 +27,7 @@ class Match(db.Entity):
 
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str, unique=True)
+    player_name = Required(str, unique=True)
     match = Optional(Match)
     is_host = Optional(bool, default=False)
     cards = Set("Card")
