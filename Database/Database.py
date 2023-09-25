@@ -11,6 +11,7 @@ if "pytest" in sys.modules:
 else:
     db.bind(provider='sqlite', filename='lacosa.sqlite', create_db=True)
 
+
 class Match(db.Entity):
     name = PrimaryKey(str)
     password = Optional(str, default="")
@@ -22,6 +23,7 @@ class Match(db.Entity):
     current_player = Optional(int, default=0)
     deck = Set("Deck")
 
+
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str, unique=True)
@@ -32,6 +34,7 @@ class Player(db.Entity):
     rol = Optional(int)
     is_alive = Optional(bool)
 
+
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
     name = Required(str)
@@ -40,6 +43,7 @@ class Card(db.Entity):
     number = Required(int)
     player = Optional(Player)
     deck = Optional("Deck")
+
 
 class Deck(db.Entity):
     match = Required(Match)
@@ -54,6 +58,7 @@ db.generate_mapping(create_tables=True)
 @db_session
 def _match_exists(match_name):
     return Match.exists(name=match_name)
+
 
 @db_session
 def _get_player(player_id: int) -> Player:
@@ -73,9 +78,9 @@ def db_create_match(match_name: str, user_id: int, min_players: int, max_players
         raise Exception("Player already in a match")
     if min_players < 4 or max_players > 12:
         raise Exception("Invalid number of players")
-    
-    match = Match(name=match_name, min_players=min_players, max_players=max_players)
+
+    match = Match(name=match_name, min_players=min_players,
+                  max_players=max_players)
     match.players.add(creator)
     creator.match = match
     creator.is_host = True
-

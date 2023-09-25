@@ -51,5 +51,3 @@ def create_game(match_name: str, user_id: int, min_players: int, max_players: in
         )
 
     return {"message": "Match created"}
-
-
