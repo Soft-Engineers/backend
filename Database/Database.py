@@ -11,8 +11,10 @@ if "pytest" in sys.modules:
 else:
     db.bind(provider='sqlite', filename='lacosa.sqlite', create_db=True)
 
+
 class Match(db.Entity):
-    name = PrimaryKey(str)
+    id = PrimaryKey(int, auto=True)
+    name = Required(str)
     password = Optional(str, default="")
     min_players = Required(int)
     max_players = Required(int)
@@ -22,15 +24,17 @@ class Match(db.Entity):
     current_player = Optional(int, default=0)
     deck = Set("Deck")
 
+
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str, unique=True)
+    player_name = Required(str, unique=True)
     match = Optional(Match)
     is_host = Optional(bool, default=False)
     cards = Set("Card")
     position = Optional(int)
     rol = Optional(int)
     is_alive = Optional(bool)
+
 
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
@@ -41,6 +45,7 @@ class Card(db.Entity):
     player = Optional(Player)
     deck = Optional("Deck")
 
+
 class Deck(db.Entity):
     match = Required(Match)
     cards = Set(Card)
@@ -50,3 +55,59 @@ class Deck(db.Entity):
 
 db.generate_mapping(create_tables=True)
 
+
+@db_session
+def _get_player(player_id: int) -> Player:
+    if not Player.exists(id=player_id):
+        raise Exception("Player not found")
+    return Player[player_id]
+
+
+@db_session
+def _get_player_match(player: Player):
+    match = player.match
+    if match is None:
+        raise Exception("Player not in a match")
+    return match
+
+
+@db_session
+def _get_players_data(match):
+    players = match.players
+    players_data = []
+    for player in players:
+        players_data.append({
+            "id": player.id,
+            "name": player.player_name,
+            "position": player.position
+        })
+    return players_data
+
+
+@db_session
+def _get_deck_data(match):
+    deck = match.deck
+    deck_data = []
+    for card in deck:
+        deck_data.append({
+            "name": card.name,
+            "number": card.number,
+        })
+    return deck_data
+
+
+@db_session
+def match_state(user_id: int):
+    player = _get_player(user_id)
+    match = _get_player_match(player)
+    players_data = _get_players_data(match)
+    deck_data = _get_deck_data(match)
+    return {
+        "turn": match.current_player,
+        "position": player.position,
+        "deck": deck_data,
+        "alive": player.is_alive,
+        "role": player.rol,
+        "clockwise": match.clockwise,
+        "players": players_data,
+    }
