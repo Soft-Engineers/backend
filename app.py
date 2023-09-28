@@ -13,9 +13,7 @@ description = """
 
 origins = [
     "http://localhost:3000",
-    "localhost:3000",
-    "http://localhost:3000/",
-    "localhost:3000/",
+    "http://localhost:5173"
 ]
 
 tags_metadata = [
@@ -41,5 +39,4 @@ app.add_middleware(
 @app.get("/match/list", tags=["Matches"], status_code=200)
 async def match_listing():
     res_list = get_match_list()
-
     return {"Matches": res_list}
