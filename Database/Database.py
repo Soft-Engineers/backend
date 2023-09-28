@@ -95,28 +95,9 @@ def get_match_quantity_player(match_id):
 
 
 @db_session
-def get_match_list(name, filter):
-    match filter:
-        case "available":
-            match_list = Match.select(
-                lambda m: (not m.initiated) and m.current_player < m.max_players
-            )[:]
-        case "public":
-            match_list = Match.select(
-                lambda m: (not m.initiated)
-                and m.current_player < m.max_players
-                and m.password == ""
-            )[:]
-        case "private":
-            match_list = Match.select(
-                lambda m: (not m.initiated)
-                and m.current_player < m.max_players
-                and m.password != ""
-            )[:]
-        case "all":
-            match_list = Match.select()[:]
-        case _:
-            return ["no_valid_filter"]
+def get_match_list():
+
+    match_list = Match.select()[:]
     res_list = []
     for match in match_list:
         res_list.append(
