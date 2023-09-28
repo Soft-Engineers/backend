@@ -103,13 +103,13 @@ def get_match_list(name, filter):
             )[:]
         case "public":
             match_list = Match.select(
-                lambda m: (not m.started)
+                lambda m: (not m.initiated)
                 and m.current_player < m.max_players
                 and m.password == ""
             )[:]
         case "private":
             match_list = Match.select(
-                lambda m: (not m.started)
+                lambda m: (not m.initiated)
                 and m.current_player < m.max_players
                 and m.password != ""
             )[:]
