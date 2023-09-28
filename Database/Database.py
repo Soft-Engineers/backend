@@ -117,15 +117,14 @@ def get_match_list(name, filter):
             match_list = Match.select()[:]
         case _:
             return ["no_valid_filter"]
-    res_list = {}
-    for m in match_list:
-        participants_list = []
-        for p in m.players:
-            participants_list.append(p.player_name)
-        res_list[m.id] = {
-            "name": m.name,
-            "min_players": m.min_players,
-            "max_players": m.max_players,
-            "participants": participants_list,
-        }
+    res_list = []
+    for match in match_list:
+        res_list.append(
+            {
+                "name": match.name,
+                "min_players": match.min_players,
+                "max_players": match.max_players,
+                "current_players": match.current_player,
+            }
+        )
     return res_list
