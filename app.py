@@ -11,10 +11,7 @@ description = """
             ## The FUN is guaranteed! 
 """
 
-origins = [
-    "http://localhost:3000",
-    "http://localhost:5173"
-]
+origins = ["http://localhost:3000", "http://localhost:5173"]
 
 tags_metadata = [
     {"name": "Matches", "description": "Operations with users."},
