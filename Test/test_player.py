@@ -14,7 +14,7 @@ client = TestClient(app)
 def test_player_create():
     response = client.post("/player/create", data={"name_player": "test_player"})
     assert response.status_code == 200
-    assert response.json() == {"detail": "Player created successfully"}
+    assert response.json() == {"player_id": get_player_id("test_player")}
 
 
 def test_player_with_existing_name():

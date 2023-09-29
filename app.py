@@ -67,4 +67,4 @@ async def player_creator(name_player: str = Form()):
         )
     else:
         create_player(name_player)
-        return {"detail": "Player created successfully"}
+        return {"player_id": get_player(name_player).id}
