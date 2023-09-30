@@ -7,9 +7,9 @@ from pathlib import Path
 db = pony.orm.Database()
 
 if "pytest" in sys.modules:
-    db.bind(provider='sqlite', filename=':sharedmemory:')
+    db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
-    db.bind(provider='sqlite', filename='lacosa.sqlite', create_db=True)
+    db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
 
 
 class Match(db.Entity):
@@ -70,7 +70,6 @@ def _get_player(player_id: int) -> Player:
 
 @db_session
 def db_create_match(match_name: str, user_id: int, min_players: int, max_players: int):
-
     creator = _get_player(user_id)
 
     if _match_exists(match_name):
@@ -80,8 +79,9 @@ def db_create_match(match_name: str, user_id: int, min_players: int, max_players
     if min_players < 4 or max_players > 12:
         raise Exception("Invalid number of players")
 
-    match = Match(name=match_name, min_players=min_players,
-                  max_players=max_players)
+    match = Match(name=match_name, min_players=min_players, max_players=max_players)
     match.players.add(creator)
     creator.match = match
     creator.is_host = True
+
+    return match
