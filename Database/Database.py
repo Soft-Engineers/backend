@@ -57,8 +57,8 @@ db.generate_mapping(create_tables=True)
 
 
 @db_session
-def _match_exists(match_name):
-    return Match.exists(name=match_name)
+def _match_exists(name):
+    return Match.exists(match_name=name)
 
 
 @db_session
