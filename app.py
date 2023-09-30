@@ -39,7 +39,7 @@ app.add_middleware(
 
 
 @app.get("/partida/estado/{user_id}", tags=["Matches"], status_code=status.HTTP_200_OK)
-async def match_state_of(user_id: int):
+def match_state_of(user_id: int):
     try:
         state = get_match_state(user_id)
         response = {"detail": "estado obtenido exitosamente", "state": state}
