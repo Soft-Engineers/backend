@@ -80,6 +80,4 @@ def get_players(match_id: int):
         response = {"players": players}
     except MatchNotFound:
         raise HTTPException(status_code=404, detail="Match not found")
-    except:
-        raise HTTPException(status_code=500, detail="Internal server error")
     return response

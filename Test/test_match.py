@@ -1,7 +1,12 @@
+from fastapi.testclient import TestClient
+from app import *
+from pydantic_models import *
+from Database.Database import *
+from Test.auxiliar_functions import *
 from unittest.mock import Mock, patch
 from unittest import TestCase
-from Database.Database import *
-from app import *
+
+client = TestClient(app)
 
 
 class test_db_get_players(TestCase):
@@ -31,21 +36,19 @@ class test_db_get_players(TestCase):
 
 
 class test_get_players(TestCase):
-    @patch("app.db_get_players")
+    @patch("app.db_get_players", return_value=["Player1", "Player2"])
     def test_get_players(self, mock_db_get_players):
-        match_id = 1
-        mock_db_get_players.return_value = ["player1", "player2"]
-        players = get_players(match_id)
+        response = client.get("/match/players", params={"match_id": 1})
 
-        mock_db_get_players.assert_called_once_with(match_id)
-        self.assertEqual(players, {"players": ["player1", "player2"]})
+        mock_db_get_players.assert_called_once_with(1)
+        assert response.status_code == 200
+        assert response.json() == {"players": ["Player1", "Player2"]}
 
     @patch("app.db_get_players")
     def test_get_players_not_found(self, mock_db_get_players):
-        match_id = 1
         mock_db_get_players.side_effect = MatchNotFound("Match not found")
+        response = client.get("/match/players", params={"match_id": 1})
 
-        with self.assertRaises(HTTPException) as context:
-            get_players(match_id)
-        mock_db_get_players.assert_called_once_with(match_id)
-        self.assertEqual(context.exception.status_code, 404)
+        mock_db_get_players.assert_called_once_with(1)
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Match not found"}
