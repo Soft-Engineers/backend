@@ -45,7 +45,9 @@ def get_players(match_id: int):
     """
     try:
         players = db_get_players(match_id)
-        response = {"status": "ok", "players": players}
-    except Exception as e:
-        response = {"status": "error", "message": str(e)}
+        response = {"players": players}
+    except MatchNotFound:
+        raise HTTPException(status_code=404, detail="Match not found")
+    except:
+        raise HTTPException(status_code=500, detail="Internal server error")
     return response

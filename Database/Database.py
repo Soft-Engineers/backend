@@ -2,6 +2,7 @@ from pony.orm import *
 import sys
 from datetime import *
 from pathlib import Path
+from Database.exceptions import *
 
 
 db = pony.orm.Database()
@@ -59,7 +60,7 @@ db.generate_mapping(create_tables=True)
 @db_session
 def _get_match(match_id: int) -> Match:
     if not Match.exists(id=match_id):
-        raise Exception("Match not found")
+        raise MatchNotFound("Match not found")
     return Match[match_id]
 
 
