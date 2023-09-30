@@ -109,9 +109,11 @@ class test_join_game(TestCase):
         mock_is_match_initiated.return_value = False
         mock_is_correct_password.return_value = False
 
-        with self.assertRaises(HTTPInvalidPassword):
+        with self.assertRaises(HTTPException) as context:
             join_game(user_id, match_id, password)
         mock_add_player.assert_not_called()
+        self.assertEqual(context.exception.status_code, 401)
+        self.assertEqual(context.exception.detail, "Incorrect password")
 
     @patch("app.db_add_player")
     @patch("app.is_correct_password")
@@ -128,6 +130,8 @@ class test_join_game(TestCase):
         mock_is_match_initiated.return_value = True
         mock_is_correct_password.return_value = True
 
-        with self.assertRaises(HTTPMatchAlreadyStarted):
+        with self.assertRaises(HTTPException) as context:
             join_game(user_id, match_id, password)
         mock_add_player.assert_not_called()
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.detail, "Match already started")

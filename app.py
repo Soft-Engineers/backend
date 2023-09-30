@@ -12,7 +12,6 @@ from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from pydantic_models import *
-from http_exceptions import *
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -85,9 +84,13 @@ def join_game(user_id: int, match_id: int, password: str = ""):
     """
     try:
         if db_is_match_initiated(match_id):
-            raise HTTPMatchAlreadyStarted
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Match already started"
+            )
         elif not is_correct_password(match_id, password):
-            raise HTTPInvalidPassword
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
+            )
         else:
             db_add_player(user_id, match_id)
             response = {"detail": "ok"}
