@@ -6,7 +6,7 @@ from Database.exceptions import *
 
 db = pony.orm.Database()
 
-if "pytest" in sys.modules:
+if "pytest" in sys.modules or "unittest" in sys.modules:
     db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
     db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
