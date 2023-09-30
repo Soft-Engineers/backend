@@ -15,3 +15,15 @@ class PlayerNotFound(DatabaseError):
 
 class PlayerNotInMatch(DatabaseError):
     pass
+
+
+class PlayerAlreadyInMatch(DatabaseError):
+    pass
+
+
+class MatchAlreadyStarted(DatabaseError):
+    pass
+
+
+class MatchIsFull(DatabaseError):
+    pass

@@ -28,18 +28,18 @@ class Match(db.Entity):
 
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str, unique=True)
+    player_name = Required(str, unique=True)
     match = Optional(Match)
     is_host = Optional(bool, default=False)
     cards = Set("Card")
     position = Optional(int)
-    rol = Optional(int)
+    rol = Optional(int)  # 0: default, 1: human, 2: la cosa, 3: infected
     is_alive = Optional(bool)
 
 
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str)
+    card_name = Required(str)
     type = Required(int)
     description = Required(str)
     number = Required(int)
@@ -55,6 +55,55 @@ class Deck(db.Entity):
 
 
 db.generate_mapping(create_tables=True)
+
+# ------------ match functions ---------------
+@db_session
+def _get_match(match_id: int) -> Match:
+    if not Match.exists(id=match_id):
+        raise MatchNotFound("Match not found")
+    return Match[match_id]
+
+
+@db_session
+def db_get_match_password(match_id: int) -> str:
+    match = _get_match(match_id)
+    return match.password
+
+
+@db_session
+def db_match_has_password(match_id: int) -> bool:
+    match = _get_match(match_id)
+    return match.password != ""
+
+
+@db_session
+def db_is_match_initiated(match_id: int) -> bool:
+    match = _get_match(match_id)
+    return match.initiated
+
+
+@db_session
+def db_add_player(player_id: int, match_id: int):
+    player = _get_player(player_id)
+    match = _get_match(match_id)
+    if player.match:
+        raise PlayerAlreadyInMatch("Player already in a match")
+    if len(match.players) >= match.max_players:
+        raise MatchIsFull("Match is full")
+
+    match.players.add(player)
+    player.match = match
+
+
+# ------------ player functions ---------------
+@db_session
+def create_player(new_player_name):
+    Player(player_name=new_player_name)
+
+
+@db_session
+def get_player(player_name):
+    return Player.get(player_name=player_name)
 
 
 @db_session
@@ -142,3 +191,12 @@ def pick_random_card(player_id: int) -> int:
     card.deck = None
     deck.cards.remove(card)
     return card.id
+def player_exists(player_name):
+    return Player.exists(player_name=player_name)
+
+
+@db_session
+def get_player_id(player_name):
+    return Player.get(player_name=player_name).id
+
+
