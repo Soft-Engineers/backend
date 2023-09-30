@@ -6,50 +6,45 @@ from fastapi.testclient import TestClient
 from pydantic_models import *
 
 
-app = FastAPI()
 client = TestClient(app)
 
 
-class test_pick_random_card(TestCase):
-    @patch("Database.Database._get_player")
-    @patch("Database.Database._get_deck")
-    def test_pick_random_card(self, mock_get_deck, mock_get_player):
-        mock_player = Mock()
-        mock_deck = Mock()
+class test_pickup_card(TestCase):
+    @patch("app.get_player_match", return_value=1)
+    @patch("app.is_player_alive", return_value=True)
+    @patch("app.is_player_turn", return_value=True)
+    @patch("app.is_deck_empty", return_value=False)
+    @patch("app.pick_random_card", return_value=23)
+    def test_pickup_card(self, pick_random_card, *args):
+        response = client.post("/match/deck/pickup", params={"player_id": 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"card_id": 23})
+        pick_random_card.assert_called_once_with(1)
 
-        mock_get_player.return_value = mock_player
-        mock_get_deck.return_value = mock_deck
+    @patch("app.get_player_match", return_value=1)
+    @patch("app.is_player_alive", return_value=True)
+    @patch("app.is_player_turn", return_value=True)
+    @patch("app.pick_random_card", return_value=23)
+    @patch("app.is_deck_empty", return_value=True)
+    @patch("app.new_deck_from_discard")
+    def test_pickup_card_empty_deck(
+        self, new_deck_from_discard, pick_random_card, *args
+    ):
+        response = client.post("/match/deck/pickup", params={"player_id": 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"card_id": 23})
+        new_deck_from_discard.assert_called_once_with(1)
+        pick_random_card.assert_called_once_with(1)
 
-        mock_card = Mock()
-        mock_card.id = 1
-        mock_deck.cards.random.return_value = [mock_card]
+    @patch("app.get_player_match", return_value=1)
+    @patch("app.is_player_alive", return_value=False)
+    def test_pickup_card_player_dead(self, *args):
+        response = client.post("/match/deck/pickup", params={"player_id": 1})
+        self.assertEqual(response.status_code, 464)
 
-        card_id = pick_random_card(1)
-
-        mock_get_player.assert_called_once_with(1)
-        mock_get_deck.assert_called_once_with(mock_player.match.id)
-        mock_deck.cards.random.assert_called_once_with(1)
-        mock_deck.cards.remove.assert_called_once_with(mock_card)
-        self.assertEqual(card_id, mock_card.id)
-
-
-class test_new_deck_from_discard(TestCase):
-    @patch("Database.Database._get_deck")
-    @patch("Database.Database._get_discard_deck")
-    def test_new_deck_from_discard(self, mock_get_discard_deck, mock_get_deck):
-        mock_deck = Mock()
-        mock_discard_deck = Mock()
-        mock_card = Mock()
-
-        mock_get_deck.return_value = mock_deck
-        mock_get_discard_deck.return_value = mock_discard_deck
-
-        mock_deck.cards = []
-        mock_discard_deck.cards = [mock_card]
-
-        new_deck_from_discard(1)
-
-        mock_get_deck.assert_called_once_with(1)
-        mock_get_discard_deck.assert_called_once_with(1)
-        self.assertEqual(mock_deck.cards, [mock_card])
-
+    @patch("app.get_player_match", return_value=1)
+    @patch("app.is_player_alive", return_value=True)
+    @patch("app.is_player_turn", return_value=False)
+    def test_pickup_card_not_player_turn(self, *args):
+        response = client.post("/match/deck/pickup", params={"player_id": 1})
+        self.assertEqual(response.status_code, 463)

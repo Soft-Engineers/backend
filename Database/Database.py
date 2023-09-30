@@ -82,12 +82,14 @@ def is_player_alive(player_id: int) -> bool:
     player = _get_player(player_id)
     return player.is_alive
 
+
 @db_session
 def is_player_turn(player_id: int) -> bool:
     player = _get_player(player_id)
     match_id = get_player_match(player_id)
     turn = get_match_turn(match_id)
     return player.position == turn
+
 
 @db_session
 def get_player_position(player_id: int) -> int:
