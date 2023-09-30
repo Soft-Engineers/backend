@@ -69,8 +69,8 @@ def _get_player(player_id: int) -> Player:
 
 
 @db_session
-def db_create_match(match_name: str, user_id: int, min_players: int, max_players: int):
-    if _match_exists(match_name):
+def db_create_match(name: str, user_id: int, min_players: int, max_players: int):
+    if _match_exists(name):
         raise NameNotAvailable("Match name already used")
 
     creator = _get_player(user_id)
@@ -78,12 +78,10 @@ def db_create_match(match_name: str, user_id: int, min_players: int, max_players
     if creator.match:
         raise PlayerAlreadyInMatch("Player already in a match")
 
-    match = Match(name=match_name, min_players=min_players, max_players=max_players)
+    match = Match(match_name=name, min_players=min_players, max_players=max_players)
     match.players.add(creator)
     creator.match = match
     creator.is_host = True
-
-    return match
 
 
 # ------------ player functions ---------------
@@ -103,5 +101,27 @@ def player_exists(player_name):
 
 
 @db_session
+def get_player_by_id(player_name):
+    return Player.get(player_name=player_name)
+
+
+@db_session
 def get_player_id(player_name):
     return Player.get(player_name=player_name).id
+
+
+# ------------ match functions ---------------
+
+
+@db_session
+def get_match_by_name(match_name):
+    return Match.get(match_name=match_name)
+
+
+@db_session
+def is_in_match(player_id, match_id):
+    players = Match.get(id=match_id).players
+    for player in players:
+        if player.id == player_id:
+            return True
+    return False
