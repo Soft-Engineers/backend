@@ -68,3 +68,32 @@ async def player_creator(name_player: str = Form()):
     else:
         create_player(name_player)
         return {"player_id": get_player(name_player).id}
+
+
+def is_correct_password(match_id: int, password: str) -> bool:
+    is_correct = True
+    if db_match_has_password(match_id):
+        is_correct = db_get_match_password(match_id) == password
+    return is_correct
+
+
+@app.post("/match/join", tags=["Matches"], status_code=status.HTTP_200_OK)
+def join_game(user_id: int, match_id: int, password: str = ""):
+    """
+    Join player to a match
+    """
+    try:
+        if db_is_match_initiated(match_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Match already started"
+            )
+        elif not is_correct_password(match_id, password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
+            )
+        else:
+            db_add_player(user_id, match_id)
+            response = {"detail": "ok"}
+    except DatabaseError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return response

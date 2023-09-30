@@ -2,17 +2,20 @@ from pony.orm import *
 import sys
 from datetime import *
 from pathlib import Path
+from Database.exceptions import *
 
 
 db = pony.orm.Database()
 
-if "pytest" in sys.modules:
+if "pytest" in sys.modules or "unittest" in sys.modules:
     db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
     db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
 
+
 class Match(db.Entity):
-    match_name = PrimaryKey(str)
+    id = PrimaryKey(int, auto=True)
+    name = Required(str, unique=True)
     password = Optional(str, default="")
     min_players = Required(int)
     max_players = Required(int)
@@ -53,6 +56,45 @@ class Deck(db.Entity):
 
 db.generate_mapping(create_tables=True)
 
+# ------------ match functions ---------------
+@db_session
+def _get_match(match_id: int) -> Match:
+    if not Match.exists(id=match_id):
+        raise MatchNotFound("Match not found")
+    return Match[match_id]
+
+
+@db_session
+def db_get_match_password(match_id: int) -> str:
+    match = _get_match(match_id)
+    return match.password
+
+
+@db_session
+def db_match_has_password(match_id: int) -> bool:
+    match = _get_match(match_id)
+    return match.password != ""
+
+
+@db_session
+def db_is_match_initiated(match_id: int) -> bool:
+    match = _get_match(match_id)
+    return match.initiated
+
+
+@db_session
+def db_add_player(player_id: int, match_id: int):
+    player = _get_player(player_id)
+    match = _get_match(match_id)
+    if player.match:
+        raise PlayerAlreadyInMatch("Player already in a match")
+    if len(match.players) >= match.max_players:
+        raise MatchIsFull("Match is full")
+
+    match.players.add(player)
+    player.match = match
+
+
 # ------------ player functions ---------------
 @db_session
 def create_player(new_player_name):
@@ -65,6 +107,13 @@ def get_player(player_name):
 
 
 @db_session
+def _get_player(player_id: int) -> Player:
+    if not Player.exists(id=player_id):
+        raise PlayerNotFound("Player not found")
+    return Player[player_id]
+
+
+@db_session
 def player_exists(player_name):
     return Player.exists(player_name=player_name)
 
@@ -72,3 +121,5 @@ def player_exists(player_name):
 @db_session
 def get_player_id(player_name):
     return Player.get(player_name=player_name).id
+
+
