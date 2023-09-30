@@ -3,6 +3,7 @@ from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from pydantic_models import *
+from pydantic import BaseModel
 
 description = """
             La Cosa
@@ -38,15 +39,29 @@ app.add_middleware(
 )
 
 
+class GameConfig(BaseModel):
+    match_name: str
+    user_id: int
+    min_players: int
+    max_players: int
+
+
 @app.post("/partida/crear", tags=["Matches"], status_code=status.HTTP_201_CREATED)
-def create_game(match_name: str, user_id: int, min_players: int, max_players: int):
+def create_game(config: GameConfig):
     """
     Create a new match
     """
 
+    if config.min_players < 4 or config.max_players > 12:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid number of players"
+        )
+
     try:
-        db_create_match(match_name, user_id, min_players, max_players)
+        db_create_match(
+            config.match_name, config.user_id, config.min_players, config.max_players
+        )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    return {"message": "Match created"}
+    return {"detail": "Match created"}

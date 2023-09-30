@@ -7,14 +7,20 @@ client = TestClient(app)
 
 # Create a match
 
-def test_create_match():
-    Player(id=1, player_name="Player1")
-    
-    response = client.post(
-        "/partida/crear",
-        json={"match_name": "Match1", "user_id": 1, "min_players": 4, "max_players": 12},
-    )
-    assert response.status_code == 201
-    assert response.json() == {"message": "Match created"}
+
+def test_player_create_match_invalid_player():
+    body = {"match_name": "Match1", "user_id": 0, "min_players": 4, "max_players": 12}
+
+    response = client.post("/partida/crear", json=body)
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Player not found"}
 
 
+def test_player_create_match_invalid_bounds():
+    body = {"match_name": "Match1", "user_id": 1, "min_players": 3, "max_players": 12}
+
+    response = client.post("/partida/crear", json=body)
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Invalid number of players"}
