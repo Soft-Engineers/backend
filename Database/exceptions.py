@@ -7,3 +7,20 @@ class DatabaseError(Exception):
 
 class MatchNotFound(DatabaseError):
     pass
+
+
+class PlayerNotFound(DatabaseError):
+    pass
+
+
+class PlayerAlreadyInMatch(DatabaseError):
+    pass
+
+
+class MatchAlreadyStarted(DatabaseError):
+    pass
+
+
+class MatchIsFull(DatabaseError):
+    pass
+
