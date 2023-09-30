@@ -14,7 +14,7 @@ else:
 
 class Match(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str)
+    match_name = Required(str)
     password = Optional(str, default="")
     min_players = Required(int)
     max_players = Required(int)
