@@ -11,7 +11,6 @@ if "pytest" in sys.modules:
 else:
     db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
 
-
 class Match(db.Entity):
     match_name = PrimaryKey(str)
     password = Optional(str, default="")
