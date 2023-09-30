@@ -12,6 +12,7 @@ from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from pydantic_models import *
+from http_exceptions import *
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -69,6 +70,7 @@ async def player_creator(name_player: str = Form()):
         create_player(name_player)
         return {"player_id": get_player(name_player).id}
 
+
 def is_correct_password(match_id: int, password: str) -> bool:
     is_correct = True
     if db_match_has_password(match_id):
@@ -83,13 +85,12 @@ def join_game(user_id: int, match_id: int, password: str = ""):
     """
     try:
         if db_is_match_initiated(match_id):
-            response = {"status": "error", "message": "Match already started"}
+            raise HTTPMatchAlreadyStarted
         elif not is_correct_password(match_id, password):
-            response = {"status": "error", "message": "Wrong password"}
+            raise HTTPInvalidPassword
         else:
             db_add_player(user_id, match_id)
-            response = {"status": "ok"}
-    except Exception as e:
-        response = {"status": "error", "message": str(e)}
+            response = {"detail": "ok"}
+    except DatabaseError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return response
-

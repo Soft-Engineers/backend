@@ -2,11 +2,12 @@ from pony.orm import *
 import sys
 from datetime import *
 from pathlib import Path
+from Database.exceptions import *
 
 
 db = pony.orm.Database()
 
-if "pytest" in sys.modules:
+if "pytest" in sys.modules or "unittest" in sys.modules:
     db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
     db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
@@ -59,7 +60,7 @@ db.generate_mapping(create_tables=True)
 @db_session
 def _get_match(match_id: int) -> Match:
     if not Match.exists(id=match_id):
-        raise Exception("Match not found")
+        raise MatchNotFound("Match not found")
     return Match[match_id]
 
 
@@ -86,14 +87,14 @@ def db_add_player(player_id: int, match_id: int):
     player = _get_player(player_id)
     match = _get_match(match_id)
     if player.match:
-        raise Exception("Player already in a match")
+        raise PlayerAlreadyInMatch("Player already in a match")
     if len(match.players) >= match.max_players:
-        raise Exception("Match is full")
+        raise MatchIsFull("Match is full")
 
     match.players.add(player)
     player.match = match
 
- 
+
 # ------------ player functions ---------------
 @db_session
 def create_player(new_player_name):
@@ -104,12 +105,13 @@ def create_player(new_player_name):
 def get_player(player_name):
     return Player.get(player_name=player_name)
 
-  @db_session
+
+@db_session
 def _get_player(player_id: int) -> Player:
     if not Player.exists(id=player_id):
-        raise Exception("Player not found")
+        raise PlayerNotFound("Player not found")
     return Player[player_id]
-  
+
 
 @db_session
 def player_exists(player_name):
@@ -119,3 +121,5 @@ def player_exists(player_name):
 @db_session
 def get_player_id(player_name):
     return Player.get(player_name=player_name).id
+
+
