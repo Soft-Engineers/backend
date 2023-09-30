@@ -1,9 +1,20 @@
-from fastapi import *
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    status,
+    File,
+    UploadFile,
+    Depends,
+    Form,
+    WebSocketDisconnect,
+)
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from pydantic_models import *
-from pydantic import BaseModel
+
+MAX_LEN_ALIAS = 16
+MIN_LEN_ALIAS = 3
 
 description = """
             La Cosa
@@ -20,7 +31,8 @@ origins = [
 ]
 
 tags_metadata = [
-    {"name": "Matches", "description": "Operations with users."},
+    {"name": "Player", "description": "Operations with players."},
+    {"name": "Matches", "description": "Operations with matchs."},
     {"name": "Cards", "description": "Operations with cards."},
 ]
 
@@ -37,13 +49,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-class GameConfig(BaseModel):
-    match_name: str
-    user_id: int
-    min_players: int
-    max_players: int
 
 
 @app.post("/partida/crear", tags=["Matches"], status_code=status.HTTP_201_CREATED)

@@ -2,7 +2,7 @@ from pony.orm import *
 import sys
 from datetime import *
 from pathlib import Path
-
+from Database.exceptions import *
 
 db = pony.orm.Database()
 
@@ -38,7 +38,7 @@ class Player(db.Entity):
 
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str)
+    card_name = Required(str)
     type = Required(int)
     description = Required(str)
     number = Required(int)
@@ -64,19 +64,19 @@ def _match_exists(match_name):
 @db_session
 def _get_player(player_id: int) -> Player:
     if not Player.exists(id=player_id):
-        raise Exception("Player not found")
+        raise PlayerNotFound("Player not found")
     return Player[player_id]
 
 
 @db_session
 def db_create_match(match_name: str, user_id: int, min_players: int, max_players: int):
     if _match_exists(match_name):
-        raise Exception("Match name already used")
+        raise NameNotAvailable("Match name already used")
 
     creator = _get_player(user_id)
 
     if creator.match:
-        raise Exception("Player already in a match")
+        raise PlayerAlreadyInMatch("Player already in a match")
 
     match = Match(name=match_name, min_players=min_players, max_players=max_players)
     match.players.add(creator)
