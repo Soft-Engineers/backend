@@ -2,6 +2,10 @@ from unittest.mock import Mock, patch
 from unittest import TestCase
 from Database.Database import *
 from app import *
+from unittest.mock import ANY
+from fastapi.testclient import TestClient
+
+client = TestClient(app)
 
 
 class test_db_add_player(TestCase):
@@ -75,63 +79,28 @@ class test_db_add_player(TestCase):
 
 class test_join_game(TestCase):
     @patch("app.db_add_player")
-    @patch("app.is_correct_password")
-    @patch("app.db_is_match_initiated")
-    def test_join_game(
-        self,
-        mock_is_match_initiated,
-        mock_is_correct_password,
-        mock_add_player,
-    ):
-        user_id = 1
-        match_id = 1
-        mock_is_correct_password.return_value = True
-        mock_is_match_initiated.return_value = False
-        password = "test_password"
+    @patch("app.is_correct_password", return_value=True)
+    @patch("app.db_is_match_initiated", return_value=False)
+    def test_join_game(self, *args):
+        db_add_player.return_value = None
+        response = client.post("/match/join", params={"user_id": 1, "match_id": 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"detail": "ok"})
 
-        response = join_game(user_id, match_id, password)
-
-        mock_add_player.assert_called_once_with(user_id, match_id)
-        self.assertEqual(response, {"detail": "ok"})
-
+    @patch("app.is_correct_password", return_value=False)
+    @patch("app.db_is_match_initiated", return_value=False)
     @patch("app.db_add_player")
-    @patch("app.is_correct_password")
-    @patch("app.db_is_match_initiated")
-    def test_join_game_incorrect_password(
-        self,
-        mock_is_match_initiated,
-        mock_is_correct_password,
-        mock_add_player,
-    ):
-        user_id = 1
-        match_id = 1
-        password = "test_password"
-        mock_is_match_initiated.return_value = False
-        mock_is_correct_password.return_value = False
-
-        with self.assertRaises(HTTPException) as context:
-            join_game(user_id, match_id, password)
+    def test_join_game_incorrect_password(self, mock_add_player, *args):
+        response = client.post("/match/join", params={"user_id": 1, "match_id": 1})
         mock_add_player.assert_not_called()
-        self.assertEqual(context.exception.status_code, 401)
-        self.assertEqual(context.exception.detail, "Incorrect password")
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(), {"detail": "Incorrect password"})
 
+    @patch("app.is_correct_password", return_value=True)
+    @patch("app.db_is_match_initiated", return_value=True)
     @patch("app.db_add_player")
-    @patch("app.is_correct_password")
-    @patch("app.db_is_match_initiated")
-    def test_join_game_is_initiated(
-        self,
-        mock_is_match_initiated,
-        mock_is_correct_password,
-        mock_add_player,
-    ):
-        user_id = 1
-        match_id = 1
-        password = "test_password"
-        mock_is_match_initiated.return_value = True
-        mock_is_correct_password.return_value = True
-
-        with self.assertRaises(HTTPException) as context:
-            join_game(user_id, match_id, password)
+    def test_join_game_is_initiated(self, mock_add_player, *args):
+        response = client.post("/match/join", params={"user_id": 1, "match_id": 1})
         mock_add_player.assert_not_called()
-        self.assertEqual(context.exception.status_code, 400)
-        self.assertEqual(context.exception.detail, "Match already started")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"detail": "Match already started"})
