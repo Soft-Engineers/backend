@@ -27,18 +27,18 @@ class Match(db.Entity):
 
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str, unique=True)
+    player_name = Required(str, unique=True)
     match = Optional(Match)
     is_host = Optional(bool, default=False)
     cards = Set("Card")
     position = Optional(int)
-    rol = Optional(int)
+    rol = Optional(int)  # 0: default, 1: human, 2: la cosa, 3: infected
     is_alive = Optional(bool)
 
 
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str)
+    card_name = Required(str)
     type = Required(int)
     description = Required(str)
     number = Required(int)
@@ -54,13 +54,6 @@ class Deck(db.Entity):
 
 
 db.generate_mapping(create_tables=True)
-
-
-@db_session
-def _get_player(player_id: int) -> Player:
-    if not Player.exists(id=player_id):
-        raise Exception("Player not found")
-    return Player[player_id]
 
 
 @db_session
@@ -99,3 +92,30 @@ def db_add_player(player_id: int, match_id: int):
 
     match.players.add(player)
     player.match = match
+
+ 
+# ------------ player functions ---------------
+@db_session
+def create_player(new_player_name):
+    Player(player_name=new_player_name)
+
+
+@db_session
+def get_player(player_name):
+    return Player.get(player_name=player_name)
+
+  @db_session
+def _get_player(player_id: int) -> Player:
+    if not Player.exists(id=player_id):
+        raise Exception("Player not found")
+    return Player[player_id]
+  
+
+@db_session
+def player_exists(player_name):
+    return Player.exists(player_name=player_name)
+
+
+@db_session
+def get_player_id(player_name):
+    return Player.get(player_name=player_name).id

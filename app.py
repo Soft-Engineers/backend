@@ -1,8 +1,20 @@
-from fastapi import *
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    status,
+    File,
+    UploadFile,
+    Depends,
+    Form,
+    WebSocketDisconnect,
+)
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from pydantic_models import *
+
+MAX_LEN_ALIAS = 16
+MIN_LEN_ALIAS = 3
 
 description = """
             La Cosa
@@ -19,7 +31,8 @@ origins = [
 ]
 
 tags_metadata = [
-    {"name": "Matches", "description": "Operations with users."},
+    {"name": "Player", "description": "Operations with players."},
+    {"name": "Matches", "description": "Operations with matchs."},
     {"name": "Cards", "description": "Operations with cards."},
 ]
 
@@ -37,6 +50,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.post("/player/create", tags=["Player"], status_code=200)
+async def player_creator(name_player: str = Form()):
+    """
+    Create a new player
+    """
+    invalid_fields = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid fields"
+    )
+    if len(name_player) > MAX_LEN_ALIAS or len(name_player) < MIN_LEN_ALIAS:
+        raise invalid_fields
+    elif player_exists(name_player):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Player already exists"
+        )
+    else:
+        create_player(name_player)
+        return {"player_id": get_player(name_player).id}
 
 def is_correct_password(match_id: int, password: str) -> bool:
     is_correct = True
@@ -61,3 +92,4 @@ def join_game(user_id: int, match_id: int, password: str = ""):
     except Exception as e:
         response = {"status": "error", "message": str(e)}
     return response
+
