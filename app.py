@@ -45,16 +45,14 @@ def pickup_card(player_id: int):
     """
     try:
         match_id = get_player_match(player_id)
-        turn = get_match_turn(match_id)
-        player_position = get_player_position(player_id)
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except DatabaseError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not is_player_alive(player_id):
-        return {"status": "error", "message": "Player is dead"}
-    elif turn != player_position:
-        return {"status": "error", "message": "Not player turn"}
-    
+        raise HTTPException(status_code=464, detail="Player is dead")
+    elif not is_player_turn(player_id):
+        raise HTTPException(status_code=463, detail="Not player turn")
+
     if is_deck_empty(match_id):
         new_deck_from_discard(match_id)
     card_id = pick_random_card(player_id)
-    return {"status": "ok", "card_id": card_id}
+    return {"card_id": card_id}
