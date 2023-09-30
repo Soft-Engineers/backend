@@ -7,9 +7,9 @@ from pathlib import Path
 db = pony.orm.Database()
 
 if "pytest" in sys.modules:
-    db.bind(provider='sqlite', filename=':sharedmemory:')
+    db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
-    db.bind(provider='sqlite', filename='lacosa.sqlite', create_db=True)
+    db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
 
 
 class Match(db.Entity):
@@ -64,7 +64,7 @@ def _get_player(player_id: int) -> Player:
 
 
 @db_session
-def _get_player_match(player: Player):
+def _get_player_match(player: Player) -> Match:
     match = player.match
     if match is None:
         raise Exception("Player not in a match")
@@ -72,40 +72,41 @@ def _get_player_match(player: Player):
 
 
 @db_session
-def _get_players_data(match):
+def _get_players_data(match: Match) -> list:
     players = match.players
     players_data = []
     for player in players:
-        players_data.append({
-            "id": player.id,
-            "name": player.player_name,
-            "position": player.position
-        })
+        players_data.append(
+            {"id": player.id, "name": player.player_name, "position": player.position}
+        )
     return players_data
 
 
 @db_session
-def _get_deck_data(match):
-    deck = match.deck
+def _get_cards_data(player: Player) -> list:
     deck_data = []
-    for card in deck:
-        deck_data.append({
-            "name": card.name,
-            "number": card.number,
-        })
+    for card in player.cards:
+        deck_data.append(
+            {
+                "name": card.name,
+                "number": card.number,
+            }
+        )
     return deck_data
 
 
 @db_session
-def match_state(user_id: int):
+def get_match_state(user_id: int) -> dict:
     player = _get_player(user_id)
     match = _get_player_match(player)
-    players_data = _get_players_data(match)
-    deck_data = _get_deck_data(match)
+    players_data = list(
+        filter(lambda p: p["id"] != player.id, _get_players_data(match))
+    )
+    cards_data = _get_cards_data(player)
     return {
         "turn": match.current_player,
         "position": player.position,
-        "deck": deck_data,
+        "cards": cards_data,
         "alive": player.is_alive,
         "role": player.rol,
         "clockwise": match.clockwise,

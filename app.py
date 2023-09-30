@@ -34,19 +34,17 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],)
+    allow_headers=["*"],
+)
 
 
 @app.get("/partida/estado/{user_id}", tags=["Matches"], status_code=status.HTTP_200_OK)
 async def match_state_of(user_id: int):
-
     try:
-        state = match_state(user_id)
+        state = get_match_state(user_id)
         response = {"detail": "ok"}
         response.update(state)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return response
