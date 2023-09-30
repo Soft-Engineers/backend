@@ -42,8 +42,7 @@ app.add_middleware(
 async def match_state_of(user_id: int):
     try:
         state = get_match_state(user_id)
-        response = {"detail": "ok"}
-        response.update(state)
+        response = {"detail": "estado obtenido exitosamente", "state": state}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
