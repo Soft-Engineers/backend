@@ -11,8 +11,8 @@ class test_db_get_players(TestCase):
         mock_match = Mock()
         mock_player1 = Mock()
         mock_player2 = Mock()
-        mock_player1.name = "Player1"
-        mock_player2.name = "Player2"
+        mock_player1.player_name = "Player1"
+        mock_player2.player_name = "Player2"
         mock_match.players = [mock_player1, mock_player2]
         mock_get_match.return_value = mock_match
         players = db_get_players(match_id)

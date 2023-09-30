@@ -7,7 +7,7 @@ from Database.exceptions import *
 
 db = pony.orm.Database()
 
-if "pytest" in sys.modules:
+if "pytest" in sys.modules or "unittest" in sys.modules:
     db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
     db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
@@ -56,7 +56,7 @@ class Deck(db.Entity):
 
 db.generate_mapping(create_tables=True)
 
-
+# ------------ match functions ---------------
 @db_session
 def _get_match(match_id: int) -> Match:
     if not Match.exists(id=match_id):
@@ -72,8 +72,9 @@ def db_get_players(match_id: int) -> list[str]:
     match = _get_match(match_id)
     players = []
     for p in match.players:
-        players.append(p.name)
+        players.append(p.player_name)
     return players
+
 
 # ------------ player functions ---------------
 @db_session
@@ -94,4 +95,3 @@ def player_exists(player_name):
 @db_session
 def get_player_id(player_name):
     return Player.get(player_name=player_name).id
-

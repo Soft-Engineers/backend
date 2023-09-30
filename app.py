@@ -51,7 +51,6 @@ app.add_middleware(
 )
 
 
-
 @app.post("/player/create", tags=["Player"], status_code=200)
 async def player_creator(name_player: str = Form()):
     """
