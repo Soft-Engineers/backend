@@ -56,7 +56,7 @@ class Deck(db.Entity):
 
 db.generate_mapping(create_tables=True)
 
-
+# ------------ match functions ---------------
 @db_session
 def _get_match(match_id: int) -> Match:
     if not Match.exists(id=match_id):
