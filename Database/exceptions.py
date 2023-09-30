@@ -1,5 +1,6 @@
 # Custom database exceptions
 
+
 class DatabaseError(Exception):
     pass
 
@@ -22,6 +23,7 @@ class MatchAlreadyStarted(DatabaseError):
 
 class MatchIsFull(DatabaseError):
     pass
+
 
 class NameNotAvailable(DatabaseError):
     pass

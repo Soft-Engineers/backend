@@ -32,7 +32,7 @@ class Player(db.Entity):
     is_host = Optional(bool, default=False)
     cards = Set("Card")
     position = Optional(int)
-    rol = Optional(int)
+    rol = Optional(int)  # 0: default, 1: human, 2: la cosa, 3: infected
     is_alive = Optional(bool)
 
 
@@ -84,3 +84,24 @@ def db_create_match(match_name: str, user_id: int, min_players: int, max_players
     creator.is_host = True
 
     return match
+
+
+# ------------ player functions ---------------
+@db_session
+def create_player(new_player_name):
+    Player(player_name=new_player_name)
+
+
+@db_session
+def get_player_by_name(player_name):
+    return Player.get(player_name=player_name)
+
+
+@db_session
+def player_exists(player_name):
+    return Player.exists(player_name=player_name)
+
+
+@db_session
+def get_player_id(player_name):
+    return Player.get(player_name=player_name).id

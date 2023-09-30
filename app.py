@@ -70,3 +70,22 @@ def create_game(config: GameConfig):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return {"detail": "Match created"}
+
+
+@app.post("/player/create", tags=["Player"], status_code=200)
+async def player_creator(name_player: str = Form()):
+    """
+    Create a new player
+    """
+    invalid_fields = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid fields"
+    )
+    if len(name_player) > MAX_LEN_ALIAS or len(name_player) < MIN_LEN_ALIAS:
+        raise invalid_fields
+    elif player_exists(name_player):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Player already exists"
+        )
+    else:
+        create_player(name_player)
+        return {"player_id": get_player_by_name(name_player).id}
