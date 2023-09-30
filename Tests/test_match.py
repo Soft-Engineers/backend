@@ -3,7 +3,6 @@ from app import app
 from Database.Database import *
 from unittest.mock import *
 from Tests.auxiliar_functions import *
-from app import MAX_LEN_ALIAS
 
 client = TestClient(app)
 
@@ -29,8 +28,8 @@ def _create_player(namePlayer):
 
 
 def test_player_create_match():
-    nameGame = get_random_string_lower(MAX_LEN_ALIAS)
-    namePlayer = get_random_string_lower(MAX_LEN_ALIAS)
+    nameGame = "tpcmGame"
+    namePlayer = "tpcmPlayer"
 
     user_id = _create_player(namePlayer)
 
@@ -47,9 +46,9 @@ def test_player_create_match():
 
 
 def test_player_create_match_already_in_match():
-    nameGameA = get_random_string_lower(MAX_LEN_ALIAS)
-    nameGameB = get_random_string_lower(MAX_LEN_ALIAS)
-    namePlayer = get_random_string_lower(MAX_LEN_ALIAS)
+    nameGameA = "tpcmaimGameA"
+    nameGameB = "tpcmaimGameB"
+    namePlayer = "tpcmaimPlayer"
 
     user_id = _create_player(namePlayer)
 
@@ -75,10 +74,9 @@ def test_player_create_match_already_in_match():
 
 
 def test_player_create_match_repeated_name():
-    nameGame = get_random_string_lower(MAX_LEN_ALIAS)
-    namePlayerA = get_random_string_lower(MAX_LEN_ALIAS)
-    namePlayerB = get_random_string_lower(MAX_LEN_ALIAS)
-
+    nameGame = "tpcmrnGame"
+    namePlayerA = "tpcmrnPlayerA"
+    namePlayerB = "tpcmrnPlayerB"
     user_idA = _create_player(namePlayerA)
     user_idB = _create_player(namePlayerB)
 
