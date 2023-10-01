@@ -1,0 +1,9 @@
+__pycache__/__init__.cpython-310.pyc
+__pycache__/app.cpython-310.pyc
+Database/lacosa.sqlite
+Database/__pycache__/Database.cpython-310.pyc
+__pycache__/pydantic_models.cpython-310.pyc
+Database/__pycache__/__init__.cpython-310.pyc
+*.pyc
+Database/__pycache__
+Tests/__pycache__

@@ -56,6 +56,7 @@ class Deck(db.Entity):
 
 db.generate_mapping(create_tables=True)
 
+
 # ------------ match functions ---------------
 @db_session
 def _get_match(match_id: int) -> Match:
@@ -84,7 +85,7 @@ def db_is_match_initiated(match_id: int) -> bool:
 
 @db_session
 def db_add_player(player_id: int, match_id: int):
-    player = _get_player(player_id)
+    player = get_player_by_id(player_id)
     match = _get_match(match_id)
     if player.match:
         raise PlayerAlreadyInMatch("Player already in a match")
@@ -95,22 +96,50 @@ def db_add_player(player_id: int, match_id: int):
     player.match = match
 
 
-# ------------ player functions ---------------
+@db_session
+def _match_exists(match_name):
+    return Match.exists(name=match_name)
+
+
+@db_session
+def db_create_match(match_name: str, user_id: int, min_players: int, max_players: int):
+    if _match_exists(match_name):
+        raise NameNotAvailable("Match name already used")
+
+    creator = get_player_by_id(user_id)
+
+    if creator.match:
+        raise PlayerAlreadyInMatch("Player already in a match")
+
+    match = Match(name=match_name, min_players=min_players, max_players=max_players)
+    match.players.add(creator)
+    creator.match = match
+    creator.is_host = True
+
+
+@db_session
+def get_match_by_name(match_name):
+    return Match.get(name=match_name)
+
+
+@db_session
+def is_in_match(player_id, match_id):
+    players = Match.get(id=match_id).players
+    for player in players:
+        if player.id == player_id:
+            return True
+    return False
+
+
+# ------------ player functions ----------------
 @db_session
 def create_player(new_player_name):
     Player(player_name=new_player_name)
 
 
 @db_session
-def get_player(player_name):
+def get_player_by_name(player_name):
     return Player.get(player_name=player_name)
-
-
-@db_session
-def _get_player(player_id: int) -> Player:
-    if not Player.exists(id=player_id):
-        raise PlayerNotFound("Player not found")
-    return Player[player_id]
 
 
 @db_session
@@ -119,7 +148,12 @@ def player_exists(player_name):
 
 
 @db_session
+def get_player_by_id(player_id: int) -> Player:
+    if not Player.exists(id=player_id):
+        raise PlayerNotFound("Player not found")
+    return Player[player_id]
+
+
+@db_session
 def get_player_id(player_name):
     return Player.get(player_name=player_name).id
-
-
