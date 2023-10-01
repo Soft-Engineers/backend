@@ -7,4 +7,3 @@ Database/__pycache__/__init__.cpython-310.pyc
 *.pyc
 Database/__pycache__
 Tests/__pycache__
-*.sqlite
