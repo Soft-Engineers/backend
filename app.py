@@ -1,8 +1,20 @@
-from fastapi import *
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    status,
+    File,
+    UploadFile,
+    Depends,
+    Form,
+    WebSocketDisconnect,
+)
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from pydantic_models import *
+
+MAX_LEN_ALIAS = 16
+MIN_LEN_ALIAS = 3
 
 description = """
             La Cosa
@@ -11,15 +23,11 @@ description = """
             ## The FUN is guaranteed! 
 """
 
-origins = [
-    "http://localhost:3000",
-    "localhost:3000",
-    "http://localhost:3000/",
-    "localhost:3000/",
-]
+origins = ["http://localhost:3000", "http://localhost:5173"]
 
 tags_metadata = [
-    {"name": "Matches", "description": "Operations with users."},
+    {"name": "Player", "description": "Operations with players."},
+    {"name": "Matches", "description": "Operations with matchs."},
     {"name": "Cards", "description": "Operations with cards."},
 ]
 
@@ -38,10 +46,10 @@ app.add_middleware(
 )
 
 
-@app.get("/partida/estado/{user_id}", tags=["Matches"], status_code=status.HTTP_200_OK)
-def match_state_of(user_id: int):
+@app.get("/match/state/{player_name}", tags=["Matches"], status_code=status.HTTP_200_OK)
+def match_state_of(player_name: str):
     try:
-        state = get_match_state(user_id)
+        state = get_match_state(player_name)
         response = {"detail": "estado obtenido exitosamente", "state": state}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

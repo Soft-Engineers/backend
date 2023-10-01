@@ -2,11 +2,13 @@ from pony.orm import *
 import sys
 from datetime import *
 from pathlib import Path
+from Database.exceptions import *
+
 
 
 db = pony.orm.Database()
 
-if "pytest" in sys.modules:
+if "pytest" in sys.modules or "unittest" in sys.modules:
     db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
     db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
@@ -55,16 +57,16 @@ class Deck(db.Entity):
 
 db.generate_mapping(create_tables=True)
 
-
+"""
 @db_session
 def _get_player(player_id: int) -> Player:
     if not Player.exists(id=player_id):
         raise Exception("Player not found")
     return Player[player_id]
-
+"""
 
 @db_session
-def _get_player_match(player: Player) -> Match:
+def get_player_match(player: Player) -> Match:
     match = player.match
     if match is None:
         raise Exception("Player not in a match")
@@ -72,13 +74,14 @@ def _get_player_match(player: Player) -> Match:
 
 
 @db_session
-def _get_players_data(match: Match) -> list:
+def _get_players_data(match: Match, except_name: str) -> list:
     players = match.players
     players_data = []
     for player in players:
-        players_data.append(
-            {"id": player.id, "name": player.player_name, "position": player.position}
-        )
+        if not player.player_name == except_name:
+            players_data.append(
+                {"id": player.id, "name": player.player_name, "position": player.position}
+            )
     return players_data
 
 
@@ -96,12 +99,10 @@ def _get_cards_data(player: Player) -> list:
 
 
 @db_session
-def get_match_state(user_id: int) -> dict:
-    player = _get_player(user_id)
-    match = _get_player_match(player)
-    players_data = list(
-        filter(lambda p: p["id"] != player.id, _get_players_data(match))
-    )
+def get_match_state(player_name: str) -> dict:
+    player = get_player_by_name(player_name)
+    match = get_player_match(player)
+    players_data = list(_get_players_data(match, player_name))
     cards_data = _get_cards_data(player)
     return {
         "turn": match.current_player,
@@ -112,3 +113,35 @@ def get_match_state(user_id: int) -> dict:
         "clockwise": match.clockwise,
         "players": players_data,
     }
+
+# ------------ player functions ----------------
+@db_session
+def create_player(new_player_name):
+    Player(player_name=new_player_name)
+
+
+@db_session
+def get_player_by_name(player_name):
+    if not player_exists(player_name):
+        raise PlayerNotFound("Player not found")
+    return Player.get(player_name=player_name)
+
+
+@db_session
+def player_exists(player_name):
+    return Player.exists(player_name=player_name)
+
+
+@db_session
+def get_player_by_id(player_id: int) -> Player:
+    if not Player.exists(id=player_id):
+        raise PlayerNotFound("Player not found")
+    return Player[player_id]
+
+
+@db_session
+def get_player_id(player_name):
+    if not player_exists(player_name):
+        raise PlayerNotFound("Player not found")
+    return Player.get(player_name=player_name).id
+

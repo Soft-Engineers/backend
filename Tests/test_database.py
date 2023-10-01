@@ -1,12 +1,14 @@
 from unittest.mock import Mock, patch
 from unittest import TestCase
 from Database.Database import *
+from Tests.auxiliar_functions import *
+from app import MAX_LEN_ALIAS
 
 
 class test_db_get_match_state(TestCase):
-    @patch("Database.Database._get_player")
-    def test_db_get_match_state(self, mock_get_player):
-        target_player_id = 1
+    @patch("Database.Database.get_player_by_name")
+    def test_db_get_match_state(self, mock_get_player_by_name):
+        target_player_name = "Player1"
 
         mock_card1 = Mock()
         mock_card1.name = "CardP1"
@@ -17,13 +19,13 @@ class test_db_get_match_state(TestCase):
         mock_card2.number = 1
 
         mock_player1 = Mock()
-        mock_player1.id = target_player_id
-        mock_player1.player_name = "Player1"
+        mock_player1.id = 1
+        mock_player1.player_name = target_player_name
         mock_player1.position = 0
         mock_player1.is_alive = True
         mock_player1.cards = {mock_card1}
 
-        mock_get_player.return_value = mock_player1
+        mock_get_player_by_name.return_value = mock_player1
 
         mock_player2 = Mock()
         mock_player2.id = 2
@@ -42,8 +44,8 @@ class test_db_get_match_state(TestCase):
         mock_player1.match = mock_match
         mock_player2.match = mock_match
 
-        state = get_match_state(target_player_id)
-        mock_get_player.assert_called_once_with(target_player_id)
+        state = get_match_state(target_player_name)
+        mock_get_player_by_name.assert_called_once_with(target_player_name)
         self.assertEqual(state["turn"], mock_player1)
         self.assertEqual(state["position"], mock_player1.position)
         self.assertEqual(
@@ -63,29 +65,29 @@ class test_db_get_match_state(TestCase):
             ],
         )
 
-    @patch("Database.Database._get_player")
-    def test_db_get_match_state_player_not_playing(self, mock_get_player):
-        target_player_id = 1
+    @patch("Database.Database.get_player_by_name")
+    def test_db_get_match_state_player_not_playing(self, mock_get_player_by_name):
+        target_player_name = "Player1"
 
         mock_player1 = Mock()
-        mock_player1.id = target_player_id
-        mock_player1.player_name = "Player1"
+        mock_player1.id = 1
+        mock_player1.player_name = target_player_name
         mock_player1.match = None
 
-        mock_get_player.return_value = mock_player1
+        mock_get_player_by_name.return_value = mock_player1
 
         with self.assertRaises(Exception) as context:
-            get_match_state(target_player_id)
-        mock_get_player.assert_called_once_with(target_player_id)
+            get_match_state(target_player_name)
+        mock_get_player_by_name.assert_called_once_with(target_player_name)
         self.assertEqual(str(context.exception), "Player not in a match")
 
-    @patch("Database.Database._get_player")
-    def test_db_get_match_state_player_not_found(self, mock_get_player):
-        target_player_id = 1
+    @patch("Database.Database.get_player_by_name")
+    def test_db_get_match_state_player_not_found(self, mock_get_player_by_name):
+        target_player_name = "tdgmspnfPlayer"
 
-        mock_get_player.side_effect = Exception("Player not found")
+        mock_get_player_by_name.side_effect = Exception("Player not found")
 
         with self.assertRaises(Exception) as context:
-            get_match_state(target_player_id)
-        mock_get_player.assert_called_once_with(target_player_id)
+            get_match_state(target_player_name)
+        mock_get_player_by_name.assert_called_once_with(target_player_name)
         self.assertEqual(str(context.exception), "Player not found")
