@@ -106,6 +106,7 @@ def get_match_list():
         )
     return res_list
 
+
 @db_session
 def _get_match(match_id: int) -> Match:
     if not Match.exists(id=match_id):
@@ -121,27 +122,27 @@ def _get_match_by_name(match_name: str) -> Match:
 
 
 @db_session
-def db_get_match_password(match_id: int) -> str:
-    match = _get_match(match_id)
+def db_get_match_password(match_name: str) -> str:
+    match = _get_match_by_name(match_name)
     return match.password
 
 
 @db_session
-def db_match_has_password(match_id: int) -> bool:
-    match = _get_match(match_id)
+def db_match_has_password(match_name: str) -> bool:
+    match = _get_match_by_name(match_name)
     return match.password != ""
 
 
 @db_session
-def db_is_match_initiated(match_id: int) -> bool:
-    match = _get_match(match_id)
+def db_is_match_initiated(match_name: str) -> bool:
+    match = _get_match_by_name(match_name)
     return match.initiated
 
 
 @db_session
-def db_add_player(player_id: int, match_id: int):
-    player = get_player_by_id(player_id)
-    match = _get_match(match_id)
+def db_add_player(player_name: str, match_name: str):
+    player = _get_player_by_name(player_name)
+    match = _get_match_by_name(match_name)
     if player.match:
         raise PlayerAlreadyInMatch("Player already in a match")
     if len(match.players) >= match.max_players:
@@ -210,6 +211,13 @@ def get_player_by_name(player_name):
 
 
 @db_session
+def _get_player_by_name(player_name: str) -> Player:
+    if not Player.exists(player_name=player_name):
+        raise PlayerNotFound("Player not found")
+    return Player.get(player_name=player_name)
+
+
+@db_session
 def player_exists(player_name):
     return Player.exists(player_name=player_name)
 
@@ -224,4 +232,3 @@ def get_player_by_id(player_id: int) -> Player:
 @db_session
 def get_player_id(player_name):
     return Player.get(player_name=player_name).id
-
