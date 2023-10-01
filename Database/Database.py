@@ -4,6 +4,7 @@ from datetime import *
 from pathlib import Path
 from Database.exceptions import *
 
+
 db = pony.orm.Database()
 
 if "pytest" in sys.modules or "unittest" in sys.modules:
@@ -14,7 +15,7 @@ else:
 
 class Match(db.Entity):
     id = PrimaryKey(int, auto=True)
-    match_name = Required(str)
+    name = Required(str, unique=True)
     password = Optional(str, default="")
     min_players = Required(int)
     max_players = Required(int)
@@ -56,21 +57,53 @@ class Deck(db.Entity):
 db.generate_mapping(create_tables=True)
 
 
+# ------------ match functions ---------------
 @db_session
-def _match_exists(name):
-    return Match.exists(match_name=name)
-
-
-@db_session
-def _get_player(player_id: int) -> Player:
-    if not Player.exists(id=player_id):
-        raise PlayerNotFound("Player not found")
-    return Player[player_id]
+def _get_match(match_id: int) -> Match:
+    if not Match.exists(id=match_id):
+        raise MatchNotFound("Match not found")
+    return Match[match_id]
 
 
 @db_session
-def db_create_match(name: str, user_id: int, min_players: int, max_players: int):
-    if _match_exists(name):
+def db_get_match_password(match_id: int) -> str:
+    match = _get_match(match_id)
+    return match.password
+
+
+@db_session
+def db_match_has_password(match_id: int) -> bool:
+    match = _get_match(match_id)
+    return match.password != ""
+
+
+@db_session
+def db_is_match_initiated(match_id: int) -> bool:
+    match = _get_match(match_id)
+    return match.initiated
+
+
+@db_session
+def db_add_player(player_id: int, match_id: int):
+    player = _get_player(player_id)
+    match = _get_match(match_id)
+    if player.match:
+        raise PlayerAlreadyInMatch("Player already in a match")
+    if len(match.players) >= match.max_players:
+        raise MatchIsFull("Match is full")
+
+    match.players.add(player)
+    player.match = match
+
+
+@db_session
+def _match_exists(match_name):
+    return Match.exists(name=match_name)
+
+
+@db_session
+def db_create_match(match_name: str, user_id: int, min_players: int, max_players: int):
+    if _match_exists(match_name):
         raise NameNotAvailable("Match name already used")
 
     creator = _get_player(user_id)
@@ -78,10 +111,24 @@ def db_create_match(name: str, user_id: int, min_players: int, max_players: int)
     if creator.match:
         raise PlayerAlreadyInMatch("Player already in a match")
 
-    match = Match(match_name=name, min_players=min_players, max_players=max_players)
+    match = Match(name=match_name, min_players=min_players, max_players=max_players)
     match.players.add(creator)
     creator.match = match
     creator.is_host = True
+
+
+@db_session
+def get_match_by_name(match_name):
+    return Match.get(name=match_name)
+
+
+@db_session
+def is_in_match(player_id, match_id):
+    players = Match.get(id=match_id).players
+    for player in players:
+        if player.id == player_id:
+            return True
+    return False
 
 
 # ------------ player functions ---------------
@@ -101,8 +148,10 @@ def player_exists(player_name):
 
 
 @db_session
-def get_player_by_id(player_name):
-    return Player.get(player_name=player_name)
+def get_player_by_id(player_id: int) -> Player:
+    if not Player.exists(id=player_id):
+        raise PlayerNotFound("Player not found")
+    return Player[player_id]
 
 
 @db_session
@@ -110,18 +159,9 @@ def get_player_id(player_name):
     return Player.get(player_name=player_name).id
 
 
-# ------------ match functions ---------------
-
-
 @db_session
-def get_match_by_name(match_name):
-    return Match.get(match_name=match_name)
+def _get_player(player_id: int) -> Player:
+    if not Player.exists(id=player_id):
+        raise PlayerNotFound("Player not found")
+    return Player[player_id]
 
-
-@db_session
-def is_in_match(player_id, match_id):
-    players = Match.get(id=match_id).players
-    for player in players:
-        if player.id == player_id:
-            return True
-    return False
