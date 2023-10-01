@@ -131,7 +131,7 @@ def is_in_match(player_id, match_id):
     return False
 
 
-# ------------ player functions ---------------
+# ------------ player functions ----------------
 @db_session
 def create_player(new_player_name):
     Player(player_name=new_player_name)
