@@ -81,13 +81,15 @@ def get_players(match_id: int):
         response = {"players": players}
     except MatchNotFound:
         raise HTTPException(status_code=404, detail="Match not found")
+    return response
+
+
 
 def is_correct_password(match_id: int, password: str) -> bool:
     is_correct = True
     if db_match_has_password(match_id):
         is_correct = db_get_match_password(match_id) == password
     return is_correct
-
 
 @app.post("/match/join", tags=["Matches"], status_code=status.HTTP_200_OK)
 def join_game(user_id: int, match_id: int, password: str = ""):
