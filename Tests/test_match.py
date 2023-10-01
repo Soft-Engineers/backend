@@ -4,6 +4,7 @@ from Database.Database import *
 from app import *
 from fastapi.testclient import TestClient
 from Tests.auxiliar_functions import *
+from app import MAX_LEN_ALIAS
 
 
 client = TestClient(app)
@@ -27,27 +28,23 @@ def _assert_invalid(response, detail):
 
 
 def _create_player(namePlayer):
-    return (
-        client.post("/player/create", data={"name_player": namePlayer})
-        .json()
-        .get("player_id")
-    )
+    client.post("/player/create", data={"name_player": namePlayer})
 
 
 def test_player_create_match():
     nameGame = "tpcmGame"
     namePlayer = "tpcmPlayer"
 
-    user_id = _create_player(namePlayer)
+    _create_player(namePlayer)
 
     body = {
         "match_name": nameGame,
-        "user_id": user_id,
+        "player_name": namePlayer,
         "min_players": 4,
         "max_players": 12,
     }
 
-    response = client.post("/partida/crear", json=body)
+    response = client.post("/match/create", json=body)
 
     _assert_match_created(response)
 
@@ -57,25 +54,25 @@ def test_player_create_match_already_in_match():
     nameGameB = "tpcmaimGameB"
     namePlayer = "tpcmaimPlayer"
 
-    user_id = _create_player(namePlayer)
+    _create_player(namePlayer)
 
     body = {
         "match_name": nameGameA,
-        "user_id": user_id,
+        "player_name": namePlayer,
         "min_players": 4,
         "max_players": 12,
     }
-    response = client.post("/partida/crear", json=body)
+    response = client.post("/match/create", json=body)
 
     _assert_match_created(response)
 
     body = {
         "match_name": nameGameB,
-        "user_id": user_id,
+        "player_name": namePlayer,
         "min_players": 4,
         "max_players": 12,
     }
-    response = client.post("/partida/crear", json=body)
+    response = client.post("/match/create", json=body)
 
     _assert_invalid(response, "Player already in a match")
 
@@ -84,42 +81,61 @@ def test_player_create_match_repeated_name():
     nameGame = "tpcmrnGame"
     namePlayerA = "tpcmrnPlayerA"
     namePlayerB = "tpcmrnPlayerB"
-    user_idA = _create_player(namePlayerA)
-    user_idB = _create_player(namePlayerB)
+    _create_player(namePlayerA)
+    _create_player(namePlayerB)
 
     body = {
         "match_name": nameGame,
-        "user_id": user_idA,
+        "player_name": namePlayerA,
         "min_players": 4,
         "max_players": 12,
     }
-    response = client.post("/partida/crear", json=body)
+    response = client.post("/match/create", json=body)
 
     _assert_match_created(response)
 
     body = {
         "match_name": nameGame,
-        "user_id": user_idB,
+        "player_name": namePlayerB,
         "min_players": 4,
         "max_players": 12,
     }
-    response = client.post("/partida/crear", json=body)
+    response = client.post("/match/create", json=body)
 
     _assert_invalid(response, "Match name already used")
 
 
 def test_player_create_match_invalid_player():
-    body = {"match_name": "Match1", "user_id": 0, "min_players": 4, "max_players": 12}
+    nameGame = "tpcmipGame"
+    invalid = get_random_string_lower(MAX_LEN_ALIAS)
 
-    response = client.post("/partida/crear", json=body)
+    body = {
+        "match_name": nameGame,
+        "player_name": invalid,
+        "min_players": 4,
+        "max_players": 12,
+    }
 
+    response = client.post("/match/create", json=body)
+
+    print(response.json())
     _assert_invalid(response, "Player not found")
 
 
 def test_player_create_match_invalid_bounds():
-    body = {"match_name": "Match1", "user_id": 1, "min_players": 3, "max_players": 12}
+    nameGame = "tpcmibGame"
+    namePlayer = "tpcmibPlayer"
 
-    response = client.post("/partida/crear", json=body)
+    _create_player(namePlayer)
+
+    body = {
+        "match_name": nameGame,
+        "player_name": namePlayer,
+        "min_players": 3,
+        "max_players": 12,
+    }
+
+    response = client.post("/match/create", json=body)
 
     _assert_invalid(response, "Invalid number of players")
 

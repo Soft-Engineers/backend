@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 from unittest import TestCase
 from Database.Database import *
 from Tests.auxiliar_functions import *
+from app import MAX_LEN_ALIAS
 
 # python3 -m unittest Tests.test_database
 
@@ -13,7 +14,7 @@ class test_db_create_match(TestCase):
 
         create_player(player_name)
 
-        db_create_match(match_name, get_player_id(player_name), 4, 12)
+        db_create_match(match_name, player_name, 4, 12)
 
         match = get_match_by_name(match_name)
         player = get_player_by_name(player_name)
@@ -27,9 +28,10 @@ class test_db_create_match(TestCase):
 
     def test_db_create_match_invalid_player(self):
         match_name = "tdbcmipMatch"
+        invalid_player = get_random_string_lower(MAX_LEN_ALIAS)
 
         with self.assertRaises(PlayerNotFound) as context:
-            db_create_match(match_name, 0, 4, 12)
+            db_create_match(match_name, invalid_player, 4, 12)
         self.assertEqual(str(context.exception), "Player not found")
 
     def test_db_create_match_repeated_name(self):
@@ -40,10 +42,10 @@ class test_db_create_match(TestCase):
         create_player(player_name1)
         create_player(player_name2)
 
-        db_create_match(match_name, get_player_id(player_name1), 4, 12)
+        db_create_match(match_name, player_name1, 4, 12)
 
         with self.assertRaises(NameNotAvailable) as context:
-            db_create_match(match_name, get_player_id(player_name2), 4, 12)
+            db_create_match(match_name, player_name2, 4, 12)
         self.assertEqual(str(context.exception), "Match name already used")
 
     def test_db_create_match_player_already_match(self):
@@ -53,10 +55,10 @@ class test_db_create_match(TestCase):
 
         create_player(player_name)
 
-        db_create_match(match_name1, get_player_id(player_name), 4, 12)
+        db_create_match(match_name1, player_name, 4, 12)
 
         with self.assertRaises(PlayerAlreadyInMatch) as context:
-            db_create_match(match_name2, get_player_id(player_name), 4, 12)
+            db_create_match(match_name2, player_name, 4, 12)
         self.assertEqual(str(context.exception), "Player already in a match")
 
 
