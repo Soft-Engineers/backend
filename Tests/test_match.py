@@ -5,8 +5,16 @@ from app import *
 from fastapi.testclient import TestClient
 from Tests.auxiliar_functions import *
 
+
 client = TestClient(app)
 
+
+def test_match_listing():
+    with patch("app.get_match_list", return_value=[1, 2, 3]):
+        response = client.get("/match/list")
+        assert response.status_code == 200
+        assert response.json() == {"Matches": [1, 2, 3]}
+        
 
 def _assert_match_created(response):
     assert response.status_code == 201
@@ -165,3 +173,4 @@ class test_get_players(TestCase):
         mock_db_get_players.assert_called_once_with(1)
         assert response.status_code == 404
         assert response.json() == {"detail": "Match not found"}
+
