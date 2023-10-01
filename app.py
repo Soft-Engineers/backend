@@ -91,6 +91,19 @@ async def player_creator(name_player: str = Form()):
         return {"player_id": get_player_by_name(name_player).id}
 
 
+@app.get("/match/players", tags=["Matches"], status_code=status.HTTP_200_OK)
+def get_players(match_id: int):
+    """
+    Get players names from a match
+    """
+    try:
+        players = db_get_players(match_id)
+        response = {"players": players}
+    except MatchNotFound:
+        raise HTTPException(status_code=404, detail="Match not found")
+    return response
+
+
 def is_correct_password(match_id: int, password: str) -> bool:
     is_correct = True
     if db_match_has_password(match_id):

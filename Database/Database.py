@@ -97,6 +97,18 @@ def db_add_player(player_id: int, match_id: int):
 
 
 @db_session
+def db_get_players(match_id: int) -> list[str]:
+    """
+    Returns the players names from a match
+    """
+    match = _get_match(match_id)
+    players = []
+    for p in match.players:
+        players.append(p.player_name)
+    return players
+
+
+@db_session
 def _match_exists(match_name):
     return Match.exists(name=match_name)
 
