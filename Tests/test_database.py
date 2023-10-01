@@ -86,7 +86,9 @@ class test_db_add_player(TestCase):
 
     @patch("Database.Database.get_player_by_id")
     @patch("Database.Database._get_match")
-    def test_db_add_player_already_in_match(self, mock_get_match, mock_get_player_by_id):
+    def test_db_add_player_already_in_match(
+        self, mock_get_match, mock_get_player_by_id
+    ):
         player_id = 1
         match_id = 1
         max_players = 4
