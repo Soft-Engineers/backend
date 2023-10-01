@@ -7,7 +7,9 @@ from Database.exceptions import *
 
 db = pony.orm.Database()
 
+
 if "pytest" in sys.modules or "unittest" in sys.modules:
+
     db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
     db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
@@ -22,7 +24,7 @@ class Match(db.Entity):
     players = Set("Player")
     initiated = Optional(bool, default=False)
     clockwise = Optional(bool, default=True)
-    current_player = Optional(int, default=0)
+    current_player = Required(int, default=0)
     deck = Set("Deck")
 
 
@@ -57,12 +59,65 @@ class Deck(db.Entity):
 db.generate_mapping(create_tables=True)
 
 
-# ------------ match functions ---------------
+# --- Match Functions --- #
+@db_session
+def get_match_games(match_id):
+    return Match[match_id].games
+
+
+@db_session
+def get_match_players(match_id):
+    return Match[match_id].players
+
+
+@db_session
+def get_match_max_players(match_id):
+    return Match[match_id].max_players
+
+
+@db_session
+def get_match_min_players(match_id):
+    return Match[match_id].min_players
+
+
+@db_session
+def get_match_quantity():
+    return Match.select().count()
+
+
+@db_session
+def get_match_quantity_player(match_id):
+    return Match[match_id].players.count()
+
+
+@db_session
+def get_match_list():
+
+    match_list = Match.select()[:]
+    res_list = []
+    for match in match_list:
+        res_list.append(
+            {
+                "name": match.name,
+                "min_players": match.min_players,
+                "max_players": match.max_players,
+                "current_players": match.current_player,
+            }
+        )
+    return res_list
+
 @db_session
 def _get_match(match_id: int) -> Match:
     if not Match.exists(id=match_id):
         raise MatchNotFound("Match not found")
     return Match[match_id]
+
+
+@db_session
+def _get_match_by_name(match_name: str) -> Match:
+    if not Match.exists(name=match_name):
+        raise MatchNotFound("Match not found")
+    return Match.get(name=match_name)
 
 
 @db_session
@@ -97,11 +152,11 @@ def db_add_player(player_id: int, match_id: int):
 
 
 @db_session
-def db_get_players(match_id: int) -> list[str]:
+def db_get_players(match_name: str) -> list[str]:
     """
     Returns the players names from a match
     """
-    match = _get_match(match_id)
+    match = _get_match_by_name(match_name)
     players = []
     for p in match.players:
         players.append(p.player_name)
@@ -175,3 +230,4 @@ def get_player_id(player_name):
     if not player_exists(player_name):
         raise PlayerNotFound("Player not found")
     return Player.get(player_name=player_name).id
+

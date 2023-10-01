@@ -23,12 +23,7 @@ description = """
             ## The FUN is guaranteed! 
 """
 
-origins = [
-    "http://localhost:3000",
-    "localhost:3000",
-    "http://localhost:3000/",
-    "localhost:3000/",
-]
+origins = ["http://localhost:3000", "http://localhost:5173"]
 
 tags_metadata = [
     {"name": "Player", "description": "Operations with players."},
@@ -50,6 +45,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.get("/match/list", tags=["Matches"], status_code=200)
+async def match_listing():
+    res_list = get_match_list()
+    return {"Matches": res_list}
 
 @app.post("/match/create", tags=["Matches"], status_code=status.HTTP_201_CREATED)
 def create_game(config: GameConfig):
@@ -92,12 +92,12 @@ async def player_creator(name_player: str = Form()):
 
 
 @app.get("/match/players", tags=["Matches"], status_code=status.HTTP_200_OK)
-def get_players(match_id: int):
+def get_players(match_name: str):
     """
     Get players names from a match
     """
     try:
-        players = db_get_players(match_id)
+        players = db_get_players(match_name)
         response = {"players": players}
     except MatchNotFound:
         raise HTTPException(status_code=404, detail="Match not found")
@@ -131,3 +131,4 @@ def join_game(user_id: int, match_id: int, password: str = ""):
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return response
+
