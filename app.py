@@ -51,6 +51,7 @@ async def match_listing():
     res_list = get_match_list()
     return {"Matches": res_list}
 
+
 @app.post("/match/create", tags=["Matches"], status_code=status.HTTP_201_CREATED)
 def create_game(config: GameConfig):
     """
@@ -64,7 +65,10 @@ def create_game(config: GameConfig):
 
     try:
         db_create_match(
-            config.match_name, config.player_name, config.min_players, config.max_players
+            config.match_name,
+            config.player_name,
+            config.min_players,
+            config.max_players,
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
