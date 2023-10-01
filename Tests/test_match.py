@@ -157,20 +157,20 @@ class test_join_game(TestCase):
 
 
 class test_get_players(TestCase):
-    @patch("app.db_get_players", return_value=["Player1", "Player2"])
+    @patch("app.db_get_players", return_value=["player1", "player2"])
     def test_get_players(self, mock_db_get_players):
-        response = client.get("/match/players", params={"match_id": 1})
+        response = client.get("/match/players", params={"match_name": "test_match"})
 
-        mock_db_get_players.assert_called_once_with(1)
+        mock_db_get_players.assert_called_once_with("test_match")
         assert response.status_code == 200
-        assert response.json() == {"players": ["Player1", "Player2"]}
+        assert response.json() == {"players": ["player1", "player2"]}
 
     @patch("app.db_get_players")
     def test_get_players_not_found(self, mock_db_get_players):
         mock_db_get_players.side_effect = MatchNotFound("Match not found")
-        response = client.get("/match/players", params={"match_id": 1})
+        response = client.get("/match/players", params={"match_name": "test_match"})
 
-        mock_db_get_players.assert_called_once_with(1)
+        mock_db_get_players.assert_called_once_with("test_match")
         assert response.status_code == 404
         assert response.json() == {"detail": "Match not found"}
 

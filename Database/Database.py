@@ -114,6 +114,13 @@ def _get_match(match_id: int) -> Match:
 
 
 @db_session
+def _get_match_by_name(match_name: str) -> Match:
+    if not Match.exists(name=match_name):
+        raise MatchNotFound("Match not found")
+    return Match.get(name=match_name)
+
+
+@db_session
 def db_get_match_password(match_id: int) -> str:
     match = _get_match(match_id)
     return match.password
@@ -145,11 +152,11 @@ def db_add_player(player_id: int, match_id: int):
 
 
 @db_session
-def db_get_players(match_id: int) -> list[str]:
+def db_get_players(match_name: str) -> list[str]:
     """
     Returns the players names from a match
     """
-    match = _get_match(match_id)
+    match = _get_match_by_name(match_name)
     players = []
     for p in match.players:
         players.append(p.player_name)
