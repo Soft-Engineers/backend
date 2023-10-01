@@ -85,7 +85,7 @@ def db_is_match_initiated(match_id: int) -> bool:
 
 @db_session
 def db_add_player(player_id: int, match_id: int):
-    player = _get_player(player_id)
+    player = get_player_by_id(player_id)
     match = _get_match(match_id)
     if player.match:
         raise PlayerAlreadyInMatch("Player already in a match")
@@ -106,7 +106,7 @@ def db_create_match(match_name: str, user_id: int, min_players: int, max_players
     if _match_exists(match_name):
         raise NameNotAvailable("Match name already used")
 
-    creator = _get_player(user_id)
+    creator = get_player_by_id(user_id)
 
     if creator.match:
         raise PlayerAlreadyInMatch("Player already in a match")
@@ -157,11 +157,3 @@ def get_player_by_id(player_id: int) -> Player:
 @db_session
 def get_player_id(player_name):
     return Player.get(player_name=player_name).id
-
-
-@db_session
-def _get_player(player_id: int) -> Player:
-    if not Player.exists(id=player_id):
-        raise PlayerNotFound("Player not found")
-    return Player[player_id]
-
