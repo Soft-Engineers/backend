@@ -123,7 +123,7 @@ class test_join_game(TestCase):
     def test_join_game(self, *args):
         db_add_player.return_value = None
         response = client.post("/match/join", params={"user_id": 1, "match_id": 1})
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"detail": "ok"})
 

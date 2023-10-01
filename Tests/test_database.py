@@ -131,11 +131,6 @@ class test_db_add_player(TestCase):
         mock_get_match.assert_called_once_with(match_id)
 
 
-from Database.Database import *
-from unittest.mock import Mock, patch
-from unittest import TestCase
-
-
 # ------------ match functions ---------------
 
 
