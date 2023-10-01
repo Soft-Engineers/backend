@@ -101,10 +101,11 @@ def get_match_list():
                 "name": match.name,
                 "min_players": match.min_players,
                 "max_players": match.max_players,
-                "current_players": match.current_player,
+                "players": match.players.count(),
             }
         )
     return res_list
+
 
 @db_session
 def _get_match(match_id: int) -> Match:
@@ -230,4 +231,3 @@ def get_player_id(player_name):
     if not player_exists(player_name):
         raise PlayerNotFound("Player not found")
     return Player.get(player_name=player_name).id
-
