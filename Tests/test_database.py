@@ -58,7 +58,6 @@ class test_db_get_match_state(TestCase):
             state["players"],
             [
                 {
-                    "id": mock_player2.id,
                     "name": mock_player2.player_name,
                     "position": mock_player2.position,
                 }

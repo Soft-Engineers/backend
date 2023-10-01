@@ -5,7 +5,6 @@ from pathlib import Path
 from Database.exceptions import *
 
 
-
 db = pony.orm.Database()
 
 if "pytest" in sys.modules or "unittest" in sys.modules:
@@ -57,13 +56,6 @@ class Deck(db.Entity):
 
 db.generate_mapping(create_tables=True)
 
-"""
-@db_session
-def _get_player(player_id: int) -> Player:
-    if not Player.exists(id=player_id):
-        raise Exception("Player not found")
-    return Player[player_id]
-"""
 
 @db_session
 def get_player_match(player: Player) -> Match:
@@ -80,7 +72,10 @@ def _get_players_data(match: Match, except_name: str) -> list:
     for player in players:
         if not player.player_name == except_name:
             players_data.append(
-                {"id": player.id, "name": player.player_name, "position": player.position}
+                {
+                    "name": player.player_name,
+                    "position": player.position,
+                }
             )
     return players_data
 
@@ -114,6 +109,7 @@ def get_match_state(player_name: str) -> dict:
         "players": players_data,
     }
 
+
 # ------------ player functions ----------------
 @db_session
 def create_player(new_player_name):
@@ -144,4 +140,3 @@ def get_player_id(player_name):
     if not player_exists(player_name):
         raise PlayerNotFound("Player not found")
     return Player.get(player_name=player_name).id
-
