@@ -51,7 +51,7 @@ app.add_middleware(
 )
 
 
-@app.post("/partida/crear", tags=["Matches"], status_code=status.HTTP_201_CREATED)
+@app.post("/match/create", tags=["Matches"], status_code=status.HTTP_201_CREATED)
 def create_game(config: GameConfig):
     """
     Create a new match
@@ -64,7 +64,7 @@ def create_game(config: GameConfig):
 
     try:
         db_create_match(
-            config.match_name, config.user_id, config.min_players, config.max_players
+            config.match_name, config.player_name, config.min_players, config.max_players
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr
 
 class GameConfig(BaseModel):
     match_name: str
-    user_id: int
+    player_name: str
     min_players: int
     max_players: int
 

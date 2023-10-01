@@ -114,11 +114,13 @@ def _match_exists(match_name):
 
 
 @db_session
-def db_create_match(match_name: str, user_id: int, min_players: int, max_players: int):
+def db_create_match(
+    match_name: str, player_name: str, min_players: int, max_players: int
+):
     if _match_exists(match_name):
         raise NameNotAvailable("Match name already used")
 
-    creator = get_player_by_id(user_id)
+    creator = get_player_by_name(player_name)
 
     if creator.match:
         raise PlayerAlreadyInMatch("Player already in a match")
@@ -151,6 +153,8 @@ def create_player(new_player_name):
 
 @db_session
 def get_player_by_name(player_name):
+    if not player_exists(player_name):
+        raise PlayerNotFound("Player not found")
     return Player.get(player_name=player_name)
 
 
@@ -168,4 +172,6 @@ def get_player_by_id(player_id: int) -> Player:
 
 @db_session
 def get_player_id(player_name):
+    if not player_exists(player_name):
+        raise PlayerNotFound("Player not found")
     return Player.get(player_name=player_name).id
