@@ -12,17 +12,19 @@ if "pytest" in sys.modules or "unittest" in sys.modules:
 else:
     db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
 
+    db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
+
 
 class Match(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str)
+    name = Required(str, unique=True)
     password = Optional(str, default="")
     min_players = Required(int)
     max_players = Required(int)
     players = Set("Player")
     initiated = Optional(bool, default=False)
     clockwise = Optional(bool, default=True)
-    current_player = Optional(int, default=0)
+    current_player = Required(int, default=0)
     deck = Set("Deck")
 
 
@@ -33,13 +35,13 @@ class Player(db.Entity):
     is_host = Optional(bool, default=False)
     cards = Set("Card")
     position = Optional(int)
-    rol = Optional(int)
+    rol = Optional(int)  # 0: default, 1: human, 2: la cosa, 3: infected
     is_alive = Optional(bool)
 
 
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
-    name = Required(str)
+    card_name = Required(str)
     type = Required(int)
     description = Required(str)
     number = Required(int)
