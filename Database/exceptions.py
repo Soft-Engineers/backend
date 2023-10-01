@@ -24,3 +24,6 @@ class MatchAlreadyStarted(DatabaseError):
 class MatchIsFull(DatabaseError):
     pass
 
+
+class NameNotAvailable(DatabaseError):
+    pass

@@ -51,6 +51,27 @@ app.add_middleware(
 )
 
 
+@app.post("/partida/crear", tags=["Matches"], status_code=status.HTTP_201_CREATED)
+def create_game(config: GameConfig):
+    """
+    Create a new match
+    """
+
+    if config.min_players < 4 or config.max_players > 12:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid number of players"
+        )
+
+    try:
+        db_create_match(
+            config.match_name, config.user_id, config.min_players, config.max_players
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return {"detail": "Match created"}
+
+
 @app.post("/player/create", tags=["Player"], status_code=200)
 async def player_creator(name_player: str = Form()):
     """
@@ -67,8 +88,7 @@ async def player_creator(name_player: str = Form()):
         )
     else:
         create_player(name_player)
-        return {"player_id": get_player(name_player).id}
-
+        return {"player_id": get_player_by_name(name_player).id}
 
 
 @app.get("/match/players", tags=["Matches"], status_code=status.HTTP_200_OK)
@@ -84,12 +104,12 @@ def get_players(match_id: int):
     return response
 
 
-
 def is_correct_password(match_id: int, password: str) -> bool:
     is_correct = True
     if db_match_has_password(match_id):
         is_correct = db_get_match_password(match_id) == password
     return is_correct
+
 
 @app.post("/match/join", tags=["Matches"], status_code=status.HTTP_200_OK)
 def join_game(user_id: int, match_id: int, password: str = ""):

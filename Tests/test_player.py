@@ -3,7 +3,7 @@ from app import app
 from pydantic_models import *
 from Database.Database import *
 from base64 import b64encode
-from Test.auxiliar_functions import *
+from Tests.auxiliar_functions import *
 from unittest.mock import ANY
 
 client = TestClient(app)
