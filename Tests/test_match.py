@@ -15,7 +15,7 @@ def test_match_listing():
         response = client.get("/match/list")
         assert response.status_code == 200
         assert response.json() == {"Matches": [1, 2, 3]}
-        
+
 
 def _assert_match_created(response):
     assert response.status_code == 201
@@ -146,7 +146,9 @@ class test_join_game(TestCase):
     @patch("app.db_is_match_initiated", return_value=False)
     def test_join_game(self, *args):
         db_add_player.return_value = None
-        response = client.post("/match/join", params={"user_id": 1, "match_id": 1})
+        response = client.post(
+            "/match/join", params={"user_name": "test_user", "match_name": "test_match"}
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"detail": "ok"})
@@ -155,7 +157,9 @@ class test_join_game(TestCase):
     @patch("app.db_is_match_initiated", return_value=False)
     @patch("app.db_add_player")
     def test_join_game_incorrect_password(self, mock_add_player, *args):
-        response = client.post("/match/join", params={"user_id": 1, "match_id": 1})
+        response = client.post(
+            "/match/join", params={"user_name": "test_user", "match_name": "test_match"}
+        )
 
         mock_add_player.assert_not_called()
         self.assertEqual(response.status_code, 401)
@@ -165,7 +169,9 @@ class test_join_game(TestCase):
     @patch("app.db_is_match_initiated", return_value=True)
     @patch("app.db_add_player")
     def test_join_game_is_initiated(self, mock_add_player, *args):
-        response = client.post("/match/join", params={"user_id": 1, "match_id": 1})
+        response = client.post(
+            "/match/join", params={"user_name": "test_user", "match_name": "test_match"}
+        )
 
         mock_add_player.assert_not_called()
         self.assertEqual(response.status_code, 400)
@@ -189,4 +195,3 @@ class test_get_players(TestCase):
         mock_db_get_players.assert_called_once_with("test_match")
         assert response.status_code == 404
         assert response.json() == {"detail": "Match not found"}
-

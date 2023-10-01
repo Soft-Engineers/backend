@@ -51,6 +51,7 @@ async def match_listing():
     res_list = get_match_list()
     return {"Matches": res_list}
 
+
 @app.post("/match/create", tags=["Matches"], status_code=status.HTTP_201_CREATED)
 def create_game(config: GameConfig):
     """
@@ -64,7 +65,10 @@ def create_game(config: GameConfig):
 
     try:
         db_create_match(
-            config.match_name, config.player_name, config.min_players, config.max_players
+            config.match_name,
+            config.player_name,
+            config.min_players,
+            config.max_players,
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -104,31 +108,30 @@ def get_players(match_name: str):
     return response
 
 
-def is_correct_password(match_id: int, password: str) -> bool:
+def is_correct_password(match_name: str, password: str) -> bool:
     is_correct = True
-    if db_match_has_password(match_id):
-        is_correct = db_get_match_password(match_id) == password
+    if db_match_has_password(match_name):
+        is_correct = db_get_match_password(match_name) == password
     return is_correct
 
 
 @app.post("/match/join", tags=["Matches"], status_code=status.HTTP_200_OK)
-def join_game(user_id: int, match_id: int, password: str = ""):
+def join_game(user_name: str, match_name: str, password: str = ""):
     """
     Join player to a match
     """
     try:
-        if db_is_match_initiated(match_id):
+        if db_is_match_initiated(match_name):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Match already started"
             )
-        elif not is_correct_password(match_id, password):
+        elif not is_correct_password(match_name, password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
             )
         else:
-            db_add_player(user_id, match_id)
+            db_add_player(user_name, match_name)
             response = {"detail": "ok"}
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return response
-
