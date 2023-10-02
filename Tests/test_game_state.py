@@ -9,13 +9,21 @@ client = TestClient(app)
 
 # Get status of match
 
+
+def _assert_invalid(response, detail):
+    assert response.status_code == 400
+    assert response.json() == {"detail": detail}
+
+
 def _create_player(namePlayer):
     client.post("/player/create", data={"name_player": namePlayer})
+
 
 def test_get_match_state_invalid_player():
     response = client.get("/match/state/tgmsipPlayerInv")
     assert response.status_code == 400
     assert response.json() == {"detail": "Player not found"}
+
 
 def test_get_match_state_not_in_match():
     namePlayer = "tpmsnimGame"
@@ -25,6 +33,7 @@ def test_get_match_state_not_in_match():
 
     assert response.status_code == 400
     assert response.json() == {"detail": "Player not in a match"}
+
 
 def test_get_match_state():
     nameGame = "tpmsGame"
@@ -43,10 +52,36 @@ def test_get_match_state():
 
     client.post("/match/create", json=body)
 
-    client.post("/match/join", params={"user_name": participantName, "match_name": nameGame})
+    client.post(
+        "/match/join", params={"user_name": participantName, "match_name": nameGame}
+    )
 
     responseCreator = client.get("/match/state/" + creatorName)
     responseParticipant = client.get("/match/state/" + participantName)
 
     assert responseCreator.status_code == 200
     assert responseParticipant.status_code == 200
+    assert responseCreator.json() == {
+        "detail": "estado obtenido exitosamente",
+        "state": {
+            "turn": 0,
+            "position": None,
+            "cards": [],
+            "alive": None,
+            "role": None,
+            "clockwise": True,
+            "players": [{"name": participantName, "position": None}],
+        },
+    }
+    assert responseParticipant.json() == {
+        "detail": "estado obtenido exitosamente",
+        "state": {
+            "turn": 0,
+            "position": None,
+            "cards": [],
+            "alive": None,
+            "role": None,
+            "clockwise": True,
+            "players": [{"name": creatorName, "position": None}],
+        },
+    }
