@@ -156,7 +156,11 @@ class test_join_game(TestCase):
     @patch("app.db_is_match_initiated", return_value=False)
     @patch("app.db_add_player")
     def test_join_game_incorrect_password(self, mock_add_player, *args):
-        body = {"player_name": "test_user", "match_name": "test_match", "password": "123"}
+        body = {
+            "player_name": "test_user",
+            "match_name": "test_match",
+            "password": "123",
+        }
         response = client.post("/match/join", json=body)
 
         mock_add_player.assert_not_called()
