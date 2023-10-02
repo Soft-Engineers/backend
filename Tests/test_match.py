@@ -146,9 +146,8 @@ class test_join_game(TestCase):
     @patch("app.db_is_match_initiated", return_value=False)
     def test_join_game(self, *args):
         db_add_player.return_value = None
-        response = client.post(
-            "/match/join", params={"user_name": "test_user", "match_name": "test_match"}
-        )
+        body = {"player_name": "test_user", "match_name": "test_match"}
+        response = client.post("/match/join", json=body)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"detail": "ok"})
@@ -157,9 +156,12 @@ class test_join_game(TestCase):
     @patch("app.db_is_match_initiated", return_value=False)
     @patch("app.db_add_player")
     def test_join_game_incorrect_password(self, mock_add_player, *args):
-        response = client.post(
-            "/match/join", params={"user_name": "test_user", "match_name": "test_match"}
-        )
+        body = {
+            "player_name": "test_user",
+            "match_name": "test_match",
+            "password": "123",
+        }
+        response = client.post("/match/join", json=body)
 
         mock_add_player.assert_not_called()
         self.assertEqual(response.status_code, 401)
@@ -169,9 +171,8 @@ class test_join_game(TestCase):
     @patch("app.db_is_match_initiated", return_value=True)
     @patch("app.db_add_player")
     def test_join_game_is_initiated(self, mock_add_player, *args):
-        response = client.post(
-            "/match/join", params={"user_name": "test_user", "match_name": "test_match"}
-        )
+        body = {"player_name": "test_user", "match_name": "test_match"}
+        response = client.post("/match/join", json=body)
 
         mock_add_player.assert_not_called()
         self.assertEqual(response.status_code, 400)

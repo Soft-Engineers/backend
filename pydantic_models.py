@@ -7,7 +7,6 @@ class MatchListParams(BaseModel):
     filter: str = "all"
 
 
-
 class GameConfig(BaseModel):
     match_name: str
     player_name: str
@@ -17,3 +16,9 @@ class GameConfig(BaseModel):
 
 class PlayerTemp(BaseModel):
     player_name: str
+
+
+class JoinMatch(BaseModel):
+    player_name: str
+    match_name: str
+    password: Optional[str] = ""
