@@ -91,6 +91,7 @@ class test_db_get_match_state(TestCase):
         mock_get_player_by_name.assert_called_once_with(target_player_name)
         self.assertEqual(str(context.exception), "Player not found")
 
+
 class test_db_create_match(TestCase):
     def test_db_create_match(self):
         player_name = "tdbcmPlayer"
@@ -112,7 +113,7 @@ class test_db_create_match(TestCase):
 
     def test_db_create_match_invalid_player(self):
         match_name = "tdbcmipMatch"
-        invalid_player = get_random_string_lower(MAX_LEN_ALIAS)
+        invalid_player = "tdbcmipInvPlayer"
 
         with self.assertRaises(PlayerNotFound) as context:
             db_create_match(match_name, invalid_player, 4, 12)

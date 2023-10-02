@@ -7,7 +7,6 @@ class MatchListParams(BaseModel):
     filter: str = "all"
 
 
-
 class GameConfig(BaseModel):
     match_name: str
     player_name: str

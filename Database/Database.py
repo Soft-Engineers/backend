@@ -212,11 +212,13 @@ def get_player_by_name(player_name):
         raise PlayerNotFound("Player not found")
     return Player.get(player_name=player_name)
 
+
 @db_session
 def _get_player_by_name(player_name: str) -> Player:
     if not Player.exists(player_name=player_name):
         raise PlayerNotFound("Player not found")
     return Player.get(player_name=player_name)
+
 
 @db_session
 def player_exists(player_name):
