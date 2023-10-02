@@ -16,3 +16,9 @@ class GameConfig(BaseModel):
 
 class PlayerTemp(BaseModel):
     player_name: str
+
+
+class JoinMatch(BaseModel):
+    player_name: str
+    match_name: str
+    password: Optional[str] = ""
