@@ -53,7 +53,7 @@ def test_get_match_state():
     client.post("/match/create", json=body)
 
     client.post(
-        "/match/join", params={"user_name": participantName, "match_name": nameGame}
+        "/match/join", json={"player_name": participantName, "match_name": nameGame}
     )
 
     responseCreator = client.get("/match/state/" + creatorName)

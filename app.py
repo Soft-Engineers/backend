@@ -138,7 +138,7 @@ async def join_game(join_match: JoinMatch):
 
 
 @app.get("/match/state/{player_name}", tags=["Matches"], status_code=status.HTTP_200_OK)
-def match_state_of(player_name: str):
+async def match_state_of(player_name: str):
     try:
         state = get_match_state(player_name)
         response = {"detail": "estado obtenido exitosamente", "state": state}
