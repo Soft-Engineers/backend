@@ -11,112 +11,85 @@ class CardType(Enum):
     OBSTACULO = 4
     PANICO = 5
 
-class CardTemplate:
-    def __init__(self, card_name: str, number: int, amount: int, type: CardType):
-        self.card_name = card_name
+
+class T:
+    def __init__(self, number: int, amount: int):
+        if number is not None and (number < 3 or number > 12):
+            raise Exception("Inconsistent card number")
+        if amount is None or amount < 1:
+            raise Exception("Inconsistent card amount")
+
         self.number = number
         self.amount = amount
+
+    def __eq__(self, __value: object) -> bool:
+        return self.number == __value.number and self.amount == __value.amount
+
+
+class CardTemplate:
+    def __init__(self, card_name: str, repetitions: list[T], type: CardType):
+        
+
+        self.card_name = card_name
+        self.repetitions = repetitions
         self.type = type
 
 
 
 
 card_templates = [
-    CardTemplate("La Cosa", None, 1, CardType.CONTAGIO),
-    CardTemplate("¡Infectado!", 4, 8, CardType.CONTAGIO),
-    CardTemplate("¡Infectado!", 6, 2, CardType.CONTAGIO),
-    CardTemplate("¡Infectado!", 7, 2, CardType.CONTAGIO),
-    CardTemplate("¡Infectado!", 8, 1, CardType.CONTAGIO),
-    CardTemplate("¡Infectado!", 9, 2, CardType.CONTAGIO),
-    CardTemplate("¡Infectado!", 10, 2, CardType.CONTAGIO),
-    CardTemplate("¡Infectado!", 11, 3, CardType.CONTAGIO),
-    CardTemplate("Lanzallamas", 4, 2, CardType.ACCION),
-    CardTemplate("Lanzallamas", 6, 1, CardType.ACCION),
-    CardTemplate("Lanzallamas", 9, 1, CardType.ACCION),
-    CardTemplate("Lanzallamas", 11, 1, CardType.ACCION),
-    CardTemplate("Análisis", 5, 1, CardType.ACCION),
-    CardTemplate("Análisis", 6, 1, CardType.ACCION),
-    CardTemplate("Análisis", 9, 1, CardType.ACCION),
-    CardTemplate("Hacha", 4, 1, CardType.ACCION),
-    CardTemplate("Hacha", 9, 1, CardType.ACCION),
-    CardTemplate("Sospecha", 4, 4, CardType.ACCION),
-    CardTemplate("Sospecha", 7, 1, CardType.ACCION),
-    CardTemplate("Sospecha", 8, 1, CardType.ACCION),
-    CardTemplate("Sospecha", 9, 1, CardType.ACCION),
-    CardTemplate("Sospecha", 10, 1, CardType.ACCION),
-    CardTemplate("Determinación", 6, 1, CardType.ACCION),
-    CardTemplate("Whisky", 4, 1, CardType.ACCION),
-    CardTemplate("Whisky", 6, 1, CardType.ACCION),
-    CardTemplate("Whisky", 10, 1, CardType.ACCION),
-    CardTemplate("Determinación", 4, 2, CardType.ACCION),
-    CardTemplate("Determinación", 9, 1, CardType.ACCION),
-    CardTemplate("Determinación", 10, 1, CardType.ACCION),
-    CardTemplate("¡Cambio de Lugar!", 11, 1, CardType.ACCION),
-    CardTemplate("Vigila tus espaldas", 4, 1, CardType.ACCION),
-    CardTemplate("Vigila tus espaldas", 9, 1, CardType.ACCION),
-    CardTemplate("¡Cambio de Lugar!", 4, 2, CardType.ACCION),
-    CardTemplate("¡Cambio de Lugar!", 7, 1, CardType.ACCION),
-    CardTemplate("¡Cambio de Lugar!", 9, 1, CardType.ACCION),
-    CardTemplate("Seducción", 4, 1, CardType.ACCION),
-    CardTemplate("Seducción", 4, 6, CardType.ACCION),
-    CardTemplate("Puerta atrancada", 11, 1, CardType.OBSTACULO),
-    CardTemplate("¡Más vale que corras!", 4, 2, CardType.ACCION),
-    CardTemplate("¡Más vale que corras!", 7, 1, CardType.ACCION),
-    CardTemplate("¡Más vale que corras!", 9, 1, CardType.ACCION),
-    CardTemplate("¡Más vale que corras!", 11, 1, CardType.ACCION),
-    CardTemplate("Seducción", 4, 1, CardType.ACCION),
-    CardTemplate("Aquí estoy bien", 4, 1, CardType.DEFENSA),
-    CardTemplate("Seducción", 7, 1, CardType.ACCION),
-    CardTemplate("Seducción", 8, 1, CardType.ACCION),
-    CardTemplate("Seducción", 10, 1, CardType.ACCION),
-    CardTemplate("Seducción", 11, 1, CardType.ACCION),
-    CardTemplate("Aterrador", 5, 1, CardType.ACCION),
-    CardTemplate("Aterrador", 6, 1, CardType.ACCION),
-    CardTemplate("Aterrador", 8, 1, CardType.ACCION),
-    CardTemplate("Aterrador", 11, 1, CardType.ACCION),
-    CardTemplate("Aquí estoy bien", 11, 1, CardType.DEFENSA),
-    CardTemplate("¡No, gracias!", 4, 1, CardType.DEFENSA),
-    CardTemplate("¡No, gracias!", 6, 1, CardType.DEFENSA),
-    CardTemplate("¡No, gracias!", 8, 1, CardType.DEFENSA),
-    CardTemplate("¡No, gracias!", 11, 1, CardType.DEFENSA),
-    CardTemplate("¡Fallaste!", 4, 1, CardType.DEFENSA),
-    CardTemplate("¡Fallaste!", 6, 1, CardType.DEFENSA),
-    CardTemplate("¡Fallaste!", 11, 1, CardType.DEFENSA),
-    CardTemplate("Aquí estoy bien", 6, 1, CardType.DEFENSA),
-    CardTemplate("¡Nada de barbacoas!", 4, 1, CardType.DEFENSA),
-    CardTemplate("¡Nada de barbacoas!", 6, 1, CardType.DEFENSA),
-    CardTemplate("¡Nada de barbacoas!", 11, 1, CardType.DEFENSA),
-    CardTemplate("Cuartentena", 5, 1, CardType.OBSTACULO),
-    CardTemplate("Cuartentena", 9, 1, CardType.OBSTACULO),
-    CardTemplate("Puerta atrancada", 4, 1, CardType.OBSTACULO),
-    CardTemplate("Puerta atrancada", 7, 1, CardType.OBSTACULO),
-    CardTemplate("Revelaciones", 8, 1, CardType.PANICO),
-    CardTemplate("Cuerdas podridas", 6, 1, CardType.PANICO),
-    CardTemplate("¡Sal de aquí!", 5, 1, CardType.PANICO),
-    CardTemplate("Olvidadizo", 4, 1, CardType.PANICO),
-    CardTemplate("Cuerdas podridas", 9, 1, CardType.PANICO),
-    CardTemplate("Uno, dos..", 5, 1, CardType.PANICO),
-    CardTemplate("Uno, dos..", 9, 1, CardType.PANICO),
-    CardTemplate("Tres, cuatro..", 4, 1, CardType.PANICO),
-    CardTemplate("Tres, cuatro..", 9, 1, CardType.PANICO),
-    CardTemplate("¿Es aquí la fiesta?", 5, 1, CardType.PANICO),
-    CardTemplate("¿Es aquí la fiesta?", 9, 1, CardType.PANICO)
-    # Debería estar completo, revisar
+    CardTemplate("La Cosa", [T(None, 1)], CardType.CONTAGIO),
+    CardTemplate("¡Infectado!", 
+                [T(4, 8), T(6,2), T(7,2), T(8,1), T(9,2), T(10,2), T(11,3)],
+                CardType.CONTAGIO),
+    CardTemplate("Lanzallamas", [T(4, 2), T(6,1), T(9,1), T(11,1)], CardType.ACCION),
+    CardTemplate("Análisis", [T(5,1), T(6,1), T(9,1)], CardType.ACCION),
+    CardTemplate("Hacha", [T(4,1),T(9,1)], CardType.ACCION),
+    CardTemplate("Sospecha", [T(4,4), T(7,1), T(8,1), T(9,1), T(10,1)], CardType.ACCION),
+    CardTemplate("Determinación", [T(4,2), T(6,1), T(9,1), T(10,1)], CardType.ACCION),
+    CardTemplate("Whisky", [T(4,1),T(6,1),T(10,1)], CardType.ACCION),
+    CardTemplate("¡Cambio de Lugar!", [T(4,2),T(7,1),T(9,1),T(11,1)], CardType.ACCION),
+    CardTemplate("Vigila tus espaldas", [T(4,1),T(9,1)], CardType.ACCION),
+    CardTemplate("Seducción", [T(4,2),T(6,1),T(7,1),T(8,1),T(10,1),T(11,1)], CardType.ACCION),
+    CardTemplate("Puerta atrancada", [T(4,1),T(7,1),T(11,1)], CardType.OBSTACULO),
+    CardTemplate("¡Más vale que corras!", [T(4,2),T(7,1),T(9,1),T(11,1)], CardType.ACCION),
+    CardTemplate("Aquí estoy bien", [T(4,1),T(6,1),T(11,1)], CardType.DEFENSA),
+    CardTemplate("Aterrador", [T(5,1),T(6,1),T(8,1),T(11,1)], CardType.ACCION),
+    CardTemplate("¡No, gracias!", [T(4,1),T(6,1),T(8,1),T(11,1)], CardType.DEFENSA),
+    CardTemplate("¡Fallaste!", [T(4,1),T(6,1),T(11,1)], CardType.DEFENSA),
+    CardTemplate("¡Nada de barbacoas!", [T(4,1),T(6,1),T(11,1)], CardType.DEFENSA),
+    CardTemplate("Cuartentena", [T(5,1),T(9,1)], CardType.OBSTACULO),
+    CardTemplate("Revelaciones", [T(8,1)], CardType.PANICO),
+    CardTemplate("Cuerdas podridas", [T(6, 1),T(9,1)], CardType.PANICO),
+    CardTemplate("¡Sal de aquí!", [T(5, 1)], CardType.PANICO),
+    CardTemplate("Olvidadizo", [T(4, 1)], CardType.PANICO),
+    CardTemplate("Uno, dos..", [T(5, 1),T(9,1)], CardType.PANICO),
+    CardTemplate("Tres, cuatro..", [T(4, 1),T(9,1)], CardType.PANICO),
+    CardTemplate("¿Es aquí la fiesta?", [T(5, 1),T(9,1)], CardType.PANICO),
+    CardTemplate("Que quede entre nosotros...", [T(7,1), T(9, 1)], CardType.PANICO),
+    CardTemplate("Vuelta y vuelta", [T(4, 1),T(9,1)], CardType.PANICO),
+    CardTemplate("¿No podemos ser amigos?", [T(7,1),T(9,1)], CardType.PANICO),
+    CardTemplate("Cita a ciegas", [T(4, 1),T(9,1)], CardType.PANICO),
+    CardTemplate("¡Ups!", [T(10, 1)], CardType.PANICO),
+
+    # Hay 108 cartas, falta una. Cuál?
 ]
 
 
 def pretty_print_cards():
     print("----------------------------------")
     for card in card_templates:
-        for n in range(card.amount):
-            print("card_name: " + card.card_name)
-            print("card_number: " + str(card.number))
-            print("card_number: " + card.type.name)
-            print("----------------------------------")
+        for tuple in card.repetitions:
+            for _ in range(tuple.amount):
+                print("card_name: " + card.card_name)
+                print("card_number: " + str(tuple.number))
+                print("card_number: " + card.type.name)
+                print("----------------------------------")
 
 
 def amount_cards():
     amount = 0
     for card in card_templates:
-        amount += card.amount
+        for tuple in card.repetitions:
+            amount += tuple.amount
     return amount

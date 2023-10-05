@@ -61,9 +61,11 @@ db.generate_mapping(create_tables=True)
 
 @db_session
 def register_cards():
+    Card.select().delete()
     for card in card_templates:
-        for n in range(card.amount):
-            Card(card_name=card.card_name, number=card.number, type=card.type.value)
+        for rep in card.repetitions:
+            for _ in range(rep.amount):
+                Card(card_name=card.card_name, number=rep.number, type=card.type.value)
 
 @db_session
 def are_cards_registered():
@@ -73,8 +75,8 @@ def are_cards_registered():
 if not are_cards_registered():
     register_cards()
 
-# Create Deck
 
+# Create Deck
 @db_session
 def create_deck(match: Match):
     deck = Deck(match=match, is_discard=False)
