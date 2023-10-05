@@ -9,8 +9,8 @@ from app import MAX_LEN_ALIAS
 
 class test_db_create_match(TestCase):
     def test_db_create_match(self):
-        player_name = "tdbcmPlayer"
-        match_name = "tdbcmMatch"
+        player_name = generate_unique_testing_name()
+        match_name = generate_unique_testing_name()
 
         create_player(player_name)
 
@@ -27,7 +27,7 @@ class test_db_create_match(TestCase):
         self.assertTrue(is_in_match(player.id, match.id))
 
     def test_db_create_match_invalid_player(self):
-        match_name = "tdbcmipMatch"
+        match_name = generate_unique_testing_name()
         invalid_player = generate_unique_testing_name()
 
         with self.assertRaises(PlayerNotFound) as context:
@@ -35,9 +35,9 @@ class test_db_create_match(TestCase):
         self.assertEqual(str(context.exception), "Player not found")
 
     def test_db_create_match_repeated_name(self):
-        player_name1 = "tdbcmrnPlayer1"
-        player_name2 = "tdbcmrnPlayer2"
-        match_name = "tdbcmrnMatch"
+        player_name1 = generate_unique_testing_name()
+        player_name2 = generate_unique_testing_name()
+        match_name = generate_unique_testing_name()
 
         create_player(player_name1)
         create_player(player_name2)
@@ -49,9 +49,9 @@ class test_db_create_match(TestCase):
         self.assertEqual(str(context.exception), "Match name already used")
 
     def test_db_create_match_player_already_match(self):
-        player_name = "tdbcmpamPlayer"
-        match_name1 = "tdbcmpamMatch1"
-        match_name2 = "tdbcmpamMatch2"
+        player_name = generate_unique_testing_name()
+        match_name1 = generate_unique_testing_name()
+        match_name2 = generate_unique_testing_name()
 
         create_player(player_name)
 
