@@ -3,7 +3,7 @@ import sys
 from datetime import *
 from pathlib import Path
 from Database.exceptions import *
-
+from Database.cards import cards, amount_cards
 
 db = pony.orm.Database()
 
@@ -41,12 +41,10 @@ class Player(db.Entity):
 
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
+    number = Optional(int)
     card_name = Required(str)
-    type = Required(int)
-    description = Required(str)
-    number = Required(int)
-    player = Optional(Player)
-    deck = Optional("Deck")
+    player = Set(Player)
+    deck = Set("Deck")
 
 
 class Deck(db.Entity):
@@ -57,6 +55,40 @@ class Deck(db.Entity):
 
 
 db.generate_mapping(create_tables=True)
+
+# -- Cards Functions -- #
+
+@db_session
+def register_cards():
+    for card in cards:
+        for n in range(card["amount"]):
+            Card(card_name=card["card_name"], number=card["number"])
+
+@db_session
+def are_cards_registered():
+    return Card.select().count() == amount_cards()
+
+# Register Cards
+if not are_cards_registered():
+    register_cards()
+
+# Create Deck
+
+@db_session
+def create_deck(match: Match):
+    deck = Deck(match=match, is_discard=False)
+    disc_deck = Deck(match=match, is_discard=True)
+    num_player = match.players.count()
+
+    for card in Card.select():
+        if card.number is None or card.number <= num_player: # Cortocircuitado no da problema
+            deck.cards.add(card)
+            card.deck.add(deck)
+
+    match.deck.add(deck)
+    match.deck.add(disc_deck)
+
+
 
 
 # --- Match Functions --- #
