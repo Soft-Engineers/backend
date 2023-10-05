@@ -1,11 +1,12 @@
 import random
 import string
 
-_current_name = 0
+_name_id = 0
 # Obtain a unique name for testing
 def generate_unique_testing_name():
-    name = "TestName" + str(_current_name)
-    name += 1
+    global _name_id
+    name = "TName" + str(_name_id)
+    _name_id += 1
     return name
 
 # Random string with only lower

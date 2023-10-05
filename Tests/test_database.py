@@ -28,7 +28,7 @@ class test_db_create_match(TestCase):
 
     def test_db_create_match_invalid_player(self):
         match_name = "tdbcmipMatch"
-        invalid_player = get_random_string_lower(MAX_LEN_ALIAS)
+        invalid_player = generate_unique_testing_name()
 
         with self.assertRaises(PlayerNotFound) as context:
             db_create_match(match_name, invalid_player, 4, 12)
