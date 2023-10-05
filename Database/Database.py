@@ -59,14 +59,17 @@ db.generate_mapping(create_tables=True)
 
 # -- Cards Functions -- #
 
+def _register_rep(rep, card):
+    for _ in range(rep.amount):
+        Card(card_name=card.card_name, number=rep.number, type=card.type.value)
+
 
 @db_session
 def _register_cards():
     Card.select().delete()
     for card in card_templates:
         for rep in card.repetitions:
-            for _ in range(rep.amount):
-                Card(card_name=card.card_name, number=rep.number, type=card.type.value)
+            _register_rep(rep, card)
 
 
 @db_session
