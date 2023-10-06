@@ -27,7 +27,13 @@ class T:
 
 
 class CardTemplate:
+    __created = []
+
     def __init__(self, card_name: str, repetitions: list[T], type: CardType):
+        if card_name in self.__created:
+            raise Exception("Card already created")
+
+        self.__created.append(card_name)
         self.card_name = card_name
         self.repetitions = repetitions
         self.type = type
