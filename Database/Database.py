@@ -3,11 +3,14 @@ import sys
 from datetime import *
 from pathlib import Path
 from Database.exceptions import *
-
+from Database.cards import card_templates, amount_cards, CardType
+from random import randrange
 
 db = pony.orm.Database()
 
+
 if "pytest" in sys.modules or "unittest" in sys.modules:
+
     db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
     db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
@@ -22,7 +25,7 @@ class Match(db.Entity):
     players = Set("Player")
     initiated = Optional(bool, default=False)
     clockwise = Optional(bool, default=True)
-    current_player = Optional(int, default=0)
+    current_player = Required(int, default=0)
     deck = Set("Deck")
 
 
@@ -39,12 +42,11 @@ class Player(db.Entity):
 
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
+    number = Optional(int)
     card_name = Required(str)
     type = Required(int)
-    description = Required(str)
-    number = Required(int)
-    player = Optional(Player)
-    deck = Optional("Deck")
+    player = Set(Player)
+    deck = Set("Deck")
 
 
 class Deck(db.Entity):
@@ -56,7 +58,123 @@ class Deck(db.Entity):
 
 db.generate_mapping(create_tables=True)
 
-# ------------ match functions ---------------
+
+# --- Card Functions --- #
+
+
+def _register_rep(rep, card):
+    for _ in range(rep.amount):
+        Card(card_name=card.card_name, number=rep.number, type=card.type.value)
+
+
+@db_session
+def _register_cards():
+    Card.select().delete()
+    for card in card_templates:
+        for rep in card.repetitions:
+            _register_rep(rep, card)
+
+
+@db_session
+def _are_cards_registered():
+    return Card.select().count() == amount_cards()
+
+
+# Register Cards
+if not _are_cards_registered():
+    _register_cards()
+
+
+@db_session
+def _create_deck(match: Match):
+    deck = Deck(match=match, is_discard=False)
+    disc_deck = Deck(match=match, is_discard=True)
+    num_player = match.players.count()
+
+    for card in Card.select():
+        if card.number is None or card.number <= num_player:
+            deck.cards.add(card)
+            card.deck.add(deck)
+
+    match.deck.add(deck)
+    match.deck.add(disc_deck)
+    deck.match = match
+    disc_deck.match = match
+
+
+@db_session
+def _deal_cards(match: Match):
+    deck = match.deck.filter(lambda d: not d.is_discard).first()
+    required_cards = match.players.count() * 4
+
+    # Repartir según reglas
+    deal_deck = list(
+        deck.cards.filter(
+            lambda c: c.type != CardType.CONTAGIO.value
+            and c.type != CardType.PANICO.value
+        ).random(required_cards - 1)
+    )
+    cosa_card = deck.cards.filter(lambda c: c.card_name == "La Cosa").first()
+    deal_deck.insert(randrange(len(deal_deck) + 1), cosa_card)
+
+    players = match.players
+    for player in players:
+        for _ in range(4):
+            card = deal_deck.pop()
+            player.cards.add(card)  # Otorgar a jugador
+            card.player.add(player)
+            deck.cards.remove(card)  # Quitar del mazo
+            card.deck.remove(deck)
+
+
+# --- Match Functions --- #
+@db_session
+def get_match_games(match_id):
+    return Match[match_id].games
+
+
+@db_session
+def get_match_players(match_id):
+    return Match[match_id].players
+
+
+@db_session
+def get_match_max_players(match_id):
+    return Match[match_id].max_players
+
+
+@db_session
+def get_match_min_players(match_id):
+    return Match[match_id].min_players
+
+
+@db_session
+def get_match_quantity():
+    return Match.select().count()
+
+
+@db_session
+def get_match_quantity_player(match_id):
+    return Match[match_id].players.count()
+
+
+@db_session
+def get_match_list():
+
+    match_list = Match.select()[:]
+    res_list = []
+    for match in match_list:
+        res_list.append(
+            {
+                "name": match.name,
+                "min_players": match.min_players,
+                "max_players": match.max_players,
+                "players": match.players.count(),
+            }
+        )
+    return res_list
+
+
 @db_session
 def _get_match(match_id: int) -> Match:
     if not Match.exists(id=match_id):
@@ -65,27 +183,34 @@ def _get_match(match_id: int) -> Match:
 
 
 @db_session
-def db_get_match_password(match_id: int) -> str:
-    match = _get_match(match_id)
+def _get_match_by_name(match_name: str) -> Match:
+    if not Match.exists(name=match_name):
+        raise MatchNotFound("Match not found")
+    return Match.get(name=match_name)
+
+
+@db_session
+def db_get_match_password(match_name: str) -> str:
+    match = _get_match_by_name(match_name)
     return match.password
 
 
 @db_session
-def db_match_has_password(match_id: int) -> bool:
-    match = _get_match(match_id)
+def db_match_has_password(match_name: str) -> bool:
+    match = _get_match_by_name(match_name)
     return match.password != ""
 
 
 @db_session
-def db_is_match_initiated(match_id: int) -> bool:
-    match = _get_match(match_id)
+def db_is_match_initiated(match_name: str) -> bool:
+    match = _get_match_by_name(match_name)
     return match.initiated
 
 
 @db_session
-def db_add_player(player_id: int, match_id: int):
-    player = _get_player(player_id)
-    match = _get_match(match_id)
+def db_add_player(player_name: str, match_name: str):
+    player = _get_player_by_name(player_name)
+    match = _get_match_by_name(match_name)
     if player.match:
         raise PlayerAlreadyInMatch("Player already in a match")
     if len(match.players) >= match.max_players:
@@ -95,22 +220,75 @@ def db_add_player(player_id: int, match_id: int):
     player.match = match
 
 
-# ------------ player functions ---------------
+@db_session
+def db_get_players(match_name: str) -> list[str]:
+    """
+    Returns the players names from a match
+    """
+    match = _get_match_by_name(match_name)
+    players = []
+    for p in match.players:
+        players.append(p.player_name)
+    return players
+
+
+@db_session
+def _match_exists(match_name):
+    return Match.exists(name=match_name)
+
+
+@db_session
+def db_create_match(
+    match_name: str, player_name: str, min_players: int, max_players: int
+):
+    if _match_exists(match_name):
+        raise NameNotAvailable("Match name already used")
+
+    creator = get_player_by_name(player_name)
+
+    if creator.match:
+        raise PlayerAlreadyInMatch("Player already in a match")
+
+    match = Match(name=match_name, min_players=min_players, max_players=max_players)
+    match.players.add(creator)
+    creator.match = match
+    creator.is_host = True
+
+
+@db_session
+def get_match_by_name(match_name):
+    return Match.get(name=match_name)
+
+
+@db_session
+def is_in_match(player_id, match_id):
+    players = Match.get(id=match_id).players
+    for player in players:
+        if player.id == player_id:
+            return True
+    return False
+
+
+# ------------ player functions ----------------
+
+
 @db_session
 def create_player(new_player_name):
     Player(player_name=new_player_name)
 
 
 @db_session
-def get_player(player_name):
+def get_player_by_name(player_name):
+    if not player_exists(player_name):
+        raise PlayerNotFound("Player not found")
     return Player.get(player_name=player_name)
 
 
 @db_session
-def _get_player(player_id: int) -> Player:
-    if not Player.exists(id=player_id):
+def _get_player_by_name(player_name: str) -> Player:
+    if not Player.exists(player_name=player_name):
         raise PlayerNotFound("Player not found")
-    return Player[player_id]
+    return Player.get(player_name=player_name)
 
 
 @db_session
@@ -128,13 +306,13 @@ def get_match_turn(match_id: int) -> int:
 
 @db_session
 def is_player_alive(player_id: int) -> bool:
-    player = _get_player(player_id)
+    player = get_player_by_id(player_id)
     return player.is_alive
 
 
 @db_session
 def is_player_turn(player_id: int) -> bool:
-    player = _get_player(player_id)
+    player = get_player_by_id(player_id)
     match_id = get_player_match(player_id)
     turn = get_match_turn(match_id)
     return player.position == turn
@@ -142,7 +320,7 @@ def is_player_turn(player_id: int) -> bool:
 
 @db_session
 def get_player_position(player_id: int) -> int:
-    player = _get_player(player_id)
+    player = get_player_by_id(player_id)
     return player.position
 
 
@@ -154,10 +332,32 @@ def is_deck_empty(match_id: int) -> bool:
 
 @db_session
 def get_player_match(player_id: int) -> int:
-    player = _get_player(player_id)
+    player = get_player_by_id(player_id)
     if not player.match:
         raise PlayerNotInMatch("Player not in a match")
     return player.match.id
+
+
+@db_session
+def player_exists(player_name):
+    return Player.exists(player_name=player_name)
+
+
+@db_session
+def get_player_by_id(player_id: int) -> Player:
+    if not Player.exists(id=player_id):
+        raise PlayerNotFound("Player not found")
+    return Player[player_id]
+
+
+@db_session
+def get_player_id(player_name: str) -> int:
+    if not player_exists(player_name):
+        raise PlayerNotFound("Player not found")
+    return Player.get(player_name=player_name).id
+
+
+# --------------- Deck Functions -----------------
 
 
 @db_session
@@ -184,19 +384,13 @@ def new_deck_from_discard(match_id: int):
 @db_session
 def pick_random_card(player_id: int) -> int:
     """Pre: The deck is not empty"""
-    player = _get_player(player_id)
+    player = get_player_by_id(player_id)
     deck = _get_deck(player.match.id)
     card = list(deck.cards.random(1))[0]
-    card.player = player
-    card.deck = None
+    player.cards.add(card)
+    card.player.add(player)
     deck.cards.remove(card)
+    card.deck.remove(deck)
     return card.id
-def player_exists(player_name):
-    return Player.exists(player_name=player_name)
-
-
-@db_session
-def get_player_id(player_name):
-    return Player.get(player_name=player_name).id
 
 

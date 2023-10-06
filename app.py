@@ -23,12 +23,7 @@ description = """
             ## The FUN is guaranteed! 
 """
 
-origins = [
-    "http://localhost:3000",
-    "localhost:3000",
-    "http://localhost:3000/",
-    "localhost:3000/",
-]
+origins = ["http://localhost:3000", "http://localhost:5173"]
 
 tags_metadata = [
     {"name": "Player", "description": "Operations with players."},
@@ -51,25 +46,35 @@ app.add_middleware(
 )
 
 
-@app.post("/match/deck/pickup", tags=["Cards"], status_code=status.HTTP_200_OK)
-def pickup_card(player_id: int):
-    """
-    The player get a random card from the deck and add it to his hand
-    if the deck is empty, form a new deck from the discard deck
-    """
-    try:
-        match_id = get_player_match(player_id)
-    except DatabaseError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    if not is_player_alive(player_id):
-        raise HTTPException(status_code=464, detail="Player is dead")
-    elif not is_player_turn(player_id):
-        raise HTTPException(status_code=463, detail="Not player turn")
+@app.get("/match/list", tags=["Matches"], status_code=200)
+async def match_listing():
+    res_list = get_match_list()
+    return {"Matches": res_list}
 
-    if is_deck_empty(match_id):
-        new_deck_from_discard(match_id)
-    card_id = pick_random_card(player_id)
-    return {"card_id": card_id}
+
+@app.post("/match/create", tags=["Matches"], status_code=status.HTTP_201_CREATED)
+async def create_game(config: GameConfig):
+    """
+    Create a new match
+    """
+
+    if config.min_players < 4 or config.max_players > 12:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid number of players"
+        )
+
+    try:
+        db_create_match(
+            config.match_name,
+            config.player_name,
+            config.min_players,
+            config.max_players,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return {"detail": "Match created"}
+
 
 @app.post("/player/create", tags=["Player"], status_code=200)
 async def player_creator(name_player: str = Form()):
@@ -87,33 +92,66 @@ async def player_creator(name_player: str = Form()):
         )
     else:
         create_player(name_player)
-        return {"player_id": get_player(name_player).id}
+        return {"player_id": get_player_by_name(name_player).id}
 
 
-def is_correct_password(match_id: int, password: str) -> bool:
+@app.get("/match/players", tags=["Matches"], status_code=status.HTTP_200_OK)
+async def get_players(match_name: str):
+    """
+    Get players names from a match
+    """
+    try:
+        players = db_get_players(match_name)
+        response = {"players": players}
+    except MatchNotFound:
+        raise HTTPException(status_code=404, detail="Match not found")
+    return response
+
+
+def is_correct_password(match_name: str, password: str) -> bool:
     is_correct = True
-    if db_match_has_password(match_id):
-        is_correct = db_get_match_password(match_id) == password
+    if db_match_has_password(match_name):
+        is_correct = db_get_match_password(match_name) == password
     return is_correct
 
 
 @app.post("/match/join", tags=["Matches"], status_code=status.HTTP_200_OK)
-def join_game(user_id: int, match_id: int, password: str = ""):
+async def join_game(join_match: JoinMatch):
     """
     Join player to a match
     """
     try:
-        if db_is_match_initiated(match_id):
+        if db_is_match_initiated(join_match.match_name):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Match already started"
             )
-        elif not is_correct_password(match_id, password):
+        elif not is_correct_password(join_match.match_name, join_match.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
             )
         else:
-            db_add_player(user_id, match_id)
+            db_add_player(join_match.player_name, join_match.match_name)
             response = {"detail": "ok"}
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return response
+
+
+@app.post("/match/deck/pickup", tags=["Cards"], status_code=status.HTTP_200_OK)
+def pickup_card(player_name: str):
+    """
+    The player get a random card from the deck and add it to his hand
+    if the deck is empty, form a new deck from the discard deck
+    """
+    try:
+        player_id = get_player_id(player_name)
+        match_id = get_player_match(player_id)
+    except DatabaseError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    if not is_player_turn(player_id):
+        raise HTTPException(status_code=463, detail="Not player turn")
+
+    if is_deck_empty(match_id):
+        new_deck_from_discard(match_id)
+    card_id = pick_random_card(player_id)
+    return {"card_id": card_id}
