@@ -15,9 +15,9 @@ class CardType(Enum):
 class T:
     def __init__(self, number: int, amount: int):
         if number is not None and (number < 3 or number > 12):
-            raise Exception("Inconsistent card number")
+            raise Exception("Número de carta inconsistente")
         if amount is None or amount < 1:
-            raise Exception("Inconsistent card amount")
+            raise Exception("Cantidad de cartas inconsistente")
 
         self.number = number
         self.amount = amount
@@ -31,7 +31,7 @@ class CardTemplate:
 
     def __init__(self, card_name: str, repetitions: list[T], type: CardType):
         if card_name in self.__created:
-            raise Exception("Card already created")
+            raise Exception("Carta ya creada")
 
         self.__created.append(card_name)
         self.card_name = card_name
@@ -88,9 +88,8 @@ card_templates = [
     CardTemplate("Vuelta y vuelta", [T(4, 1), T(9, 1)], CardType.PANICO),
     CardTemplate("¿No podemos ser amigos?", [T(7, 1), T(9, 1)], CardType.PANICO),
     CardTemplate("Cita a ciegas", [T(4, 1), T(9, 1)], CardType.PANICO),
-    CardTemplate("¡Ups!", [T(10, 1)], CardType.PANICO)
+    CardTemplate("¡Ups!", [T(10, 1)], CardType.PANICO),
 ]
-
 
 
 def pretty_print_cards():

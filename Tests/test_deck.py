@@ -7,37 +7,31 @@ from Database.cards import card_templates
 import random
 
 
-
-
-# TODO: Cambiar mensajes de errores a español
-
 class _pset(set):
+    def filter(self, f):
+        filtered = _pset()
+        for e in self:
+            if f(e):
+                filtered.add(e)
+        return filtered
 
-        def filter(self, f):
-            filtered = _pset()
-            for e in self:
-                if f(e):
-                    filtered.add(e)
-            return filtered
-        
-        def count(self):
-            return len(self)
-        
-        def random(self, n):
-            l = list(self)
+    def count(self):
+        return len(self)
 
-            random.shuffle(l)
+    def random(self, n):
+        l = list(self)
 
-            return _pset(l[0:n])
-        
-        def first(self):
-            if self.count() != 1:
-                raise Exception("Undefined behaviour")
-            return next(iter(self.random(1)))
+        random.shuffle(l)
+
+        return _pset(l[0:n])
+
+    def first(self):
+        if self.count() != 1:
+            raise Exception("Comportamiendo indefinido")
+        return next(iter(self.random(1)))
 
 
 class test_init_game_aux(TestCase):
-
     id = 0
 
     def __side_effect(*args, **kwargs):
@@ -120,7 +114,7 @@ class test_init_game_aux(TestCase):
                 deck.cards.add(c)
                 c.deck.add(deck)
         return deck
-   
+
     def __mock_players(self, num_players):
         players = _pset()
         for i in range(num_players):
@@ -130,16 +124,14 @@ class test_init_game_aux(TestCase):
             players.add(player)
         return players
 
-
     def test_deal_cards(self):
-
         num_players = 4
 
         match = Mock()
         match.players = self.__mock_players(num_players)
         match.deck = _pset()
         match.deck.add(self.__gen_mocked_deck(num_players))
-        
+
         _deal_cards(match)
 
         contains_cosa = False
@@ -152,6 +144,5 @@ class test_init_game_aux(TestCase):
                 self.assertTrue(player in card.player)
                 self.assertFalse(card in match.deck)
                 self.assertFalse(match.deck in card.deck)
-        
-        self.assertTrue(contains_cosa)
 
+        self.assertTrue(contains_cosa)
