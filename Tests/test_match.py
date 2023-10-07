@@ -32,8 +32,8 @@ def _create_player(namePlayer):
 
 
 def test_player_create_match():
-    nameGame = "tpcmGame"
-    namePlayer = "tpcmPlayer"
+    nameGame = generate_unique_testing_name()
+    namePlayer = generate_unique_testing_name()
 
     _create_player(namePlayer)
 
@@ -50,9 +50,9 @@ def test_player_create_match():
 
 
 def test_player_create_match_already_in_match():
-    nameGameA = "tpcmaimGameA"
-    nameGameB = "tpcmaimGameB"
-    namePlayer = "tpcmaimPlayer"
+    nameGameA = generate_unique_testing_name()
+    nameGameB = generate_unique_testing_name()
+    namePlayer = generate_unique_testing_name()
 
     _create_player(namePlayer)
 
@@ -78,9 +78,9 @@ def test_player_create_match_already_in_match():
 
 
 def test_player_create_match_repeated_name():
-    nameGame = "tpcmrnGame"
-    namePlayerA = "tpcmrnPlayerA"
-    namePlayerB = "tpcmrnPlayerB"
+    nameGame = generate_unique_testing_name()
+    namePlayerA = generate_unique_testing_name()
+    namePlayerB = generate_unique_testing_name()
     _create_player(namePlayerA)
     _create_player(namePlayerB)
 
@@ -106,8 +106,8 @@ def test_player_create_match_repeated_name():
 
 
 def test_player_create_match_invalid_player():
-    nameGame = "tpcmipGame"
-    invalid = get_random_string_lower(MAX_LEN_ALIAS)
+    nameGame = generate_unique_testing_name()
+    invalid = generate_unique_testing_name()
 
     body = {
         "match_name": nameGame,
@@ -123,8 +123,8 @@ def test_player_create_match_invalid_player():
 
 
 def test_player_create_match_invalid_bounds():
-    nameGame = "tpcmibGame"
-    namePlayer = "tpcmibPlayer"
+    nameGame = generate_unique_testing_name()
+    namePlayer = generate_unique_testing_name()
 
     _create_player(namePlayer)
 
