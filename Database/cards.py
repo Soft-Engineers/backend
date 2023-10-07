@@ -92,6 +92,7 @@ card_templates = [
 ]
 
 
+
 def pretty_print_cards():
     print("----------------------------------")
     for card in card_templates:
