@@ -32,7 +32,7 @@ class test_db_create_match(TestCase):
 
         with self.assertRaises(PlayerNotFound) as context:
             db_create_match(match_name, invalid_player, 4, 12)
-        self.assertEqual(str(context.exception), "Player not found")
+        self.assertEqual(str(context.exception), "Jugador no encontrado")
 
     def test_db_create_match_repeated_name(self):
         player_name1 = generate_unique_testing_name()
@@ -46,7 +46,7 @@ class test_db_create_match(TestCase):
 
         with self.assertRaises(NameNotAvailable) as context:
             db_create_match(match_name, player_name2, 4, 12)
-        self.assertEqual(str(context.exception), "Match name already used")
+        self.assertEqual(str(context.exception), "Nombre de partida ya utilizado")
 
     def test_db_create_match_player_already_match(self):
         player_name = generate_unique_testing_name()
@@ -59,7 +59,7 @@ class test_db_create_match(TestCase):
 
         with self.assertRaises(PlayerAlreadyInMatch) as context:
             db_create_match(match_name2, player_name, 4, 12)
-        self.assertEqual(str(context.exception), "Player already in a match")
+        self.assertEqual(str(context.exception), "Jugador ya está en partida")
 
 
 # ------------ match functions ---------------
@@ -84,7 +84,7 @@ class test_db_get_players(TestCase):
     @patch("Database.Database._get_match_by_name")
     def test_db_get_players_not_found(self, mock_get_match_by_name):
         match_id = 1
-        mock_get_match_by_name.side_effect = MatchNotFound("Match not found")
+        mock_get_match_by_name.side_effect = MatchNotFound("Partida no encontrada")
         with self.assertRaises(MatchNotFound):
             db_get_players(match_id)
 

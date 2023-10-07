@@ -60,7 +60,8 @@ async def create_game(config: GameConfig):
 
     if config.min_players < 4 or config.max_players > 12:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid number of players"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cantidad inválida de jugadores",
         )
 
     try:
@@ -82,13 +83,13 @@ async def player_creator(name_player: str = Form()):
     Create a new player
     """
     invalid_fields = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid fields"
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Campo inválido"
     )
     if len(name_player) > MAX_LEN_ALIAS or len(name_player) < MIN_LEN_ALIAS:
         raise invalid_fields
     elif player_exists(name_player):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Player already exists"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Nombre no disponible"
         )
     else:
         create_player(name_player)
@@ -104,7 +105,7 @@ async def get_players(match_name: str):
         players = db_get_players(match_name)
         response = {"players": players}
     except MatchNotFound:
-        raise HTTPException(status_code=404, detail="Match not found")
+        raise HTTPException(status_code=404, detail="Partida no encontrada")
     return response
 
 
@@ -123,11 +124,11 @@ async def join_game(join_match: JoinMatch):
     try:
         if db_is_match_initiated(join_match.match_name):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Match already started"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Partida ya iniciada"
             )
         elif not is_correct_password(join_match.match_name, join_match.password):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Contraseña Incorrecta"
             )
         else:
             db_add_player(join_match.player_name, join_match.match_name)

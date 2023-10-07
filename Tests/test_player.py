@@ -20,16 +20,16 @@ def test_player_create():
 def test_player_with_existing_name():
     response = client.post("/player/create", data={"name_player": "test_player"})
     assert response.status_code == 400
-    assert response.json() == {"detail": "Player already exists"}
+    assert response.json() == {"detail": "Nombre no disponible"}
 
 
 def test_player_with_invalid_name():
     response = client.post("/player/create", data={"name_player": "t"})
     assert response.status_code == 401
-    assert response.json() == {"detail": "Invalid fields"}
+    assert response.json() == {"detail": "Campo inválido"}
 
 
 def test_player_with_invalid_name2():
     response = client.post("/player/create", data={"name_player": "test_player" * 10})
     assert response.status_code == 401
-    assert response.json() == {"detail": "Invalid fields"}
+    assert response.json() == {"detail": "Campo inválido"}
