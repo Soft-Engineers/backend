@@ -11,7 +11,9 @@ from fastapi import (
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
+from Database.Database import _match_exists
 from pydantic_models import *
+from connections import WebSocket, ConnectionManager
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -45,6 +47,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+manager = ConnectionManager()
+
+# --- WebSockets --- #
+@app.websocket("/ws/{match_name}")
+async def websocket_endpoint(websocket: WebSocket, match_name: str):
+    match_id = get_match_id(match_name)
+    await manager.connect(websocket, match_id)
+    try:
+        while True:
+            data = (
+                {"message_type": 1, "message_content": get_match_info(match_name)}
+                if _match_exists(match_name)
+                else {
+                    "message_type": 2,
+                    "message_content": "Match not found",
+                }
+            )
+            await manager.broadcast(data, match_id)
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, match_id)
+
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
 async def match_listing():
@@ -73,7 +97,7 @@ async def create_game(config: GameConfig):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    return {"detail": "Match created"}
+    return {"match_name": config.match_name}
 
 
 @app.post("/player/create", tags=["Player"], status_code=200)
@@ -134,4 +158,15 @@ async def join_game(join_match: JoinMatch):
             response = {"detail": "ok"}
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    join_alert = {
+        "message_type": 3,
+        "message_content": f"{join_match.player_name} has joined the match",
+    }
+    await manager.broadcast(join_alert, get_match_id(join_match.match_name))
+    data = {
+        "message_type": 1,
+        "message_content": db_get_players(join_match.match_name),
+    }
+    await manager.broadcast(data, get_match_id(join_match.match_name))
+
     return response

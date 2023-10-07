@@ -170,6 +170,27 @@ def _match_exists(match_name):
 
 
 @db_session
+def check_match_existence(match_id):
+    return Match.exists(id=match_id)
+
+
+@db_session
+def get_match_id(match_name):
+    return Match.get(name=match_name).id
+
+
+@db_session
+def get_match_info(match_id):
+    match = Match[match_id]
+    return {
+        "name": match.name,
+        "min_players": match.min_players,
+        "max_players": match.max_players,
+        "players": match.players.count(),
+    }
+
+
+@db_session
 def db_create_match(
     match_name: str, player_name: str, min_players: int, max_players: int
 ):
