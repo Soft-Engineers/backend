@@ -88,8 +88,9 @@ card_templates = [
     CardTemplate("Vuelta y vuelta", [T(4, 1), T(9, 1)], CardType.PANICO),
     CardTemplate("¿No podemos ser amigos?", [T(7, 1), T(9, 1)], CardType.PANICO),
     CardTemplate("Cita a ciegas", [T(4, 1), T(9, 1)], CardType.PANICO),
-    CardTemplate("¡Ups!", [T(10, 1)], CardType.PANICO),
+    CardTemplate("¡Ups!", [T(10, 1)], CardType.PANICO)
 ]
+
 
 
 def pretty_print_cards():

@@ -10,7 +10,6 @@ db = pony.orm.Database()
 
 
 if "pytest" in sys.modules or "unittest" in sys.modules:
-
     db.bind(provider="sqlite", filename=":sharedmemory:")
 else:
     db.bind(provider="sqlite", filename="lacosa.sqlite", create_db=True)
@@ -57,6 +56,69 @@ class Deck(db.Entity):
 
 
 db.generate_mapping(create_tables=True)
+
+# -- Cards Functions -- #
+
+def _register_rep(rep, card):
+    for _ in range(rep.amount):
+        Card(card_name=card.card_name, number=rep.number, type=card.type.value)
+
+
+@db_session
+def _register_cards():
+    Card.select().delete()
+    for card in card_templates:
+        for rep in card.repetitions:
+            _register_rep(rep, card)
+
+
+@db_session
+def _are_cards_registered():
+    return Card.select().count() == amount_cards()
+
+
+# Register Cards
+if not _are_cards_registered():
+    _register_cards()
+
+
+@db_session
+def _create_deck(match: Match):
+    deck = Deck(match=match, is_discard=False)
+    disc_deck = Deck(match=match, is_discard=True)
+    num_player = match.players.count()
+
+    for card in Card.select():
+        if card.number is None or card.number <= num_player:
+            deck.cards.add(card)
+            card.deck.add(deck)
+
+    match.deck.add(deck)
+    match.deck.add(disc_deck)
+    deck.match = match
+    disc_deck.match = match
+
+
+@db_session
+def _deal_cards(match: Match):
+    deck = match.deck.filter(lambda d: not d.is_discard).first()
+    required_cards = match.players.count() * 4
+
+    # Repartir según reglas
+    deal_deck = list(deck.cards.filter(
+        lambda c: c.type != CardType.CONTAGIO.value and c.type != CardType.PANICO.value
+    ).random(required_cards - 1))
+    cosa_card = deck.cards.filter(lambda c: c.card_name == "La Cosa").first()
+    deal_deck.insert(randrange(len(deal_deck) + 1), cosa_card)
+
+    players = match.players
+    for player in players:
+        for _ in range(4):
+            card = deal_deck.pop()
+            player.cards.add(card)  # Otorgar a jugador
+            card.player.add(player)
+            deck.cards.remove(card)  # Quitar del mazo
+            card.deck.remove(deck)
 
 
 # --- Card Functions --- #
@@ -160,7 +222,6 @@ def get_match_quantity_player(match_id):
 
 @db_session
 def get_match_list():
-
     match_list = Match.select()[:]
     res_list = []
     for match in match_list:
