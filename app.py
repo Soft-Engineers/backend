@@ -150,9 +150,13 @@ def pickup_card(player_name: str):
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not is_player_turn(player_id):
-        raise HTTPException(status_code=463, detail="Not player turn")
+        raise HTTPException(status_code=463, detail="No es el turno del jugador")
+    elif get_game_state(match_id) != GAME_STATE["DRAW_CARD"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes robar una carta en este momento",
+        )
 
-    if is_deck_empty(match_id):
-        new_deck_from_discard(match_id)
     card_id = pick_random_card(player_id)
+    set_game_state(match_id, GAME_STATE["PLAY_TURN"])
     return {"card_id": card_id}

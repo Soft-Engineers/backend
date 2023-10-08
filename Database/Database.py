@@ -26,6 +26,7 @@ class Match(db.Entity):
     clockwise = Optional(bool, default=True)
     current_player = Required(int, default=0)
     deck = Set("Deck")
+    game_state = Optional(int, default=0)
 
 
 class Player(db.Entity):
@@ -56,6 +57,12 @@ class Deck(db.Entity):
 
 
 db.generate_mapping(create_tables=True)
+
+
+# --- Constants --- #
+
+ROL = {"HUMAN": 1, "LA_COSA": 2, "INFECTED": 3}
+GAME_STATE = {"DRAW_CARD": 1, "PLAY_TURN": 2, "END_GAME": 3}
 
 # -- Cards Functions -- #
 
@@ -334,6 +341,17 @@ def is_in_match(player_id, match_id):
     return False
 
 
+@db_session
+def get_game_state(match_id: int) -> int:
+    return Match[match_id].game_state
+
+
+@db_session
+def set_game_state(match_id: int, state: int):
+    match = Match[match_id]
+    match.game_state = state
+
+
 # ------------ player functions ----------------
 
 
@@ -448,14 +466,16 @@ def new_deck_from_discard(match_id: int):
 
 @db_session
 def pick_random_card(player_id: int) -> int:
-    """Pre: The deck is not empty"""
+    """If the deck is empty, form a new deck from the discard deck"""
     player = get_player_by_id(player_id)
-    deck = _get_deck(player.match.id)
+    match_id = player.match.id
+    deck = _get_deck(match_id)
+    if is_deck_empty(match_id):
+        new_deck_from_discard(match_id)
+
     card = list(deck.cards.random(1))[0]
     player.cards.add(card)
     card.player.add(player)
     deck.cards.remove(card)
     card.deck.remove(deck)
     return card.id
-
-
