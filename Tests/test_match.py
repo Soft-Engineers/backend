@@ -74,7 +74,7 @@ def test_player_create_match_already_in_match():
     }
     response = client.post("/match/create", json=body)
 
-    _assert_invalid(response, "Player already in a match")
+    _assert_invalid(response, "Jugador ya está en partida")
 
 
 def test_player_create_match_repeated_name():
@@ -102,7 +102,7 @@ def test_player_create_match_repeated_name():
     }
     response = client.post("/match/create", json=body)
 
-    _assert_invalid(response, "Match name already used")
+    _assert_invalid(response, "Nombre de partida ya utilizado")
 
 
 def test_player_create_match_invalid_player():
@@ -119,7 +119,7 @@ def test_player_create_match_invalid_player():
     response = client.post("/match/create", json=body)
 
     print(response.json())
-    _assert_invalid(response, "Player not found")
+    _assert_invalid(response, "Jugador no encontrado")
 
 
 def test_player_create_match_invalid_bounds():
@@ -137,7 +137,7 @@ def test_player_create_match_invalid_bounds():
 
     response = client.post("/match/create", json=body)
 
-    _assert_invalid(response, "Invalid number of players")
+    _assert_invalid(response, "Cantidad inválida de jugadores")
 
 
 class test_join_game(TestCase):
@@ -165,7 +165,7 @@ class test_join_game(TestCase):
 
         mock_add_player.assert_not_called()
         self.assertEqual(response.status_code, 401)
-        self.assertEqual(response.json(), {"detail": "Incorrect password"})
+        self.assertEqual(response.json(), {"detail": "Contraseña Incorrecta"})
 
     @patch("app.is_correct_password", return_value=True)
     @patch("app.db_is_match_initiated", return_value=True)
@@ -176,7 +176,7 @@ class test_join_game(TestCase):
 
         mock_add_player.assert_not_called()
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json(), {"detail": "Match already started"})
+        self.assertEqual(response.json(), {"detail": "Partida ya iniciada"})
 
 
 class test_get_players(TestCase):
@@ -190,9 +190,9 @@ class test_get_players(TestCase):
 
     @patch("app.db_get_players")
     def test_get_players_not_found(self, mock_db_get_players):
-        mock_db_get_players.side_effect = MatchNotFound("Match not found")
+        mock_db_get_players.side_effect = MatchNotFound("Partida no encontrada")
         response = client.get("/match/players", params={"match_name": "test_match"})
 
         mock_db_get_players.assert_called_once_with("test_match")
         assert response.status_code == 404
-        assert response.json() == {"detail": "Match not found"}
+        assert response.json() == {"detail": "Partida no encontrada"}

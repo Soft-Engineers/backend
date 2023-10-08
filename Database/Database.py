@@ -59,6 +59,7 @@ db.generate_mapping(create_tables=True)
 
 # -- Cards Functions -- #
 
+
 def _register_rep(rep, card):
     for _ in range(rep.amount):
         Card(card_name=card.card_name, number=rep.number, type=card.type.value)
@@ -105,9 +106,12 @@ def _deal_cards(match: Match):
     required_cards = match.players.count() * 4
 
     # Repartir según reglas
-    deal_deck = list(deck.cards.filter(
-        lambda c: c.type != CardType.CONTAGIO.value and c.type != CardType.PANICO.value
-    ).random(required_cards - 1))
+    deal_deck = list(
+        deck.cards.filter(
+            lambda c: c.type != CardType.CONTAGIO.value
+            and c.type != CardType.PANICO.value
+        ).random(required_cards - 1)
+    )
     cosa_card = deck.cards.filter(lambda c: c.card_name == "La Cosa").first()
     deal_deck.insert(randrange(len(deal_deck) + 1), cosa_card)
 
@@ -239,14 +243,14 @@ def get_match_list():
 @db_session
 def _get_match(match_id: int) -> Match:
     if not Match.exists(id=match_id):
-        raise MatchNotFound("Match not found")
+        raise MatchNotFound("Partida no encontrada")
     return Match[match_id]
 
 
 @db_session
 def _get_match_by_name(match_name: str) -> Match:
     if not Match.exists(name=match_name):
-        raise MatchNotFound("Match not found")
+        raise MatchNotFound("Partida no encontrada")
     return Match.get(name=match_name)
 
 
@@ -273,9 +277,9 @@ def db_add_player(player_name: str, match_name: str):
     player = _get_player_by_name(player_name)
     match = _get_match_by_name(match_name)
     if player.match:
-        raise PlayerAlreadyInMatch("Player already in a match")
+        raise PlayerAlreadyInMatch("Jugador ya está en partida")
     if len(match.players) >= match.max_players:
-        raise MatchIsFull("Match is full")
+        raise MatchIsFull("La partida está completa")
 
     match.players.add(player)
     player.match = match
@@ -303,12 +307,12 @@ def db_create_match(
     match_name: str, player_name: str, min_players: int, max_players: int
 ):
     if _match_exists(match_name):
-        raise NameNotAvailable("Match name already used")
+        raise NameNotAvailable("Nombre de partida ya utilizado")
 
     creator = get_player_by_name(player_name)
 
     if creator.match:
-        raise PlayerAlreadyInMatch("Player already in a match")
+        raise PlayerAlreadyInMatch("Jugador ya está en partida")
 
     match = Match(name=match_name, min_players=min_players, max_players=max_players)
     match.players.add(creator)
@@ -341,14 +345,14 @@ def create_player(new_player_name):
 @db_session
 def get_player_by_name(player_name):
     if not player_exists(player_name):
-        raise PlayerNotFound("Player not found")
+        raise PlayerNotFound("Jugador no encontrado")
     return Player.get(player_name=player_name)
 
 
 @db_session
 def _get_player_by_name(player_name: str) -> Player:
     if not Player.exists(player_name=player_name):
-        raise PlayerNotFound("Player not found")
+        raise PlayerNotFound("Jugador no encontrado")
     return Player.get(player_name=player_name)
 
 
@@ -407,14 +411,14 @@ def player_exists(player_name):
 @db_session
 def get_player_by_id(player_id: int) -> Player:
     if not Player.exists(id=player_id):
-        raise PlayerNotFound("Player not found")
+        raise PlayerNotFound("Jugador no encontrado")
     return Player[player_id]
 
 
 @db_session
 def get_player_id(player_name: str) -> int:
     if not player_exists(player_name):
-        raise PlayerNotFound("Player not found")
+        raise PlayerNotFound("Jugador no encontrado")
     return Player.get(player_name=player_name).id
 
 
