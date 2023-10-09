@@ -465,7 +465,7 @@ def new_deck_from_discard(match_id: int):
 
 
 @db_session
-def pick_random_card(player_id: int) -> int:
+def pick_random_card(player_id: int) -> Card:
     """If the deck is empty, form a new deck from the discard deck"""
     player = get_player_by_id(player_id)
     match_id = player.match.id
@@ -478,4 +478,4 @@ def pick_random_card(player_id: int) -> int:
     card.player.add(player)
     deck.cards.remove(card)
     card.deck.remove(deck)
-    return card.id
+    return card

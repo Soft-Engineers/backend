@@ -12,6 +12,9 @@ from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from pydantic_models import *
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import json
+from request_exception import RequestException
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -138,7 +141,9 @@ async def join_game(join_match: JoinMatch):
     return response
 
 
-@app.post("/match/deck/pickup", tags=["Cards"], status_code=status.HTTP_200_OK)
+# ----------------- WebSockets -----------------
+
+
 def pickup_card(player_name: str):
     """
     The player get a random card from the deck and add it to his hand
@@ -148,15 +153,12 @@ def pickup_card(player_name: str):
         player_id = get_player_id(player_name)
         match_id = get_player_match(player_id)
     except DatabaseError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise RequestException(str(e))
     if not is_player_turn(player_id):
-        raise HTTPException(status_code=463, detail="No es el turno del jugador")
+        raise RequestException("No es tu turno")
     elif get_game_state(match_id) != GAME_STATE["DRAW_CARD"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No puedes robar una carta en este momento",
-        )
+        raise RequestException("No es el momento de robar carta")
 
-    card_id = pick_random_card(player_id)
+    card = pick_random_card(player_id)
     set_game_state(match_id, GAME_STATE["PLAY_TURN"])
-    return {"card_id": card_id}
+    return {"name": card.name, "type": card.type}
