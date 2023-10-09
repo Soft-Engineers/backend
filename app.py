@@ -57,7 +57,7 @@ async def websocket_endpoint(websocket: WebSocket, match_name: str):
     try:
         while True:
             data = (
-                {"message_type": 1, "message_content": get_match_info(match_name)}
+                {"message_type": 1, "message_content": db_get_players(match_name)}
                 if _match_exists(match_name)
                 else {
                     "message_type": 2,
@@ -163,10 +163,5 @@ async def join_game(join_match: JoinMatch):
         "message_content": f"{join_match.player_name} has joined the match",
     }
     await manager.broadcast(join_alert, get_match_id(join_match.match_name))
-    data = {
-        "message_type": 1,
-        "message_content": db_get_players(join_match.match_name),
-    }
-    await manager.broadcast(data, get_match_id(join_match.match_name))
 
     return response
