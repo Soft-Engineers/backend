@@ -14,6 +14,8 @@ from typing import Optional
 from Database.Database import _match_exists
 from pydantic_models import *
 from connections import WebSocket, ConnectionManager
+from request_exception import RequestException
+import json
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -48,26 +50,6 @@ app.add_middleware(
 )
 
 manager = ConnectionManager()
-
-# --- WebSockets --- #
-@app.websocket("/ws/{match_name}")
-async def websocket_endpoint(websocket: WebSocket, match_name: str):
-    match_id = get_match_id(match_name)
-    await manager.connect(websocket, match_id)
-    try:
-        while True:
-            data = (
-                {"message_type": 1, "message_content": db_get_players(match_name)}
-                if _match_exists(match_name)
-                else {
-                    "message_type": 2,
-                    "message_content": "Match not found",
-                }
-            )
-            await manager.broadcast(data, match_id)
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, match_id)
 
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
@@ -158,10 +140,60 @@ async def join_game(join_match: JoinMatch):
             response = {"detail": "ok"}
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    join_alert = {
-        "message_type": 3,
-        "message_content": f"{join_match.player_name} has joined the match",
-    }
-    await manager.broadcast(join_alert, get_match_id(join_match.match_name))
-
+    
     return response
+
+
+# --- WebSockets --- #
+@app.websocket("/ws/{match_name}/{player_name}")
+async def websocket_endpoint(websocket: WebSocket):
+    match_name = websocket.path_params["match_name"]
+    player_name = websocket.path_params["player_name"]
+    try:
+        match_id = get_match_id(match_name)
+        await manager.connect(websocket, match_id)
+        while True:
+            # Cambiar por toda la info de la partida
+            data = ({
+                "message_type": 1,
+                "message_content": db_get_players(match_name)
+                }
+            )
+            # Debería mandar la info privada a su correspondiente jugador
+            await manager.broadcast(data, match_id)
+            request = await websocket.receive_text()
+            await handle_request(request, match_name, player_name, websocket)
+    except RequestException as e:
+        await manager.send_error_message(str(e), websocket)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, match_id)
+    except Exception as e:
+        print(str(e))
+
+
+def _parse_request(request: str):
+    try:
+        request = json.loads(request)
+    except:
+        raise RequestException("Invalid request")
+    return request
+
+
+async def handle_request(request, match_name, player_name, websocket):
+    request = _parse_request(request)
+    msg_type, data = request["message_type"], request["message_content"]
+
+    # Los message_type se pueden cambiar por enums
+    if msg_type == "Chat":
+        pass
+    elif msg_type == "Pick card":
+        # Llamar a la función pick_card
+        pass
+    elif msg_type == "Play card":
+        # Llamar a la función play_card
+        pass
+    elif msg_type == "leave match":
+        # Llamar a la función leave_match
+        pass
+    else:
+        pass

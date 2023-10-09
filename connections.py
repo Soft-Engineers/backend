@@ -2,6 +2,13 @@ from fastapi import WebSocket
 from collections import defaultdict
 
 
+
+MESSAGE_TYPE = {
+    "Match data": 1,
+    "Error": 2
+}
+
+
 class ConnectionManager:
     def __init__(self):
         self.connections: dict = defaultdict(dict)
@@ -21,6 +28,13 @@ class ConnectionManager:
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
+
+    async def send_error_message(self, message: str, websocket: WebSocket):
+        msg ={
+            "message_type": 2,
+            "message_content": message
+        }
+        await websocket.send_text(msg)
 
     async def broadcast(self, message: str, match_id: int):
         for connection in self.connections[match_id]:
