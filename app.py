@@ -14,8 +14,9 @@ from typing import Optional
 from Database.Database import _match_exists
 from pydantic_models import *
 from connections import WebSocket, ConnectionManager
-from request import RequestException, handle_request
+from request import RequestException, parse_request
 from game_exception import GameException
+
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -157,7 +158,10 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             # Mandar la info de la partida a todos los jugadores
             # TODO: Sacar cuando se haga todo por sockets
-            data = {"message_type": 1, "message_content": db_get_players(match_name)}
+            data = {
+                "message_type": "jugadores lobby",
+                "message_content": db_get_players(match_name),
+            }
             await manager.broadcast(data, match_id)
 
             request = await websocket.receive_text()
@@ -168,3 +172,28 @@ async def websocket_endpoint(websocket: WebSocket):
         print(str(e))
     finally:
         manager.disconnect(player_name)
+
+
+# Request handler
+async def handle_request(request, match_name, player_name, websocket):
+    try:
+        request = parse_request(request)
+        msg_type, data = request
+        # Los message_type se pueden cambiar por enums
+        if msg_type == "Chat":
+            pass
+        elif msg_type == "robar carta":
+            # Llamar a la función pick_card
+            pass
+        elif msg_type == "jugar carta":
+            # Llamar a la función play_card
+            pass
+        elif msg_type == "leave match":
+            # Llamar a la función leave_match
+            pass
+        else:
+            pass
+    except RequestException as e:
+        await manager.send_error_message(str(e), websocket)
+    except GameException as e:
+        await manager.send_error_message(str(e), websocket)
