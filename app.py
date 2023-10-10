@@ -140,7 +140,7 @@ async def join_game(join_match: JoinMatch):
             response = {"detail": "ok"}
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    
+
     return response
 
 
@@ -150,25 +150,22 @@ async def websocket_endpoint(websocket: WebSocket):
     match_name = websocket.path_params["match_name"]
     player_name = websocket.path_params["player_name"]
     try:
-        match_id = get_match_id(match_name)
-        await manager.connect(websocket, match_id)
+        match_id = get_match_id_or_None(match_name)
+        await manager.connect(websocket, match_id, player_name)
         while True:
             # Cambiar por toda la info de la partida
-            data = ({
-                "message_type": 1,
-                "message_content": db_get_players(match_name)
-                }
-            )
+            data = {"message_type": 1, "message_content": db_get_players(match_name)}
             # Debería mandar la info privada a su correspondiente jugador
             await manager.broadcast(data, match_id)
+
             request = await websocket.receive_text()
             await handle_request(request, match_name, player_name, websocket)
-    except RequestException as e:
+    except (RequestException, DatabaseError) as e:
         await manager.send_error_message(str(e), websocket)
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, match_id)
     except Exception as e:
         print(str(e))
+    finally:
+        manager.disconnect(player_name)
 
 
 def _parse_request(request: str):
@@ -181,7 +178,10 @@ def _parse_request(request: str):
 
 async def handle_request(request, match_name, player_name, websocket):
     request = _parse_request(request)
-    msg_type, data = request["message_type"], request["message_content"]
+    try:
+        msg_type, data = request["message_type"], request["message_content"]
+    except KeyError:
+        raise RequestException("Invalid request")
 
     # Los message_type se pueden cambiar por enums
     if msg_type == "Chat":

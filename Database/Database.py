@@ -176,8 +176,15 @@ def check_match_existence(match_id):
 
 @db_session
 def get_match_id(match_name):
+    if not _match_exists(match_name):
+        raise MatchNotFound("Match not found")
     return Match.get(name=match_name).id
 
+@db_session
+def get_match_id_or_None(match_name):
+    if not _match_exists(match_name):
+        return None
+    return Match.get(name=match_name).id
 
 @db_session
 def get_match_info(match_id):
@@ -259,3 +266,16 @@ def get_player_id(player_name):
     if not player_exists(player_name):
         raise PlayerNotFound("Player not found")
     return Player.get(player_name=player_name).id
+
+
+@db_session
+def db_get_player_match_id(player_name: str):
+    if not player_exists(player_name):
+        raise PlayerNotFound("Player not found")
+
+    match = Player.get(player_name=player_name).match
+
+    if match is None:
+        raise PlayerNotInMatch("Player not in match")
+
+    return match.id
