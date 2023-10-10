@@ -290,6 +290,11 @@ def db_get_player_match_id(player_name: str):
 
     return match.id
 
+@db_session
+def get_match_id_or_None(match_name):
+    if not _match_exists(match_name):
+        return None
+    return Match.get(name=match_name).id
 
 # ------------ player functions ----------------
 @db_session
