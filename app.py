@@ -136,3 +136,10 @@ async def join_game(join_match: JoinMatch):
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return response
+
+
+@app.post("/match/start", tags=["Matches"], status_code=status.HTTP_200_OK)
+async def start_game(match_player: Player_in_Match):
+    """
+    Start a match
+    """

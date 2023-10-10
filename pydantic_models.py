@@ -22,3 +22,8 @@ class JoinMatch(BaseModel):
     player_name: str
     match_name: str
     password: Optional[str] = ""
+
+
+class Player_in_Match(BaseModel):
+    player_name: str
+    match_name: str
