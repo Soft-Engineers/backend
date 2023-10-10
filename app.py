@@ -11,6 +11,8 @@ from fastapi import (
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
+
+from Database.Database import _match_exists
 from pydantic_models import *
 
 MAX_LEN_ALIAS = 16
@@ -94,6 +96,31 @@ async def player_creator(name_player: str = Form()):
     else:
         create_player(name_player)
         return {"player_id": get_player_by_name(name_player).id}
+
+
+@app.get("/player/host", tags=["Player"], status_code=200)
+async def is_host(player_in_match: PlayerInMatch = Depends()):
+    """
+    get true if player is host
+    """
+    if not player_exists(player_in_match.player_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
+        )
+    elif not _match_exists(player_in_match.match_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
+        )
+    elif not is_in_match(
+        get_player_id(player_in_match.player_name),
+        get_match_id(player_in_match.match_name),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Jugador no está en la partida",
+        )
+    else:
+        return {"is_host": get_player_by_name(player_in_match.player_name).is_host}
 
 
 @app.get("/match/players", tags=["Matches"], status_code=status.HTTP_200_OK)
