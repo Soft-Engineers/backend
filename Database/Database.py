@@ -266,6 +266,13 @@ def is_in_match(player_id, match_id):
     return False
 
 
+@db_session
+def get_match_id(match_name):
+    if not _match_exists(match_name):
+        raise MatchNotFound("Partida no encontrada")
+    return Match.get(name=match_name).id
+
+
 # ------------ player functions ----------------
 @db_session
 def create_player(new_player_name):
