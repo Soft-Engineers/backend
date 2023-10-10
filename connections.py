@@ -5,7 +5,7 @@ from Database.Database import (
     player_exists,
     check_match_existence,
 )
-from request_exception import RequestException
+from request import RequestException
 
 
 class ConnectionManager:
