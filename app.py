@@ -229,3 +229,37 @@ async def start_game(match_player: PlayerInMatch):
     """
     Start a match
     """
+    if not _match_exists(match_player.match_name):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
+        )
+    elif not player_exists(match_player.player_name):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Jugador no encontrado"
+        )
+    elif not is_in_match(
+        get_player_id(match_player.player_name), get_match_id(match_player.match_name)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Jugador no está en la partida",
+        )
+    elif not get_player_by_name(match_player.player_name).is_host:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no es el host"
+        )
+    elif db_is_match_initiated(match_player.match_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Partida ya iniciada"
+        )
+    elif (
+        len(db_get_players(match_player.match_name))
+        < get_match_by_name(match_player.match_name).min_players
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cantidad insuficiente de jugadores",
+        )
+    else:
+        match = started_match(match_player.match_name)
+        return {"detail": "Partida inicializada", "match": match}

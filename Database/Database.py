@@ -37,6 +37,7 @@ class Player(db.Entity):
     position = Optional(int)
     rol = Optional(int)  # 0: default, 1: human, 2: la cosa, 3: infected
     is_alive = Optional(bool)
+    in_game = Optional(bool, default=False)
 
 
 class Card(db.Entity):
@@ -296,6 +297,22 @@ def get_match_id_or_None(match_name):
     if not _match_exists(match_name):
         return None
     return Match.get(name=match_name).id
+
+
+@db_session
+def started_match(match_name):
+    match = Match.get(name=match_name)
+    match.initiated = True
+    match.current_player = 1
+    position = 0
+    for player in match.players:
+        player.in_game = True
+        player.is_alive = True
+        player.position = position + 1
+    # create deck and deal cards
+    _create_deck(match)
+    _deal_cards(match)
+    return match
 
 
 # ------------ player functions ----------------
