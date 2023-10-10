@@ -11,14 +11,19 @@ from fastapi import (
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
+from Database.Database import _match_exists
 from pydantic_models import *
+from connections import WebSocket, ConnectionManager
+from request_exception import RequestException
+import json
+
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
 
 description = """
             La Cosa
-            
+
             This is a game about the game cards "La Cosa"
             ## The FUN is guaranteed! 
 """
@@ -44,6 +49,62 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+manager = ConnectionManager()
+
+# --- WebSockets --- #
+@app.websocket("/ws/{match_name}/{player_name}")
+async def websocket_endpoint(websocket: WebSocket):
+    match_name = websocket.path_params["match_name"]
+    player_name = websocket.path_params["player_name"]
+    try:
+        match_id = get_match_id_or_None(match_name)
+        await manager.connect(websocket, match_id, player_name)
+        while True:
+            # Cambiar por toda la info de la partida
+            data = {"message_type": 1, "message_content": db_get_players(match_name)}
+            # Debería mandar la info privada a su correspondiente jugador
+            await manager.broadcast(data, match_id)
+
+            request = await websocket.receive_text()
+            await handle_request(request, match_name, player_name, websocket)
+    except (RequestException, DatabaseError) as e:
+        await manager.send_error_message(str(e), websocket)
+    except Exception as e:
+        print(str(e))
+    finally:
+        manager.disconnect(player_name)
+
+
+def _parse_request(request: str):
+    try:
+        request = json.loads(request)
+    except:
+        raise RequestException("Invalid request")
+    return request
+
+
+async def handle_request(request, match_name, player_name, websocket):
+    request = _parse_request(request)
+    try:
+        msg_type, data = request["message_type"], request["message_content"]
+    except KeyError:
+        raise RequestException("Invalid request")
+
+    # Los message_type se pueden cambiar por enums
+    if msg_type == "Chat":
+        pass
+    elif msg_type == "Pick card":
+        # Llamar a la función pick_card
+        pass
+    elif msg_type == "Play card":
+        # Llamar a la función play_card
+        pass
+    elif msg_type == "leave match":
+        # Llamar a la función leave_match
+        pass
+    else:
+        pass
 
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
@@ -96,6 +157,31 @@ async def player_creator(name_player: str = Form()):
         return {"player_id": get_player_by_name(name_player).id}
 
 
+@app.get("/player/host", tags=["Player"], status_code=200)
+async def is_host(player_in_match: PlayerInMatch = Depends()):
+    """
+    get true if player is host
+    """
+    if not player_exists(player_in_match.player_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
+        )
+    elif not _match_exists(player_in_match.match_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
+        )
+    elif not is_in_match(
+        get_player_id(player_in_match.player_name),
+        get_match_id(player_in_match.match_name),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Jugador no está en la partida",
+        )
+    else:
+        return {"is_host": get_player_by_name(player_in_match.player_name).is_host}
+
+
 @app.get("/match/players", tags=["Matches"], status_code=status.HTTP_200_OK)
 async def get_players(match_name: str):
     """
@@ -139,7 +225,7 @@ async def join_game(join_match: JoinMatch):
 
 
 @app.post("/match/start", tags=["Matches"], status_code=status.HTTP_200_OK)
-async def start_game(match_player: Player_in_Match):
+async def start_game(match_player: PlayerInMatch):
     """
     Start a match
     """

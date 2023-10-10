@@ -23,7 +23,7 @@ class Match(db.Entity):
     max_players = Required(int)
     players = Set("Player")
     initiated = Optional(bool, default=False)
-    clockwise = Optional(bool, default=True)  # sense of rotation
+    clockwise = Optional(bool, default=True)
     current_player = Required(int, default=0)
     deck = Set("Deck")
 
@@ -37,7 +37,6 @@ class Player(db.Entity):
     position = Optional(int)
     rol = Optional(int)  # 0: default, 1: human, 2: la cosa, 3: infected
     is_alive = Optional(bool)
-    player_in_match = Optional(bool, default=False)
 
 
 class Card(db.Entity):
@@ -219,8 +218,25 @@ def db_add_player(player_name: str, match_name: str):
 
 
 @db_session
+def db_get_players(match_name: str) -> list[str]:
+    """
+    Returns the players names from a match
+    """
+    match = _get_match_by_name(match_name)
+    players = []
+    for p in match.players:
+        players.append(p.player_name)
+    return players
+
+
+@db_session
 def _match_exists(match_name):
     return Match.exists(name=match_name)
+
+
+@db_session
+def check_match_existence(match_id):
+    return Match.exists(id=match_id)
 
 
 @db_session
@@ -253,6 +269,26 @@ def is_in_match(player_id, match_id):
         if player.id == player_id:
             return True
     return False
+
+
+@db_session
+def get_match_id(match_name):
+    if not _match_exists(match_name):
+        raise MatchNotFound("Partida no encontrada")
+    return Match.get(name=match_name).id
+
+
+@db_session
+def db_get_player_match_id(player_name: str):
+    if not player_exists(player_name):
+        raise PlayerNotFound("Player not found")
+
+    match = Player.get(player_name=player_name).match
+
+    if match is None:
+        raise PlayerNotInMatch("Player not in match")
+
+    return match.id
 
 
 # ------------ player functions ----------------
@@ -292,15 +328,3 @@ def get_player_id(player_name):
     if not player_exists(player_name):
         raise PlayerNotFound("Jugador no encontrado")
     return Player.get(player_name=player_name).id
-
-
-@db_session
-def db_get_players(match_name: str) -> list[str]:
-    """
-    Returns the players names from a match
-    """
-    match = _get_match_by_name(match_name)
-    players = []
-    for p in match.players:
-        players.append(p.player_name)
-    return players
