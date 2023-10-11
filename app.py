@@ -7,15 +7,17 @@ from fastapi import (
     Depends,
     Form,
     WebSocketDisconnect,
+    WebSocket,
 )
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from Database.Database import _match_exists
 from pydantic_models import *
-from connections import WebSocket, ConnectionManager
-from request import RequestException
 import json
+from connections import WebSocket, ConnectionManager
+from request import RequestException, parse_request
+from game_exception import GameException
 
 
 MAX_LEN_ALIAS = 16
@@ -78,7 +80,7 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         manager.disconnect(player_name)
 
-
+# Request handler
 async def handle_request(request, match_name, player_name, websocket):
     try:
         request = parse_request(request)
@@ -101,7 +103,6 @@ async def handle_request(request, match_name, player_name, websocket):
         await manager.send_error_message(str(e), websocket)
     except GameException as e:
         await manager.send_error_message(str(e), websocket)
-
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
 async def match_listing():
@@ -217,8 +218,8 @@ async def join_game(join_match: JoinMatch):
             response = {"detail": "ok"}
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    return response
 
+    return response
 
 @app.post("/match/start", tags=["Matches"], status_code=status.HTTP_200_OK)
 async def start_game(match_player: PlayerInMatch):
@@ -265,3 +266,23 @@ async def start_game(match_player: PlayerInMatch):
         }
         await manager.broadcast(start_alert, get_match_id(match_player.match_name))
         return {"detail": "Partida inicializada"}
+
+      
+def pickup_card(player_name: str):
+    """
+    The player get a random card from the deck and add it to his hand
+    if the deck is empty, form a new deck from the discard deck
+    """
+    try:
+        player_id = get_player_id(player_name)
+        match_id = get_player_match(player_id)
+    except DatabaseError as e:
+        raise GameException(str(e))
+    if not is_player_turn(player_id):
+        raise GameException("No es tu turno")
+    elif get_game_state(match_id) != GAME_STATE["DRAW_CARD"]:
+        raise GameException("No es el momento de robar carta")
+
+    card = pick_random_card(player_id)
+    set_game_state(match_id, GAME_STATE["PLAY_TURN"])
+    return {"name": card.name, "type": card.type}

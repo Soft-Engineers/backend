@@ -29,6 +29,7 @@ class test_get_random_string_lower(TestCase):
         self.assertTrue(len(b) == length)
         self.assertTrue(a != b)
 
+
 class test_get_random_string_upper(TestCase):
     def test_get_random_string_upper(self):
         length = 50
@@ -40,6 +41,7 @@ class test_get_random_string_upper(TestCase):
         self.assertTrue(len(a) == length)
         self.assertTrue(len(b) == length)
         self.assertTrue(a != b)
+
 
 class test_get_random_string_num(TestCase):
     def test_get_random_string_num(self):
