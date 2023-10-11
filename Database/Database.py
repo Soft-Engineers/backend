@@ -464,3 +464,16 @@ def pick_random_card(player_id: int) -> Card:
     deck.cards.remove(card)
     card.deck.remove(deck)
     return card
+
+
+@db_session
+def db_get_player_match_id(player_name: str):
+    if not player_exists(player_name):
+        raise PlayerNotFound("Player not found")
+
+    match = Player.get(player_name=player_name).match
+
+    if match is None:
+        raise PlayerNotInMatch("Player not in match")
+
+    return match.id
