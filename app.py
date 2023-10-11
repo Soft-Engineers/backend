@@ -235,6 +235,33 @@ def play_card(player_name: str, card_id: int, target: Optional[str] = None):
     return msg
 
 
+def check_win(match_id: int):
+    """
+    Check if a player has won the game
+    """
+    reason = ""
+    win = check_win_condition(match_id)
+    set_game_state(match_id, GAME_STATE["FINISHED"])
+
+    if check_one_player_alive(match_id):
+        reason = "Solo queda un jugador vivo"
+    elif not is_la_cosa_alive(match_id):
+        reason = "La cosa ha muerto"
+
+    winners = get_winners(match_id)
+    if win:
+        msg = {
+            "message_type": "partida finalizada",
+            "message_content": {
+                "winners": winners,
+                "reason": reason,
+            },
+        }
+        return msg
+    else:
+        return None
+
+
 # --- WebSockets --- #
 
 
@@ -292,12 +319,16 @@ async def handle_request(request, match_id, player_name, websocket):
             }
             await manager.broadcast(alert, match_id)
             await manager.broadcast(msg, match_id)
+            win_msg = check_win(match_id)
+            if win_msg:
+                await manager.broadcast(win_msg, match_id)
 
         elif msg_type == "leave match":
             # Llamar a la función leave_match
             pass
         else:
             pass
+
     except RequestException as e:
         await manager.send_error_message(str(e), websocket)
     except GameException as e:

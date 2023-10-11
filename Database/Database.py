@@ -62,7 +62,7 @@ db.generate_mapping(create_tables=True)
 # --- Constants --- #
 
 ROL = {"HUMAN": 1, "LA_COSA": 2, "INFECTED": 3}
-GAME_STATE = {"DRAW_CARD": 1, "PLAY_TURN": 2, "END_GAME": 3}
+GAME_STATE = {"DRAW_CARD": 1, "PLAY_TURN": 2, "FINISHED": 3}
 
 # -- Cards Functions -- #
 
@@ -157,9 +157,8 @@ def _play_lanzallamas(player: Player, player_target: Player):
     player_target.is_alive = False
 
 
-
 @db_session
-def play_card_from_hand(player_id :int, card_id: int, target_id: int = None):
+def play_card_from_hand(player_id: int, card_id: int, target_id: int = None):
     card = get_card_by_id(card_id)
     player = get_player_by_id(player_id)
     if target_id is not None:
@@ -180,7 +179,6 @@ def play_card_from_hand(player_id :int, card_id: int, target_id: int = None):
         pass
 
     discard_card(player_id, card_id)
-
 
 
 # --- Match Functions --- #
@@ -384,13 +382,42 @@ def set_next_turn(match_id: int) -> int:
     return next_player
 
 
-
 @db_session
 def get_player_in_turn(match_id: int) -> str:
     match = _get_match(match_id)
     for player in match.players:
         if player.position == match.current_player:
             return player.player_name
+
+
+@db_session
+def check_win_condition(match_id: int) -> bool:
+    return check_one_player_alive(match_id) or not is_la_cosa_alive(match_id)
+
+
+@db_session
+def check_one_player_alive(match_id: int) -> bool:
+    match = _get_match(match_id)
+    alive_players = match.players.filter(lambda p: p.is_alive).count()
+    return alive_players == 1
+
+
+@db_session
+def is_la_cosa_alive(match_id: int) -> bool:
+    match = _get_match(match_id)
+    cosa = match.players.filter(lambda p: p.rol == ROL["LA_COSA"]).first()
+    return cosa.is_alive
+
+
+@db_session
+def get_winners(match_id: int) -> list[str]:
+    match = _get_match(match_id)
+    winners = []
+    for player in match.players:
+        if player.is_alive:
+            winners.append(player.player_name)
+    return winners
+
 
 # ------------ player functions ----------------
 
@@ -485,10 +512,12 @@ def get_player_hand(player_id: int) -> list[Card]:
     player = get_player_by_id(player_id)
     return list(player.cards)
 
+
 @db_session
 def set_player_alive(player_id: int, alive: bool):
     player = get_player_by_id(player_id)
     player.is_alive = alive
+
 
 @db_session
 def get_player_alive(player_id: int) -> bool:
