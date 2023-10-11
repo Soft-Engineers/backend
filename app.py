@@ -257,5 +257,10 @@ async def start_game(match_player: PlayerInMatch):
             detail="Cantidad insuficiente de jugadores",
         )
     else:
-        match = started_match(match_player.match_name)
-        return {"detail": "Partida inicializada", "match": match}
+        started_match(match_player.match_name)
+        start_alert = {
+            "message_type": "start_match",
+            "message_content": "LA PARTIDA COMIENZA!!!",
+        }
+        await manager.broadcast(start_alert, get_match_id(match_player.match_name))
+        return {"detail": "Partida inicializada"}
