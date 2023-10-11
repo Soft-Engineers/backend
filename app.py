@@ -11,11 +11,12 @@ from fastapi import (
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
-
 from Database.Database import _match_exists
 from pydantic_models import *
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json
+from connections import WebSocket, ConnectionManager
+from request import RequestException, parse_request
 from game_exception import GameException
 
 
@@ -50,6 +51,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+manager = ConnectionManager()
 
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
@@ -166,6 +169,7 @@ async def join_game(join_match: JoinMatch):
             response = {"detail": "ok"}
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
     return response
 
 
@@ -190,3 +194,57 @@ def pickup_card(player_name: str):
     card = pick_random_card(player_id)
     set_game_state(match_id, GAME_STATE["PLAY_TURN"])
     return {"name": card.name, "type": card.type}
+
+
+# --- WebSockets --- #
+
+
+@app.websocket("/ws/{match_name}/{player_name}")
+async def websocket_endpoint(websocket: WebSocket):
+    match_name = websocket.path_params["match_name"]
+    player_name = websocket.path_params["player_name"]
+    try:
+        match_id = get_match_id_or_None(match_name)
+        await manager.connect(websocket, match_id, player_name)
+        while True:
+            # Mandar la info de la partida a todos los jugadores
+            # TODO: Sacar cuando se haga todo por sockets
+            data = {
+                "message_type": "jugadores lobby",
+                "message_content": db_get_players(match_name),
+            }
+            await manager.broadcast(data, match_id)
+
+            request = await websocket.receive_text()
+            await handle_request(request, match_name, player_name, websocket)
+    except WebSocketDisconnect:
+        manager.disconnect(player_name)
+    except Exception as e:
+        print(str(e))
+    finally:
+        manager.disconnect(player_name)
+
+
+# Request handler
+async def handle_request(request, match_name, player_name, websocket):
+    try:
+        request = parse_request(request)
+        msg_type, data = request
+        # Los message_type se pueden cambiar por enums
+        if msg_type == "Chat":
+            pass
+        elif msg_type == "robar carta":
+            # Llamar a la función pick_card
+            pass
+        elif msg_type == "jugar carta":
+            # Llamar a la función play_card
+            pass
+        elif msg_type == "leave match":
+            # Llamar a la función leave_match
+            pass
+        else:
+            pass
+    except RequestException as e:
+        await manager.send_error_message(str(e), websocket)
+    except GameException as e:
+        await manager.send_error_message(str(e), websocket)
