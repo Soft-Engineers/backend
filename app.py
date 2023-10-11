@@ -284,6 +284,7 @@ async def start_game(match_player: PlayerInMatch):
         )
     else:
         started_match(match_player.match_name)
+        set_game_state(get_match_id(match_player.match_name), GAME_STATE["DRAW_CARD"])
         start_alert = {
             "message_type": "start_match",
             "message_content": "LA PARTIDA COMIENZA!!!",

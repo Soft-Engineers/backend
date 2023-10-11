@@ -388,6 +388,7 @@ def started_match(match_name):
     return match
 
 
+@db_session
 def get_game_state(match_id: int) -> int:
     return Match[match_id].game_state
 
