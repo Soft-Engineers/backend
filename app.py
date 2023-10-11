@@ -11,10 +11,13 @@ from fastapi import (
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
+
+from Database.Database import _match_exists
 from pydantic_models import *
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json
-from request_exception import RequestException
+from game_exception import GameException
+
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -99,6 +102,31 @@ async def player_creator(name_player: str = Form()):
         return {"player_id": get_player_by_name(name_player).id}
 
 
+@app.get("/player/host", tags=["Player"], status_code=200)
+async def is_host(player_in_match: PlayerInMatch = Depends()):
+    """
+    get true if player is host
+    """
+    if not player_exists(player_in_match.player_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
+        )
+    elif not _match_exists(player_in_match.match_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
+        )
+    elif not is_in_match(
+        get_player_id(player_in_match.player_name),
+        get_match_id(player_in_match.match_name),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Jugador no está en la partida",
+        )
+    else:
+        return {"is_host": get_player_by_name(player_in_match.player_name).is_host}
+
+
 @app.get("/match/players", tags=["Matches"], status_code=status.HTTP_200_OK)
 async def get_players(match_name: str):
     """
@@ -153,11 +181,11 @@ def pickup_card(player_name: str):
         player_id = get_player_id(player_name)
         match_id = get_player_match(player_id)
     except DatabaseError as e:
-        raise RequestException(str(e))
+        raise GameException(str(e))
     if not is_player_turn(player_id):
-        raise RequestException("No es tu turno")
+        raise GameException("No es tu turno")
     elif get_game_state(match_id) != GAME_STATE["DRAW_CARD"]:
-        raise RequestException("No es el momento de robar carta")
+        raise GameException("No es el momento de robar carta")
 
     card = pick_random_card(player_id)
     set_game_state(match_id, GAME_STATE["PLAY_TURN"])

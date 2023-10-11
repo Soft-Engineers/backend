@@ -132,73 +132,6 @@ def _deal_cards(match: Match):
             card.deck.remove(deck)
 
 
-# --- Card Functions --- #
-
-
-def _register_rep(rep, card):
-    for _ in range(rep.amount):
-        Card(card_name=card.card_name, number=rep.number, type=card.type.value)
-
-
-@db_session
-def _register_cards():
-    Card.select().delete()
-    for card in card_templates:
-        for rep in card.repetitions:
-            _register_rep(rep, card)
-
-
-@db_session
-def _are_cards_registered():
-    return Card.select().count() == amount_cards()
-
-
-# Register Cards
-if not _are_cards_registered():
-    _register_cards()
-
-
-@db_session
-def _create_deck(match: Match):
-    deck = Deck(match=match, is_discard=False)
-    disc_deck = Deck(match=match, is_discard=True)
-    num_player = match.players.count()
-
-    for card in Card.select():
-        if card.number is None or card.number <= num_player:
-            deck.cards.add(card)
-            card.deck.add(deck)
-
-    match.deck.add(deck)
-    match.deck.add(disc_deck)
-    deck.match = match
-    disc_deck.match = match
-
-
-@db_session
-def _deal_cards(match: Match):
-    deck = match.deck.filter(lambda d: not d.is_discard).first()
-    required_cards = match.players.count() * 4
-
-    # Repartir según reglas
-    deal_deck = list(
-        deck.cards.filter(
-            lambda c: c.type != CardType.CONTAGIO.value
-            and c.type != CardType.PANICO.value
-        ).random(required_cards - 1)
-    )
-    cosa_card = deck.cards.filter(lambda c: c.card_name == "La Cosa").first()
-    deal_deck.insert(randrange(len(deal_deck) + 1), cosa_card)
-
-    players = match.players
-    for player in players:
-        for _ in range(4):
-            card = deal_deck.pop()
-            player.cards.add(card)  # Otorgar a jugador
-            card.player.add(player)
-            deck.cards.remove(card)  # Quitar del mazo
-            card.deck.remove(deck)
-
 
 # --- Match Functions --- #
 @db_session
@@ -352,6 +285,13 @@ def set_game_state(match_id: int, state: int):
     match.game_state = state
 
 
+@db_session
+def get_match_id(match_name):
+    if not _match_exists(match_name):
+        raise MatchNotFound("Partida no encontrada")
+    return Match.get(name=match_name).id
+
+
 # ------------ player functions ----------------
 
 
@@ -438,6 +378,22 @@ def get_player_id(player_name: str) -> int:
     if not player_exists(player_name):
         raise PlayerNotFound("Jugador no encontrado")
     return Player.get(player_name=player_name).id
+
+
+@db_session
+def get_player_hand(player_id: int) -> list[Card]:
+    player = get_player_by_id(player_id)
+    return list(player.cards)
+
+
+def set_player_alive(player_id: int, alive: bool):
+    player = get_player_by_id(player_id)
+    player.is_alive = alive
+
+
+def get_player_alive(player_id: int) -> bool:
+    player = get_player_by_id(player_id)
+    return player.is_alive
 
 
 # --------------- Deck Functions -----------------
