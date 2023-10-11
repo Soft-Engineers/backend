@@ -245,11 +245,13 @@ def get_match_id(match_name):
         raise MatchNotFound("Match not found")
     return Match.get(name=match_name).id
 
+
 @db_session
 def get_match_id_or_None(match_name):
     if not _match_exists(match_name):
         return None
     return Match.get(name=match_name).id
+
 
 @db_session
 def get_match_info(match_id):
