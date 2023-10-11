@@ -38,6 +38,7 @@ class Player(db.Entity):
     position = Optional(int)
     rol = Optional(int)  # 0: default, 1: human, 2: la cosa, 3: infected
     is_alive = Optional(bool)
+    in_game = Optional(bool, default=False)
 
 
 class Card(db.Entity):
@@ -245,21 +246,6 @@ def _match_exists(match_name):
 def check_match_existence(match_id):
     return Match.exists(id=match_id)
 
-
-@db_session
-def get_match_id(match_name):
-    if not _match_exists(match_name):
-        raise MatchNotFound("Match not found")
-    return Match.get(name=match_name).id
-
-
-@db_session
-def get_match_id_or_None(match_name):
-    if not _match_exists(match_name):
-        return None
-    return Match.get(name=match_name).id
-
-
 @db_session
 def get_match_info(match_id):
     match = Match[match_id]
@@ -304,6 +290,53 @@ def is_in_match(player_id, match_id):
 
 
 @db_session
+def get_match_id(match_name):
+    if not _match_exists(match_name):
+        raise MatchNotFound("Partida no encontrada")
+    return Match.get(name=match_name).id
+
+
+@db_session
+def db_get_player_match_id(player_name: str):
+    if not player_exists(player_name):
+        raise PlayerNotFound("Player not found")
+
+    match = Player.get(player_name=player_name).match
+
+    if match is None:
+        raise PlayerNotInMatch("Player not in match")
+
+    return match.id
+
+
+@db_session
+def get_match_id_or_None(match_name):
+    if not _match_exists(match_name):
+        return None
+    return Match.get(name=match_name).id
+
+
+@db_session
+def started_match(match_name):
+    match = Match.get(name=match_name)
+    match.initiated = True
+    match.current_player = 1
+    position = 0
+    # create deck and deal cards
+    _create_deck(match)
+    _deal_cards(match)
+    for player in match.players:
+        player.in_game = True
+        player.is_alive = True
+        player.position = position + 1
+        position += 1
+        if player.cards.select(lambda c: c.card_name == "La Cosa").first():
+            player.rol = 2  # La Cosa
+        else:
+            player.rol = 1
+
+    return match
+
 def get_game_state(match_id: int) -> int:
     return Match[match_id].game_state
 
@@ -312,15 +345,6 @@ def get_game_state(match_id: int) -> int:
 def set_game_state(match_id: int, state: int):
     match = Match[match_id]
     match.game_state = state
-
-
-@db_session
-def get_match_id(match_name):
-    if not _match_exists(match_name):
-        raise MatchNotFound("Partida no encontrada")
-    return Match.get(name=match_name).id
-
-
 # ------------ player functions ----------------
 
 
