@@ -67,7 +67,8 @@ async def create_game(config: GameConfig):
 
     if config.min_players < 4 or config.max_players > 12:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid number of players"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cantidad inválida de jugadores",
         )
 
     try:
@@ -89,17 +90,42 @@ async def player_creator(name_player: str = Form()):
     Create a new player
     """
     invalid_fields = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid fields"
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Campo inválido"
     )
     if len(name_player) > MAX_LEN_ALIAS or len(name_player) < MIN_LEN_ALIAS:
         raise invalid_fields
     elif player_exists(name_player):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Player already exists"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Nombre no disponible"
         )
     else:
         create_player(name_player)
         return {"player_id": get_player_by_name(name_player).id}
+
+
+@app.get("/player/host", tags=["Player"], status_code=200)
+async def is_host(player_in_match: PlayerInMatch = Depends()):
+    """
+    get true if player is host
+    """
+    if not player_exists(player_in_match.player_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
+        )
+    elif not _match_exists(player_in_match.match_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
+        )
+    elif not is_in_match(
+        get_player_id(player_in_match.player_name),
+        get_match_id(player_in_match.match_name),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Jugador no está en la partida",
+        )
+    else:
+        return {"is_host": get_player_by_name(player_in_match.player_name).is_host}
 
 
 @app.get("/match/players", tags=["Matches"], status_code=status.HTTP_200_OK)
@@ -111,7 +137,7 @@ async def get_players(match_name: str):
         players = db_get_players(match_name)
         response = {"players": players}
     except MatchNotFound:
-        raise HTTPException(status_code=404, detail="Match not found")
+        raise HTTPException(status_code=404, detail="Partida no encontrada")
     return response
 
 
@@ -130,11 +156,11 @@ async def join_game(join_match: JoinMatch):
     try:
         if db_is_match_initiated(join_match.match_name):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Match already started"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Partida ya iniciada"
             )
         elif not is_correct_password(join_match.match_name, join_match.password):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Contraseña Incorrecta"
             )
         else:
             db_add_player(join_match.player_name, join_match.match_name)
