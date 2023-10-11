@@ -56,6 +56,7 @@ manager = ConnectionManager()
 
 # --- WebSockets --- #
 
+
 @app.websocket("/ws/{match_name}/{player_name}")
 async def websocket_endpoint(websocket: WebSocket):
     match_name = websocket.path_params["match_name"]
@@ -124,7 +125,6 @@ async def handle_request(request, match_id, player_name, websocket):
         await manager.send_error_message(str(e), websocket)
     except GameException as e:
         await manager.send_error_message(str(e), websocket)
-
 
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
@@ -244,6 +244,7 @@ async def join_game(join_match: JoinMatch):
 
     return response
 
+
 @app.post("/match/start", tags=["Matches"], status_code=status.HTTP_200_OK)
 async def start_game(match_player: PlayerInMatch):
     """
@@ -290,7 +291,7 @@ async def start_game(match_player: PlayerInMatch):
         await manager.broadcast(start_alert, get_match_id(match_player.match_name))
         return {"detail": "Partida inicializada"}
 
-      
+
 def pickup_card(player_name: str):
     """
     The player get a random card from the deck and add it to his hand
@@ -375,7 +376,3 @@ def check_win(match_id: int):
         return msg
     else:
         return None
-
-
-
-

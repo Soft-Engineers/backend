@@ -295,6 +295,7 @@ def _match_exists(match_name):
 def check_match_existence(match_id):
     return Match.exists(id=match_id)
 
+
 @db_session
 def get_match_info(match_id):
     match = Match[match_id]
@@ -385,6 +386,7 @@ def started_match(match_name):
             player.rol = 1
 
     return match
+
 
 def get_game_state(match_id: int) -> int:
     return Match[match_id].game_state
