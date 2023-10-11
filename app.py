@@ -217,7 +217,7 @@ def play_card(player_name: str, card_name: str, target: Optional[str] = None):
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
     next_turn = set_next_turn(match_id)
 
-    # De aca para abajo habría que cambiar 
+    # De aca para abajo habría que cambiar
     if card_name == "Lanzallamas":
         dead_player_name = target
     else:
@@ -226,11 +226,11 @@ def play_card(player_name: str, card_name: str, target: Optional[str] = None):
     msg = {
         "message_type": "datos jugada",
         "message_content": {
-            "card_name" : card_name,
-            "target" : target,
-            "next_turn" : get_player_in_turn(match_id),
-            "dead_player_name" : dead_player_name
-        }
+            "card_name": card_name,
+            "target": target,
+            "next_turn": get_player_in_turn(match_id),
+            "dead_player_name": dead_player_name,
+        },
     }
     return msg
 
@@ -272,19 +272,23 @@ async def handle_request(request, match_id, player_name, websocket):
         # Los message_type se pueden cambiar por enums
         if msg_type == "Chat":
             pass
-        
+
         elif msg_type == "robar carta":
             msg = {
                 "message_type": "carta robada",
                 "message_content": pickup_card(player_name),
             }
-            await manager.broadcast(msg, match_id)
+            await websocket.send_json(msg)
 
         elif msg_type == "jugar carta":
             msg = play_card(player_name, content["card_name"], content["target"])
             alert = {
                 "message_type": "notificación",
-                "message_content": player_name + " jugó " + content["card_name"] + " a " + content["target"]
+                "message_content": player_name
+                + " jugó "
+                + content["card_name"]
+                + " a "
+                + content["target"],
             }
             await manager.broadcast(alert, match_id)
             await manager.broadcast(msg, match_id)
