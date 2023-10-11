@@ -213,7 +213,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await manager.broadcast("jugadores lobby", db_get_players(match_name), match_id)
 
             request = await websocket.receive_text()
-            await handle_request(request, match_name, player_name, websocket)
+            await handle_request(request, match_id, player_name, websocket)
     except RequestException as e:
         await manager.send_error_message(str(e), websocket)
     except Exception as e:
@@ -223,7 +223,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 # Request handler
-async def handle_request(request, match_name, player_name, websocket):
+async def handle_request(request, match_id, player_name, websocket):
     try:
         request = parse_request(request)
         msg_type, data = request
@@ -231,8 +231,10 @@ async def handle_request(request, match_name, player_name, websocket):
         if msg_type == "Chat":
             pass
         elif msg_type == "robar carta":
-            # Llamar a la función pick_card
-            pass
+            card_data = pickup_card(player_name)
+            await manager.send_personal_message(
+                "carta robada", card_data, match_id, player_name
+            )
         elif msg_type == "jugar carta":
             # Llamar a la función play_card
             pass
