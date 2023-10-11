@@ -305,13 +305,19 @@ def started_match(match_name):
     match.initiated = True
     match.current_player = 1
     position = 0
+    # create deck and deal cards
+    _create_deck(match)
+    _deal_cards(match)
     for player in match.players:
         player.in_game = True
         player.is_alive = True
         player.position = position + 1
-    # create deck and deal cards
-    _create_deck(match)
-    _deal_cards(match)
+        position += 1
+        if player.cards.select(lambda c: c.card_name == "La Cosa").first():
+            player.rol = 2  # La Cosa
+        else:
+            player.rol = 1
+
     return match
 
 

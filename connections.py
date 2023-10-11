@@ -5,7 +5,7 @@ from Database.Database import (
     player_exists,
     check_match_existence,
 )
-from request_exception import RequestException
+from request import RequestException
 
 
 class ConnectionManager:
@@ -39,7 +39,7 @@ class ConnectionManager:
         await self.send_personal_message(message, match_id, player_name)
 
     async def send_error_message(self, message: str, websocket: str):
-        msg = {"message_type": 2, "message_content": message}
+        msg = {"message_type": "error", "message_content": message}
         await websocket.send_json(msg)
 
     async def broadcast(self, message: str, match_id: int):

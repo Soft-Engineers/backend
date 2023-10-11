@@ -14,7 +14,7 @@ from typing import Optional
 from Database.Database import _match_exists
 from pydantic_models import *
 from connections import WebSocket, ConnectionManager
-from request_exception import RequestException
+from request import RequestException
 import json
 
 
@@ -61,50 +61,46 @@ async def websocket_endpoint(websocket: WebSocket):
         match_id = get_match_id_or_None(match_name)
         await manager.connect(websocket, match_id, player_name)
         while True:
-            # Cambiar por toda la info de la partida
-            data = {"message_type": 1, "message_content": db_get_players(match_name)}
-            # Debería mandar la info privada a su correspondiente jugador
+            # Mandar la info de la partida a todos los jugadores
+            # TODO: Sacar cuando se haga todo por sockets
+            data = {
+                "message_type": "jugadores lobby",
+                "message_content": db_get_players(match_name),
+            }
             await manager.broadcast(data, match_id)
 
             request = await websocket.receive_text()
             await handle_request(request, match_name, player_name, websocket)
-    except (RequestException, DatabaseError) as e:
-        await manager.send_error_message(str(e), websocket)
+    except WebSocketDisconnect:
+        manager.disconnect(player_name)
     except Exception as e:
         print(str(e))
     finally:
         manager.disconnect(player_name)
 
 
-def _parse_request(request: str):
-    try:
-        request = json.loads(request)
-    except:
-        raise RequestException("Invalid request")
-    return request
-
-
 async def handle_request(request, match_name, player_name, websocket):
-    request = _parse_request(request)
     try:
-        msg_type, data = request["message_type"], request["message_content"]
-    except KeyError:
-        raise RequestException("Invalid request")
-
-    # Los message_type se pueden cambiar por enums
-    if msg_type == "Chat":
-        pass
-    elif msg_type == "Pick card":
-        # Llamar a la función pick_card
-        pass
-    elif msg_type == "Play card":
-        # Llamar a la función play_card
-        pass
-    elif msg_type == "leave match":
-        # Llamar a la función leave_match
-        pass
-    else:
-        pass
+        request = parse_request(request)
+        msg_type, data = request
+        # Los message_type se pueden cambiar por enums
+        if msg_type == "Chat":
+            pass
+        elif msg_type == "robar carta":
+            # Llamar a la función pick_card
+            pass
+        elif msg_type == "jugar carta":
+            # Llamar a la función play_card
+            pass
+        elif msg_type == "leave match":
+            # Llamar a la función leave_match
+            pass
+        else:
+            pass
+    except RequestException as e:
+        await manager.send_error_message(str(e), websocket)
+    except GameException as e:
+        await manager.send_error_message(str(e), websocket)
 
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
