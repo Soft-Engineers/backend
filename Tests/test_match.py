@@ -316,3 +316,64 @@ def test_started_match_player_not_creator():
     response = client.post("/match/start", json=body)
     assert response.status_code == 400
     assert response.json() == {"detail": "No eres el creador de la partida"}
+
+
+def test_started_match_not_enough_players():
+    nameGame = generate_unique_testing_name()
+    namePlayer_creator = generate_unique_testing_name()
+
+    _create_player(namePlayer_creator)
+
+    body = {
+        "match_name": nameGame,
+        "player_name": namePlayer_creator,
+        "min_players": 4,
+        "max_players": 12,
+    }
+
+    response = client.post("/match/create", json=body)
+    _assert_match_created(response)
+    # join players
+    for i in range(1, 3):
+        namePlayer = generate_unique_testing_name()
+        _create_player(namePlayer)
+        body = {"player_name": namePlayer, "match_name": nameGame}
+        response = client.post("/match/join", json=body)
+        assert response.status_code == 200
+        assert response.json() == {"detail": "ok"}
+    # start match
+    body = {"match_name": nameGame, "player_name": namePlayer_creator}
+    response = client.post("/match/start", json=body)
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Cantidad insuficiente de jugadores"}
+
+
+def test_started_match_already_started():
+    nameGame = generate_unique_testing_name()
+    namePlayer_creator = generate_unique_testing_name()
+    _create_player(namePlayer_creator)
+    body = {
+        "match_name": nameGame,
+        "player_name": namePlayer_creator,
+        "min_players": 4,
+        "max_players": 12,
+    }
+    response = client.post("/match/create", json=body)
+    _assert_match_created(response)
+    # join players
+    for i in range(1, 4):
+        namePlayer = generate_unique_testing_name()
+        _create_player(namePlayer)
+        body = {"player_name": namePlayer, "match_name": nameGame}
+        response = client.post("/match/join", json=body)
+        assert response.status_code == 200
+        assert response.json() == {"detail": "ok"}
+    # start match
+    body = {"match_name": nameGame, "player_name": namePlayer_creator}
+    response = client.post("/match/start", json=body)
+    assert response.status_code == 200
+    assert response.json() == {"detail": "Partida inicializada"}
+    # start match again
+    response = client.post("/match/start", json=body)
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Partida ya iniciada"}
