@@ -27,3 +27,7 @@ class MatchIsFull(DatabaseError):
 
 class NameNotAvailable(DatabaseError):
     pass
+
+
+class PlayerNotInMatch(DatabaseError):
+    pass
