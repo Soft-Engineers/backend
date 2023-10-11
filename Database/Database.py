@@ -160,18 +160,19 @@ def _play_lanzallamas(player: Player, player_target: Player):
 
 @db_session
 def play_card_from_hand(player_id :int, card_id: int, target_id: int = None):
-    """ Pre: The player has the card in his hand"""
     card = get_card_by_id(card_id)
     player = get_player_by_id(player_id)
     if target_id is not None:
         player_target = get_player_by_id(target_id)
+    if not card in player.cards:
+        raise InvalidCard("No tienes esa carta en tu mano")
 
-    if card.name == "La Cosa":
+    if card.card_name == "La Cosa":
         raise InvalidCard("No puedes jugar la carta La Cosa")
     elif card.type == CardType.CONTAGIO.value:
         raise InvalidCard("No puedes jugar la carta ¡Infectado!")
 
-    if card.name == "Lanzallamas":
+    if card.card_name == "Lanzallamas":
         if target_id is None:
             raise InvalidCard("Lanzallamas requiere un objetivo")
         _play_lanzallamas(player, player_target)
@@ -497,8 +498,8 @@ def get_player_alive(player_id: int) -> bool:
 
 @db_session
 def is_adyacent(player: Player, player_target: Player) -> bool:
-    is_next = player.position == player_target.position + 1
-    is_previous = player.position == player_target.position - 1
+    is_next = player_target.position == (player.position + 1)
+    is_previous = player_target.position == (player.position - 1)
     return is_next or is_previous
 
 

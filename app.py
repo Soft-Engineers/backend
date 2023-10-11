@@ -193,7 +193,7 @@ def pickup_card(player_name: str):
 
     card = pick_random_card(player_id)
     set_game_state(match_id, GAME_STATE["PLAY_TURN"])
-    return {"card_id": card.id, "name": card.name, "type": card.type}
+    return {"card_id": card.id, "name": card.card_name, "type": card.type}
 
 
 def play_card(player_name: str, card_id: int, target: Optional[str] = None):
@@ -218,7 +218,7 @@ def play_card(player_name: str, card_id: int, target: Optional[str] = None):
     next_turn = set_next_turn(match_id)
 
     # De aca para abajo habría que cambiar
-    if card.name == "Lanzallamas":
+    if card.card_name == "Lanzallamas":
         dead_player_name = target
     else:
         dead_player_name = ""
