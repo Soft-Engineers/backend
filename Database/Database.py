@@ -246,6 +246,7 @@ def _match_exists(match_name):
 def check_match_existence(match_id):
     return Match.exists(id=match_id)
 
+
 @db_session
 def get_match_info(match_id):
     match = Match[match_id]
@@ -322,6 +323,7 @@ def started_match(match_name):
     match.initiated = True
     match.current_player = 1
     position = 0
+    match.game_state = GAME_STATE["DRAW_CARD"]
     # create deck and deal cards
     _create_deck(match)
     _deal_cards(match)
@@ -337,6 +339,7 @@ def started_match(match_name):
 
     return match
 
+
 def get_game_state(match_id: int) -> int:
     return Match[match_id].game_state
 
@@ -345,6 +348,8 @@ def get_game_state(match_id: int) -> int:
 def set_game_state(match_id: int, state: int):
     match = Match[match_id]
     match.game_state = state
+
+
 # ------------ player functions ----------------
 
 
