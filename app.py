@@ -209,16 +209,13 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             # Mandar la info de la partida a todos los jugadores
             # TODO: Sacar cuando se haga todo por sockets
-            data = {
-                "message_type": "jugadores lobby",
-                "message_content": db_get_players(match_name),
-            }
-            await manager.broadcast(data, match_id)
+
+            await manager.broadcast("jugadores lobby", db_get_players(match_name), match_id)
 
             request = await websocket.receive_text()
             await handle_request(request, match_name, player_name, websocket)
-    except WebSocketDisconnect:
-        manager.disconnect(player_name)
+    except RequestException as e:
+        await manager.send_error_message(str(e), websocket)
     except Exception as e:
         print(str(e))
     finally:
