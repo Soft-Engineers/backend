@@ -35,3 +35,6 @@ class NameNotAvailable(DatabaseError):
 
 class PlayerNotInMatch(DatabaseError):
     pass
+
+class MatchNotStarted(DatabaseError):
+    pass

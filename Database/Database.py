@@ -454,6 +454,42 @@ def get_player_alive(player_id: int) -> bool:
     return player.is_alive
 
 
+def get_cards(player: Player) -> list:
+    deck_data = []
+    for card in player.cards:
+        deck_data.append(
+            {
+                "card_name": card.card_name,
+                "number": card.number,
+            }
+        )
+    return deck_data
+
+
+def get_match_locations(match_id: int) -> list:
+    locations = []
+    for player in Match[match_id].players:
+        locations.append(
+            {"player_name": player.player_name, "location": player.position}
+        )
+    return locations
+
+@db_session
+def get_game_state_for(player_name: str):
+    player = get_player_by_name(player_name)
+    match = player.match
+    if match is None:
+        raise PlayerNotInMatch("Jugador no está en partida")
+    if match.initiated is False:
+        raise MatchNotStarted("Partida no ha iniciado")
+    hand = get_cards(player)
+    locations = get_match_locations(match.id)
+    current_turn = list(
+        filter(lambda p: p["location"] == match.current_player, locations)
+    )[0]["player_name"]
+    return {"hand": hand, "locations": locations, "current_turn": current_turn}
+
+
 # --------------- Deck Functions -----------------
 
 
