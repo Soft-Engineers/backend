@@ -7,13 +7,13 @@ from fastapi import (
     Depends,
     Form,
     WebSocketDisconnect,
+    WebSocket,
 )
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from Database.Database import _match_exists
 from pydantic_models import *
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import json
 from connections import WebSocket, ConnectionManager
 from request import RequestException, parse_request
@@ -25,7 +25,7 @@ MIN_LEN_ALIAS = 3
 
 description = """
             La Cosa
-            
+
             This is a game about the game cards "La Cosa"
             ## The FUN is guaranteed! 
 """
@@ -53,6 +53,78 @@ app.add_middleware(
 )
 
 manager = ConnectionManager()
+
+# --- WebSockets --- #
+
+@app.websocket("/ws/{match_name}/{player_name}")
+async def websocket_endpoint(websocket: WebSocket):
+    match_name = websocket.path_params["match_name"]
+    player_name = websocket.path_params["player_name"]
+    try:
+        match_id = get_match_id_or_None(match_name)
+        await manager.connect(websocket, match_id, player_name)
+        while True:
+            # Mandar la info de la partida a todos los jugadores
+            # TODO: Sacar cuando se haga todo por sockets
+            data = {
+                "message_type": "jugadores lobby",
+                "message_content": db_get_players(match_name),
+            }
+            await manager.broadcast(data, match_id)
+
+            request = await websocket.receive_text()
+            await handle_request(request, match_id, player_name, websocket)
+    except WebSocketDisconnect:
+        manager.disconnect(player_name)
+    except Exception as e:
+        print(str(e))
+    finally:
+        manager.disconnect(player_name)
+
+
+# Request handler
+async def handle_request(request, match_id, player_name, websocket):
+    try:
+        request = parse_request(request)
+        msg_type, content = request
+        # Los message_type se pueden cambiar por enums
+        if msg_type == "Chat":
+            pass
+
+        elif msg_type == "robar carta":
+            msg = {
+                "message_type": "carta robada",
+                "message_content": pickup_card(player_name),
+            }
+            await websocket.send_json(msg)
+
+        elif msg_type == "jugar carta":
+            msg = play_card(player_name, content["card_id"], content["target"])
+            alert = {
+                "message_type": "notificación",
+                "message_content": player_name
+                + " jugó "
+                + content["card_name"]
+                + " a "
+                + content["target"],
+            }
+            await manager.broadcast(alert, match_id)
+            await manager.broadcast(msg, match_id)
+            win_msg = check_win(match_id)
+            if win_msg:
+                await manager.broadcast(win_msg, match_id)
+
+        elif msg_type == "leave match":
+            # Llamar a la función leave_match
+            pass
+        else:
+            pass
+
+    except RequestException as e:
+        await manager.send_error_message(str(e), websocket)
+    except GameException as e:
+        await manager.send_error_message(str(e), websocket)
+
 
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
@@ -172,10 +244,53 @@ async def join_game(join_match: JoinMatch):
 
     return response
 
+@app.post("/match/start", tags=["Matches"], status_code=status.HTTP_200_OK)
+async def start_game(match_player: PlayerInMatch):
+    """
+    Start a match
+    """
+    if not _match_exists(match_player.match_name):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
+        )
+    elif not player_exists(match_player.player_name):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Jugador no encontrado"
+        )
+    elif not is_in_match(
+        get_player_id(match_player.player_name), get_match_id(match_player.match_name)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Jugador no está en la partida",
+        )
+    elif not get_player_by_name(match_player.player_name).is_host:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No eres el creador de la partida",
+        )
+    elif db_is_match_initiated(match_player.match_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Partida ya iniciada"
+        )
+    elif (
+        len(db_get_players(match_player.match_name))
+        < get_match_by_name(match_player.match_name).min_players
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cantidad insuficiente de jugadores",
+        )
+    else:
+        started_match(match_player.match_name)
+        start_alert = {
+            "message_type": "start_match",
+            "message_content": "LA PARTIDA COMIENZA!!!",
+        }
+        await manager.broadcast(start_alert, get_match_id(match_player.match_name))
+        return {"detail": "Partida inicializada"}
 
-# ----------------- WebSockets -----------------
-
-
+      
 def pickup_card(player_name: str):
     """
     The player get a random card from the deck and add it to his hand
@@ -262,74 +377,5 @@ def check_win(match_id: int):
         return None
 
 
-# --- WebSockets --- #
 
 
-@app.websocket("/ws/{match_name}/{player_name}")
-async def websocket_endpoint(websocket: WebSocket):
-    match_name = websocket.path_params["match_name"]
-    player_name = websocket.path_params["player_name"]
-    try:
-        match_id = get_match_id_or_None(match_name)
-        await manager.connect(websocket, match_id, player_name)
-        while True:
-            # Mandar la info de la partida a todos los jugadores
-            # TODO: Sacar cuando se haga todo por sockets
-            data = {
-                "message_type": "jugadores lobby",
-                "message_content": db_get_players(match_name),
-            }
-            await manager.broadcast(data, match_id)
-
-            request = await websocket.receive_text()
-            await handle_request(request, match_id, player_name, websocket)
-    except WebSocketDisconnect:
-        manager.disconnect(player_name)
-    except Exception as e:
-        print(str(e))
-    finally:
-        manager.disconnect(player_name)
-
-
-# Request handler
-async def handle_request(request, match_id, player_name, websocket):
-    try:
-        request = parse_request(request)
-        msg_type, content = request
-        # Los message_type se pueden cambiar por enums
-        if msg_type == "Chat":
-            pass
-
-        elif msg_type == "robar carta":
-            msg = {
-                "message_type": "carta robada",
-                "message_content": pickup_card(player_name),
-            }
-            await websocket.send_json(msg)
-
-        elif msg_type == "jugar carta":
-            msg = play_card(player_name, content["card_id"], content["target"])
-            alert = {
-                "message_type": "notificación",
-                "message_content": player_name
-                + " jugó "
-                + content["card_name"]
-                + " a "
-                + content["target"],
-            }
-            await manager.broadcast(alert, match_id)
-            await manager.broadcast(msg, match_id)
-            win_msg = check_win(match_id)
-            if win_msg:
-                await manager.broadcast(win_msg, match_id)
-
-        elif msg_type == "leave match":
-            # Llamar a la función leave_match
-            pass
-        else:
-            pass
-
-    except RequestException as e:
-        await manager.send_error_message(str(e), websocket)
-    except GameException as e:
-        await manager.send_error_message(str(e), websocket)
