@@ -193,17 +193,17 @@ def pickup_card(player_name: str):
 
     card = pick_random_card(player_id)
     set_game_state(match_id, GAME_STATE["PLAY_TURN"])
-    return {"name": card.name, "type": card.type}
+    return {"card_id": card.id, "name": card.name, "type": card.type}
 
 
-def play_card(player_name: str, card_name: str, target: Optional[str] = None):
+def play_card(player_name: str, card_id: int, target: Optional[str] = None):
     """
     The player play a action card from his hand
     """
     try:
         player_id = get_player_id(player_name)
         match_id = get_player_match(player_id)
-        card = get_card_by_name(card_name)
+        card = get_card_by_id(card_id)
     except DatabaseError as e:
         raise GameException(str(e))
     if not is_player_turn(player_id):
@@ -213,12 +213,12 @@ def play_card(player_name: str, card_name: str, target: Optional[str] = None):
     elif not card in get_player_hand(player_id):
         raise GameException("No tienes esa carta en tu mano")
 
-    play_card_from_hand(player_id, card_name, target)
+    play_card_from_hand(player_id, card_id, target)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
     next_turn = set_next_turn(match_id)
 
     # De aca para abajo habría que cambiar
-    if card_name == "Lanzallamas":
+    if card.name == "Lanzallamas":
         dead_player_name = target
     else:
         dead_player_name = ""
@@ -226,7 +226,7 @@ def play_card(player_name: str, card_name: str, target: Optional[str] = None):
     msg = {
         "message_type": "datos jugada",
         "message_content": {
-            "card_name": card_name,
+            "card_id": card.id,
             "target": target,
             "next_turn": get_player_in_turn(match_id),
             "dead_player_name": dead_player_name,
@@ -281,7 +281,7 @@ async def handle_request(request, match_id, player_name, websocket):
             await websocket.send_json(msg)
 
         elif msg_type == "jugar carta":
-            msg = play_card(player_name, content["card_name"], content["target"])
+            msg = play_card(player_name, content["card_id"], content["target"])
             alert = {
                 "message_type": "notificación",
                 "message_content": player_name

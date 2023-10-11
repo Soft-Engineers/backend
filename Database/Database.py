@@ -133,16 +133,16 @@ def _deal_cards(match: Match):
 
 
 @db_session
-def get_card_by_name(card_name: str) -> Card:
-    if not Card.exists(card_name=card_name):
+def get_card_by_id(card_id: int) -> Card:
+    if not Card.exists(id=card_id):
         raise CardNotFound("Carta no encontrada")
-    return Card.get(card_name=card_name)
+    return Card[card_id]
 
 
 @db_session
-def discard_card(player_id: int, card_name: str):
+def discard_card(player_id: int, card_id: int):
     player = get_player_by_id(player_id)
-    card = get_card_by_name(card_name)
+    card = get_card_by_id(card_id)
     discard_deck = _get_discard_deck(player.match.id)
     player.cards.remove(card)
     card.player.remove(player)
@@ -159,9 +159,9 @@ def _play_lanzallamas(player: Player, player_target: Player):
 
 
 @db_session
-def play_card_from_hand(player_id :int, card_name: str, target_id: int = None):
+def play_card_from_hand(player_id :int, card_id: int, target_id: int = None):
     """ Pre: The player has the card in his hand"""
-    card = get_card_by_name(card_name)
+    card = get_card_by_id(card_id)
     player = get_player_by_id(player_id)
     if target_id is not None:
         player_target = get_player_by_id(target_id)
@@ -178,7 +178,7 @@ def play_card_from_hand(player_id :int, card_name: str, target_id: int = None):
     else:
         pass
 
-    discard_card(player_id, card_name)
+    discard_card(player_id, card_id)
 
 
 
