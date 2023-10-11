@@ -156,3 +156,53 @@ class test_db_add_player(TestCase):
 
         mock_get_player.assert_called_once_with(player_name)
         mock_get_match.assert_called_once_with(match_name)
+
+
+# ------------ Card tests ---------------
+
+
+class test_pick_random_card(TestCase):
+    @patch("Database.Database.is_deck_empty", return_value=False)
+    @patch("Database.Database.get_player_by_id")
+    @patch("Database.Database._get_deck")
+    def test_pick_random_card(self, mock_get_deck, mock_get_player, mock_is_deck_empty):
+        mock_player = Mock()
+        mock_deck = Mock()
+        mock_player.cards = set()
+
+        mock_get_player.return_value = mock_player
+        mock_get_deck.return_value = mock_deck
+
+        mock_card = Mock()
+        mock_deck.cards.random.return_value = [mock_card]
+
+        card = pick_random_card(1)
+
+        mock_get_player.assert_called_once_with(1)
+        mock_get_deck.assert_called_once_with(mock_player.match.id)
+        mock_deck.cards.random.assert_called_once_with(1)
+        mock_deck.cards.remove.assert_called_once_with(mock_card)
+        assert mock_card in mock_player.cards
+        self.assertEqual(card, mock_card)
+
+
+class test_new_deck_from_discard(TestCase):
+    @patch("Database.Database._get_deck")
+    @patch("Database.Database._get_discard_deck")
+    def test_new_deck_from_discard(self, mock_get_discard_deck, mock_get_deck):
+        mock_deck = Mock()
+        mock_discard_deck = Mock()
+        mock_card_1 = Mock()
+        mock_card_2 = Mock()
+
+        mock_get_deck.return_value = mock_deck
+        mock_get_discard_deck.return_value = mock_discard_deck
+
+        mock_deck.cards = []
+        mock_discard_deck.cards = [mock_card_1, mock_card_2]
+
+        new_deck_from_discard(1)
+
+        mock_get_deck.assert_called_once_with(1)
+        mock_get_discard_deck.assert_called_once_with(1)
+        self.assertEqual(mock_deck.cards, [mock_card_1, mock_card_2])

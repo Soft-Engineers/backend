@@ -26,6 +26,7 @@ class Match(db.Entity):
     clockwise = Optional(bool, default=True)
     current_player = Required(int, default=0)
     deck = Set("Deck")
+    game_state = Optional(int, default=0)
 
 
 class Player(db.Entity):
@@ -56,6 +57,12 @@ class Deck(db.Entity):
 
 
 db.generate_mapping(create_tables=True)
+
+
+# --- Constants --- #
+
+ROL = {"HUMAN": 1, "LA_COSA": 2, "INFECTED": 3}
+GAME_STATE = {"DRAW_CARD": 1, "PLAY_TURN": 2, "END_GAME": 3}
 
 # -- Cards Functions -- #
 
@@ -297,6 +304,17 @@ def is_in_match(player_id, match_id):
 
 
 @db_session
+def get_game_state(match_id: int) -> int:
+    return Match[match_id].game_state
+
+
+@db_session
+def set_game_state(match_id: int, state: int):
+    match = Match[match_id]
+    match.game_state = state
+
+
+@db_session
 def get_match_id(match_name):
     if not _match_exists(match_name):
         raise MatchNotFound("Partida no encontrada")
@@ -304,6 +322,8 @@ def get_match_id(match_name):
 
 
 # ------------ player functions ----------------
+
+
 @db_session
 def create_player(new_player_name):
     Player(player_name=new_player_name)
@@ -324,6 +344,53 @@ def _get_player_by_name(player_name: str) -> Player:
 
 
 @db_session
+def _get_match(match_id: int) -> Match:
+    if not Match.exists(id=match_id):
+        raise MatchNotFound("Match not found")
+    return Match[match_id]
+
+
+@db_session
+def get_match_turn(match_id: int) -> int:
+    match = _get_match(match_id)
+    return match.current_player
+
+
+@db_session
+def is_player_alive(player_id: int) -> bool:
+    player = get_player_by_id(player_id)
+    return player.is_alive
+
+
+@db_session
+def is_player_turn(player_id: int) -> bool:
+    player = get_player_by_id(player_id)
+    match_id = get_player_match(player_id)
+    turn = get_match_turn(match_id)
+    return player.position == turn
+
+
+@db_session
+def get_player_position(player_id: int) -> int:
+    player = get_player_by_id(player_id)
+    return player.position
+
+
+@db_session
+def is_deck_empty(match_id: int) -> bool:
+    deck = _get_deck(match_id)
+    return len(deck.cards) == 0
+
+
+@db_session
+def get_player_match(player_id: int) -> int:
+    player = get_player_by_id(player_id)
+    if not player.match:
+        raise PlayerNotInMatch("Player not in a match")
+    return player.match.id
+
+
+@db_session
 def player_exists(player_name):
     return Player.exists(player_name=player_name)
 
@@ -336,10 +403,67 @@ def get_player_by_id(player_id: int) -> Player:
 
 
 @db_session
-def get_player_id(player_name):
+def get_player_id(player_name: str) -> int:
     if not player_exists(player_name):
         raise PlayerNotFound("Jugador no encontrado")
     return Player.get(player_name=player_name).id
+
+
+@db_session
+def get_player_hand(player_id: int) -> list[Card]:
+    player = get_player_by_id(player_id)
+    return list(player.cards)
+
+
+def set_player_alive(player_id: int, alive: bool):
+    player = get_player_by_id(player_id)
+    player.is_alive = alive
+
+
+def get_player_alive(player_id: int) -> bool:
+    player = get_player_by_id(player_id)
+    return player.is_alive
+
+
+# --------------- Deck Functions -----------------
+
+
+@db_session
+def _get_discard_deck(match_id: int) -> Deck:
+    match = _get_match(match_id)
+    return Deck.get(match=match, is_discard=True)
+
+
+@db_session
+def _get_deck(match_id: int) -> Deck:
+    match = _get_match(match_id)
+    return Deck.get(match=match, is_discard=False)
+
+
+@db_session
+def new_deck_from_discard(match_id: int):
+    """Pre: The match is initialized"""
+    discard_deck = _get_discard_deck(match_id)
+    deck = _get_deck(match_id)
+    deck.cards = discard_deck.cards.copy()
+    discard_deck.cards.clear()
+
+
+@db_session
+def pick_random_card(player_id: int) -> Card:
+    """If the deck is empty, form a new deck from the discard deck"""
+    player = get_player_by_id(player_id)
+    match_id = player.match.id
+    deck = _get_deck(match_id)
+    if is_deck_empty(match_id):
+        new_deck_from_discard(match_id)
+
+    card = list(deck.cards.random(1))[0]
+    player.cards.add(card)
+    card.player.add(player)
+    deck.cards.remove(card)
+    card.deck.remove(deck)
+    return card
 
 
 @db_session

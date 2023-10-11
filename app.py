@@ -13,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from Database.Database import _match_exists
 from pydantic_models import *
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import json
 from connections import WebSocket, ConnectionManager
 from request import RequestException, parse_request
 from game_exception import GameException
@@ -169,6 +171,29 @@ async def join_game(join_match: JoinMatch):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return response
+
+
+# ----------------- WebSockets -----------------
+
+
+def pickup_card(player_name: str):
+    """
+    The player get a random card from the deck and add it to his hand
+    if the deck is empty, form a new deck from the discard deck
+    """
+    try:
+        player_id = get_player_id(player_name)
+        match_id = get_player_match(player_id)
+    except DatabaseError as e:
+        raise GameException(str(e))
+    if not is_player_turn(player_id):
+        raise GameException("No es tu turno")
+    elif get_game_state(match_id) != GAME_STATE["DRAW_CARD"]:
+        raise GameException("No es el momento de robar carta")
+
+    card = pick_random_card(player_id)
+    set_game_state(match_id, GAME_STATE["PLAY_TURN"])
+    return {"name": card.name, "type": card.type}
 
 
 # --- WebSockets --- #
