@@ -54,6 +54,7 @@ app.add_middleware(
 
 manager = ConnectionManager()
 
+
 # --- WebSockets --- #
 @app.websocket("/ws/{match_name}/{player_name}")
 async def websocket_endpoint(websocket: WebSocket):
@@ -62,6 +63,17 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         match_id = get_match_id_or_None(match_name)
         await manager.connect(websocket, match_id, player_name)
+
+        # Enviar estado inicial de la partida
+        # Si la partida esta iniciada
+
+        if db_is_match_initiated(match_name):
+            data = {
+                "message_type": "estado inicial",
+                "message_content": get_game_state_for(player_name),
+            }
+            await manager.send_message_to(data, player_name)
+
         while True:
             # Mandar la info de la partida a todos los jugadores
             # TODO: Sacar cuando se haga todo por sockets
@@ -79,6 +91,7 @@ async def websocket_endpoint(websocket: WebSocket):
         print(str(e))
     finally:
         manager.disconnect(player_name)
+
 
 # Request handler
 async def handle_request(request, match_name, player_name, websocket):
@@ -103,6 +116,7 @@ async def handle_request(request, match_name, player_name, websocket):
         await manager.send_error_message(str(e), websocket)
     except GameException as e:
         await manager.send_error_message(str(e), websocket)
+
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
 async def match_listing():
@@ -221,6 +235,7 @@ async def join_game(join_match: JoinMatch):
 
     return response
 
+
 @app.post("/match/start", tags=["Matches"], status_code=status.HTTP_200_OK)
 async def start_game(match_player: PlayerInMatch):
     """
@@ -267,7 +282,7 @@ async def start_game(match_player: PlayerInMatch):
         await manager.broadcast(start_alert, get_match_id(match_player.match_name))
         return {"detail": "Partida inicializada"}
 
-      
+
 def pickup_card(player_name: str):
     """
     The player get a random card from the deck and add it to his hand
