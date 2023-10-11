@@ -407,15 +407,43 @@ def get_match_id(match_name):
 
 
 @db_session
-def set_next_turn(match_id: int) -> int:
+def get_player_by_position(match_id: int, position: int) -> Player:
     match = _get_match(match_id)
-    current_player = match.current_player
+    return match.players.filter(lambda p: p.position == position).first()
+
+
+@db_session
+def get_next_player(match_id: int, start: int) -> int:
+    match = _get_match(match_id)
+    current_player = start
     total_players = match.players.count()
-    if match.clockwise:
-        next_player = (current_player + 1) % total_players
-    else:
-        next_player = (current_player - 1) % total_players
-    return next_player
+    direction = 1 if match.clockwise else -1
+
+    while True:
+        current_player = (current_player + direction) % total_players
+        player = get_player_by_position(match_id, current_player)
+        if player.is_alive:
+            return current_player
+
+
+@db_session
+def get_previous_player(match_id: int, start: int) -> int:
+    match = _get_match(match_id)
+    current_player = start
+    total_players = match.players.count()
+    direction = 1 if match.clockwise else -1
+
+    while True:
+        current_player = (current_player - direction) % total_players
+        player = get_player_by_position(match_id, current_player)
+        if player.is_alive:
+            return current_player
+
+
+@db_session
+def set_next_turn(match_id: int):
+    match = _get_match(match_id)
+    match.current_player = get_next_player(match_id, match.current_player)
 
 
 @db_session
@@ -563,9 +591,26 @@ def get_player_alive(player_id: int) -> bool:
 
 @db_session
 def is_adyacent(player: Player, player_target: Player) -> bool:
-    is_next = player_target.position == (player.position + 1)
-    is_previous = player_target.position == (player.position - 1)
+    is_next = (
+        get_next_player(player.match.id, player.position) == player_target.position
+    )
+    is_previous = (
+        get_previous_player(player.match.id, player.position) == player_target.position
+    )
     return is_next or is_previous
+
+
+def get_match_locations(match_id: int) -> list:
+    match = _get_match(match_id)
+    locations = []
+    for player in match.players:
+        locations.append(
+            {
+                "player_name": player.player_name,
+                "location": player.position,
+            }
+        )
+    return locations
 
 
 # --------------- Deck Functions -----------------

@@ -331,8 +331,8 @@ def play_card(player_name: str, card_id: int, target: Optional[str] = None):
         raise GameException("No tienes esa carta en tu mano")
 
     play_card_from_hand(player_id, card_id, target)
+    set_next_turn(match_id)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
-    next_turn = set_next_turn(match_id)
 
     # De aca para abajo habría que cambiar
     if card.card_name == "Lanzallamas":
@@ -344,9 +344,11 @@ def play_card(player_name: str, card_id: int, target: Optional[str] = None):
         "message_type": "datos jugada",
         "message_content": {
             "card_id": card.id,
+            "posiciones": get_match_locations(match_id),
             "target": target,
-            "next_turn": get_player_in_turn(match_id),
+            "turn": get_player_in_turn(match_id),
             "dead_player_name": dead_player_name,
+            "game_state": "DRAW_CARD",
         },
     }
     return msg
