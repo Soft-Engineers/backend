@@ -242,7 +242,8 @@ async def start_game(match_player: PlayerInMatch):
         )
     elif not get_player_by_name(match_player.player_name).is_host:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no es el host"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No eres el creador de la partida",
         )
     elif db_is_match_initiated(match_player.match_name):
         raise HTTPException(
