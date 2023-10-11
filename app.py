@@ -81,7 +81,7 @@ async def create_game(config: GameConfig):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    return {"match_name": config.match_name}
+    return {"detail": "Match created"}
 
 
 @app.post("/player/create", tags=["Player"], status_code=200)
