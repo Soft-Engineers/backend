@@ -4,8 +4,6 @@ from Database.Database import *
 from Tests.auxiliar_functions import *
 from app import MAX_LEN_ALIAS
 
-# python3 -m unittest Tests.test_database
-
 
 class test_db_create_match(TestCase):
     def test_db_create_match(self):
