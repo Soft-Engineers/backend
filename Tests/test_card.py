@@ -53,4 +53,3 @@ class TestPickupCard(TestCase):
         with self.assertRaises(GameException) as e:
             pickup_card("test_player")
         self.assertEqual(str(e.exception), "No es el momento de robar carta")
-

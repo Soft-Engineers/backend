@@ -132,7 +132,6 @@ def _deal_cards(match: Match):
             card.deck.remove(deck)
 
 
-
 # --- Match Functions --- #
 @db_session
 def get_match_games(match_id):
