@@ -196,6 +196,45 @@ def pickup_card(player_name: str):
     return {"name": card.name, "type": card.type}
 
 
+def play_card(player_name: str, card_name: str, target: Optional[str] = None):
+    """
+    The player play a action card from his hand
+    """
+    try:
+        player_id = get_player_id(player_name)
+        match_id = get_player_match(player_id)
+        card = get_card_by_name(card_name)
+    except DatabaseError as e:
+        raise GameException(str(e))
+    if not is_player_turn(player_id):
+        raise GameException("No es tu turno")
+    elif get_game_state(match_id) != GAME_STATE["PLAY_TURN"]:
+        raise GameException("No es tu turno de jugar carta")
+    elif not card in get_player_hand(player_id):
+        raise GameException("No tienes esa carta en tu mano")
+
+    play_card_from_hand(player_id, card_name, target)
+    set_game_state(match_id, GAME_STATE["DRAW_CARD"])
+    next_turn = set_next_turn(match_id)
+
+    # De aca para abajo habría que cambiar 
+    if card_name == "Lanzallamas":
+        dead_player_name = target
+    else:
+        dead_player_name = ""
+
+    msg = {
+        "message_type": "datos jugada",
+        "message_content": {
+            "card_name" : card_name,
+            "target" : target,
+            "next_turn" : get_player_in_turn(match_id),
+            "dead_player_name" : dead_player_name
+        }
+    }
+    return msg
+
+
 # --- WebSockets --- #
 
 
@@ -216,7 +255,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await manager.broadcast(data, match_id)
 
             request = await websocket.receive_text()
-            await handle_request(request, match_name, player_name, websocket)
+            await handle_request(request, match_id, player_name, websocket)
     except WebSocketDisconnect:
         manager.disconnect(player_name)
     except Exception as e:
@@ -226,19 +265,30 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 # Request handler
-async def handle_request(request, match_name, player_name, websocket):
+async def handle_request(request, match_id, player_name, websocket):
     try:
         request = parse_request(request)
-        msg_type, data = request
+        msg_type, content = request
         # Los message_type se pueden cambiar por enums
         if msg_type == "Chat":
             pass
+        
         elif msg_type == "robar carta":
-            # Llamar a la función pick_card
-            pass
+            msg = {
+                "message_type": "carta robada",
+                "message_content": pickup_card(player_name),
+            }
+            await manager.broadcast(msg, match_id)
+
         elif msg_type == "jugar carta":
-            # Llamar a la función play_card
-            pass
+            msg = play_card(player_name, content["card_name"], content["target"])
+            alert = {
+                "message_type": "notificación",
+                "message_content": player_name + " jugó " + content["card_name"] + " a " + content["target"]
+            }
+            await manager.broadcast(alert, match_id)
+            await manager.broadcast(msg, match_id)
+
         elif msg_type == "leave match":
             # Llamar a la función leave_match
             pass

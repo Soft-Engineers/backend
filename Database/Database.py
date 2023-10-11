@@ -132,6 +132,56 @@ def _deal_cards(match: Match):
             card.deck.remove(deck)
 
 
+@db_session
+def get_card_by_name(card_name: str) -> Card:
+    if not Card.exists(card_name=card_name):
+        raise CardNotFound("Carta no encontrada")
+    return Card.get(card_name=card_name)
+
+
+@db_session
+def discard_card(player_id: int, card_name: str):
+    player = get_player_by_id(player_id)
+    card = get_card_by_name(card_name)
+    discard_deck = _get_discard_deck(player.match.id)
+    player.cards.remove(card)
+    card.player.remove(player)
+    discard_deck.cards.add(card)
+    card.deck.add(discard_deck)
+
+
+@db_session
+def _play_lanzallamas(player: Player, player_target: Player):
+    if not is_adyacent(player, player_target):
+        raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
+    player_target.is_alive = False
+
+
+
+@db_session
+def play_card_from_hand(player_id :int, card_name: str, target_id: int = None):
+    """ Pre: The player has the card in his hand"""
+    card = get_card_by_name(card_name)
+    player = get_player_by_id(player_id)
+    if target_id is not None:
+        player_target = get_player_by_id(target_id)
+
+    if card.name == "La Cosa":
+        raise InvalidCard("No puedes jugar la carta La Cosa")
+    elif card.type == CardType.CONTAGIO.value:
+        raise InvalidCard("No puedes jugar la carta ¡Infectado!")
+
+    if card.name == "Lanzallamas":
+        if target_id is None:
+            raise InvalidCard("Lanzallamas requiere un objetivo")
+        _play_lanzallamas(player, player_target)
+    else:
+        pass
+
+    discard_card(player_id, card_name)
+
+
+
 # --- Match Functions --- #
 @db_session
 def get_match_games(match_id):
@@ -321,6 +371,26 @@ def get_match_id(match_name):
     return Match.get(name=match_name).id
 
 
+@db_session
+def set_next_turn(match_id: int) -> int:
+    match = _get_match(match_id)
+    current_player = match.current_player
+    total_players = match.players.count()
+    if match.clockwise:
+        next_player = (current_player + 1) % total_players
+    else:
+        next_player = (current_player - 1) % total_players
+    return next_player
+
+
+
+@db_session
+def get_player_in_turn(match_id: int) -> str:
+    match = _get_match(match_id)
+    for player in match.players:
+        if player.position == match.current_player:
+            return player.player_name
+
 # ------------ player functions ----------------
 
 
@@ -414,15 +484,22 @@ def get_player_hand(player_id: int) -> list[Card]:
     player = get_player_by_id(player_id)
     return list(player.cards)
 
-
+@db_session
 def set_player_alive(player_id: int, alive: bool):
     player = get_player_by_id(player_id)
     player.is_alive = alive
 
-
+@db_session
 def get_player_alive(player_id: int) -> bool:
     player = get_player_by_id(player_id)
     return player.is_alive
+
+
+@db_session
+def is_adyacent(player: Player, player_target: Player) -> bool:
+    is_next = player.position == player_target.position + 1
+    is_previous = player.position == player_target.position - 1
+    return is_next or is_previous
 
 
 # --------------- Deck Functions -----------------

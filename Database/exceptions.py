@@ -35,3 +35,10 @@ class NameNotAvailable(DatabaseError):
 
 class PlayerNotInMatch(DatabaseError):
     pass
+
+
+class InvalidCard(DatabaseError):
+    pass
+
+class CardNotFound(DatabaseError):
+    pass
