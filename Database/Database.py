@@ -63,7 +63,7 @@ db.generate_mapping(create_tables=True)
 # --- Constants --- #
 
 ROL = {"HUMAN": 1, "LA_COSA": 2, "INFECTED": 3}
-GAME_STATE = {"DRAW_CARD": 1, "PLAY_TURN": 2, "END_GAME": 3}
+GAME_STATE = {"DRAW_CARD": 1, "PLAY_TURN": 2, "FINISHED": 3}
 
 # -- Cards Functions -- #
 
@@ -131,6 +131,61 @@ def _deal_cards(match: Match):
             card.player.add(player)
             deck.cards.remove(card)  # Quitar del mazo
             card.deck.remove(deck)
+
+
+@db_session
+def get_card_by_id(card_id: int) -> Card:
+    if not Card.exists(id=card_id):
+        raise CardNotFound("Carta no encontrada")
+    return Card[card_id]
+
+@db_session
+def get_card_name(card_id: int) -> str:
+    return get_card_by_id(card_id).card_name
+
+@db_session
+def discard_card(player_id: int, card_id: int):
+    player = get_player_by_id(player_id)
+    card = get_card_by_id(card_id)
+    discard_deck = _get_discard_deck(player.match.id)
+    player.cards.remove(card)
+    card.player.remove(player)
+    discard_deck.cards.add(card)
+    card.deck.add(discard_deck)
+
+
+@db_session
+def _play_lanzallamas(player: Player, player_target: Player):
+    if not is_adyacent(player, player_target):
+        raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
+    player_target.is_alive = False
+
+
+@db_session
+def play_card_from_hand(player_name: str, card_id: int, target_name: str = None):
+    card = get_card_by_id(card_id)
+    player = get_player_by_name(player_name)
+
+    try:
+        player_target = get_player_by_name(target_name)
+    except:
+        player_target = None
+
+    if not card in player.cards:
+        raise InvalidCard("No tienes esa carta en tu mano")
+    if card.card_name == "La Cosa":
+        raise InvalidCard("No puedes jugar la carta La Cosa")
+    elif card.type == CardType.CONTAGIO.value:
+        raise InvalidCard("No puedes jugar la carta ¡Infectado!")
+
+    if card.card_name == "Lanzallamas":
+        if player_target is None:
+            raise InvalidCard("Lanzallamas requiere un objetivo")
+        _play_lanzallamas(player, player_target)
+    else:
+        pass
+
+    discard_card(player.id, card_id)
 
 
 # --- Match Functions --- #
@@ -321,8 +376,8 @@ def get_match_id_or_None(match_name):
 def started_match(match_name):
     match = Match.get(name=match_name)
     match.initiated = True
-    match.current_player = 1
-    position = 0
+    match.current_player = 0
+    position = -1
     match.game_state = GAME_STATE["DRAW_CARD"]
     # create deck and deal cards
     _create_deck(match)
@@ -340,6 +395,7 @@ def started_match(match_name):
     return match
 
 
+@db_session
 def get_game_state(match_id: int) -> int:
     return Match[match_id].game_state
 
@@ -348,6 +404,90 @@ def get_game_state(match_id: int) -> int:
 def set_game_state(match_id: int, state: int):
     match = Match[match_id]
     match.game_state = state
+
+
+@db_session
+def get_match_id(match_name):
+    if not _match_exists(match_name):
+        raise MatchNotFound("Partida no encontrada")
+    return Match.get(name=match_name).id
+
+
+@db_session
+def get_player_by_position(match_id: int, position: int) -> Player:
+    match = _get_match(match_id)
+    return match.players.filter(lambda p: p.position == position).first()
+
+
+@db_session
+def get_next_player(match_id: int, start: int) -> int:
+    match = _get_match(match_id)
+    current_player = start
+    total_players = match.players.count()
+    direction = 1 if match.clockwise else -1
+
+    while True:
+        current_player = (current_player + direction) % total_players
+        player = get_player_by_position(match_id, current_player)
+        if player.is_alive:
+            return current_player
+
+
+@db_session
+def get_previous_player(match_id: int, start: int) -> int:
+    match = _get_match(match_id)
+    current_player = start
+    total_players = match.players.count()
+    direction = 1 if match.clockwise else -1
+
+    while True:
+        current_player = (current_player - direction) % total_players
+        player = get_player_by_position(match_id, current_player)
+        if player.is_alive:
+            return current_player
+
+
+@db_session
+def set_next_turn(match_id: int):
+    match = _get_match(match_id)
+    match.current_player = get_next_player(match_id, match.current_player)
+
+
+@db_session
+def get_player_in_turn(match_id: int) -> str:
+    match = _get_match(match_id)
+    for player in match.players:
+        if player.position == match.current_player:
+            return player.player_name
+
+
+@db_session
+def check_win_condition(match_id: int) -> bool:
+    return check_one_player_alive(match_id) or not is_la_cosa_alive(match_id)
+
+
+@db_session
+def check_one_player_alive(match_id: int) -> bool:
+    match = _get_match(match_id)
+    alive_players = match.players.filter(lambda p: p.is_alive).count()
+    return alive_players == 1
+
+
+@db_session
+def is_la_cosa_alive(match_id: int) -> bool:
+    match = _get_match(match_id)
+    cosa = match.players.filter(lambda p: p.rol == ROL["LA_COSA"]).first()
+    return cosa.is_alive
+
+
+@db_session
+def get_winners(match_id: int) -> list[str]:
+    match = _get_match(match_id)
+    winners = []
+    for player in match.players:
+        if player.is_alive:
+            winners.append(player.player_name)
+    return winners
 
 
 # ------------ player functions ----------------
@@ -421,7 +561,10 @@ def get_player_match(player_id: int) -> int:
 
 @db_session
 def player_exists(player_name):
-    return Player.exists(player_name=player_name)
+    try:
+        return Player.exists(player_name=player_name)
+    except:
+        return False
 
 
 @db_session
@@ -444,16 +587,30 @@ def get_player_hand(player_id: int) -> list[Card]:
     return list(player.cards)
 
 
+@db_session
 def set_player_alive(player_id: int, alive: bool):
     player = get_player_by_id(player_id)
     player.is_alive = alive
 
 
+@db_session
 def get_player_alive(player_id: int) -> bool:
     player = get_player_by_id(player_id)
     return player.is_alive
 
 
+@db_session
+def is_adyacent(player: Player, player_target: Player) -> bool:
+    is_next = (
+        get_next_player(player.match.id, player.position) == player_target.position
+    )
+    is_previous = (
+        get_previous_player(player.match.id, player.position) == player_target.position
+    )
+    return is_next or is_previous
+
+
+@db_session
 def get_cards(player: Player) -> list:
     deck_data = []
     for card in player.cards:
@@ -467,6 +624,7 @@ def get_cards(player: Player) -> list:
     return deck_data
 
 
+@db_session
 def get_match_locations(match_id: int) -> list:
     locations = []
     for player in Match[match_id].players:
@@ -474,6 +632,7 @@ def get_match_locations(match_id: int) -> list:
             {"player_name": player.player_name, "location": player.position}
         )
     return locations
+
 
 @db_session
 def get_game_state_for(player_name: str):
