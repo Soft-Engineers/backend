@@ -110,14 +110,10 @@ async def handle_request(request, match_id, player_name, websocket):
             pass
 
         elif msg_type == "robar carta":
-            msg = {
-                "message_type": "carta robada",
-                "message_content": pickup_card(player_name),
-            }
-            await websocket.send_json(msg)
+            await pickup_card(player_name)
 
         elif msg_type == "jugar carta":
-            msg = play_card(player_name, content["card_id"], content["target"])
+            msg = await play_card(player_name, content["card_id"], content["target"])
             alert = {
                 "message_type": "notificación",
                 "message_content": player_name
@@ -128,7 +124,7 @@ async def handle_request(request, match_id, player_name, websocket):
             }
             await manager.broadcast(alert, match_id)
             await manager.broadcast(msg, match_id)
-            win_msg = check_win(match_id)
+            win_msg = await check_win(match_id)
             if win_msg:
                 await manager.broadcast(win_msg, match_id)
 
@@ -311,7 +307,7 @@ async def start_game(match_player: PlayerInMatch):
         }
 
 
-def pickup_card(player_name: str):
+async def pickup_card(player_name: str):
     """
     The player get a random card from the deck and add it to his hand
     if the deck is empty, form a new deck from the discard deck
@@ -332,10 +328,15 @@ def pickup_card(player_name: str):
         raise GameException(str(e))
 
     set_game_state(match_id, GAME_STATE["PLAY_TURN"])
+    card_msg = {
+        "message_type": "cards",
+        "message_content": get_player_hand(player_id),
+    }
+    await manager.send_personal_message(card_msg,match_id, player_name)
     return {"card_id": card.id, "name": card.card_name, "type": card.type}
 
 
-def play_card(player_name: str, card_id: int, target: Optional[str] = None):
+async def play_card(player_name: str, card_id: int, target: Optional[str] = None):
     """
     The player play a action card from his hand
     """
@@ -378,11 +379,11 @@ def play_card(player_name: str, card_id: int, target: Optional[str] = None):
         "message_type": "cards",
         "message_content": get_player_hand(player_id),
     }
-    manager.send_personal_message(card_msg,match_id, player_name)
+    await manager.send_personal_message(card_msg,match_id, player_name)
     return msg
 
 
-def check_win(match_id: int):
+async def check_win(match_id: int):
     """
     Check if a player has won the game
     """
