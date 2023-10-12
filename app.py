@@ -120,7 +120,8 @@ async def handle_request(request, match_id, player_name, websocket):
 
         elif msg_type == "jugar carta":
             msg = await play_card(player_name, content["card_id"], content["target"])
-            alert = play_card_msg(player_name, content["card_id"], content["target"])
+            alert = play_card_msg(
+                player_name, content["card_id"], content["target"])
             await manager.broadcast(alert, match_id)
             await manager.broadcast(msg, match_id)
             win_msg = await check_win(match_id)
@@ -174,7 +175,8 @@ async def create_game(config: GameConfig):
             config.max_players,
         )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return {"detail": "Match created"}
 
@@ -261,7 +263,8 @@ async def join_game(join_match: JoinMatch):
             db_add_player(join_match.player_name, join_match.match_name)
             response = {"detail": "ok"}
     except DatabaseError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return response
 
@@ -280,7 +283,8 @@ async def start_game(match_player: PlayerInMatch):
             status_code=status.HTTP_404_NOT_FOUND, detail="Jugador no encontrado"
         )
     elif not is_in_match(
-        get_player_id(match_player.player_name), get_match_id(match_player.match_name)
+        get_player_id(match_player.player_name), get_match_id(
+            match_player.match_name)
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -305,7 +309,8 @@ async def start_game(match_player: PlayerInMatch):
         )
     else:
         started_match(match_player.match_name)
-        set_game_state(get_match_id(match_player.match_name), GAME_STATE["DRAW_CARD"])
+        set_game_state(get_match_id(match_player.match_name),
+                       GAME_STATE["DRAW_CARD"])
         start_alert = {
             "message_type": "start_match",
             "message_content": "LA PARTIDA COMIENZA!!!",
@@ -337,11 +342,11 @@ async def pickup_card(player_name: str):
         raise GameException(str(e))
 
     set_game_state(match_id, GAME_STATE["PLAY_TURN"])
-    #card_msg = {
+    # card_msg = {
     #    "message_type": "cards",
     #    "message_content": get_player_hand(player_id),
-    #}
-    #await manager.send_personal_message(card_msg, match_id, player_name)
+    # }
+    # await manager.send_personal_message(card_msg, match_id, player_name)
     return {"card_id": card.id, "name": card.card_name, "type": card.type}
 
 
@@ -395,7 +400,13 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = None
         "message_type": "cards",
         "message_content": get_player_hand(player_id),
     }
+    alert = {
+        "message_type": "notificación turno",
+        "message_content": " Es el turno de " + get_player_in_turn(match_id),
+    }
+
     await manager.send_personal_message(card_msg, match_id, player_name)
+    await manager.broadcast(alert, match_id)
     return msg
 
 
