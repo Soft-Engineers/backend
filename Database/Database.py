@@ -370,8 +370,9 @@ def get_match_id_or_None(match_name):
 def started_match(match_name):
     match = Match.get(name=match_name)
     match.initiated = True
-    match.current_player = 1
-    position = 0
+    match.current_player = 0
+    position = -1
+    match.game_state = GAME_STATE["DRAW_CARD"]
     # create deck and deal cards
     _create_deck(match)
     _deal_cards(match)
@@ -600,17 +601,43 @@ def is_adyacent(player: Player, player_target: Player) -> bool:
     return is_next or is_previous
 
 
-def get_match_locations(match_id: int) -> list:
-    match = _get_match(match_id)
-    locations = []
-    for player in match.players:
-        locations.append(
+@db_session
+def get_cards(player: Player) -> list:
+    deck_data = []
+    for card in player.cards:
+        deck_data.append(
             {
-                "player_name": player.player_name,
-                "location": player.position,
+                "card_name": card.card_name,
+                "number": card.number,
             }
         )
+    return deck_data
+
+
+@db_session
+def get_match_locations(match_id: int) -> list:
+    locations = []
+    for player in Match[match_id].players:
+        locations.append(
+            {"player_name": player.player_name, "location": player.position}
+        )
     return locations
+
+
+@db_session
+def get_game_state_for(player_name: str):
+    player = get_player_by_name(player_name)
+    match = player.match
+    if match is None:
+        raise PlayerNotInMatch("Jugador no está en partida")
+    if match.initiated is False:
+        raise MatchNotStarted("Partida no ha iniciado")
+    hand = get_cards(player)
+    locations = get_match_locations(match.id)
+    current_turn = list(
+        filter(lambda p: p["location"] == match.current_player, locations)
+    )[0]["player_name"]
+    return {"hand": hand, "locations": locations, "current_turn": current_turn}
 
 
 # --------------- Deck Functions -----------------

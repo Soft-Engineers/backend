@@ -31,7 +31,7 @@ class ConnectionManager:
     async def send_personal_message(
         self, message: str, match_id: int, player_name: str
     ):
-        await self.connections[match_id][player_name].send_text(message)
+        await self.connections[match_id][player_name].send_json(message)
 
     async def send_message_to(self, message: str, player_name: str):
         match_id = db_get_player_match_id(player_name)

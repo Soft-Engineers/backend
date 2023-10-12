@@ -40,5 +40,10 @@ class PlayerNotInMatch(DatabaseError):
 class InvalidCard(DatabaseError):
     pass
 
+
 class CardNotFound(DatabaseError):
+    pass
+
+
+class MatchNotStarted(DatabaseError):
     pass

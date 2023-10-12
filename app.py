@@ -54,6 +54,7 @@ app.add_middleware(
 
 manager = ConnectionManager()
 
+
 # --- WebSockets --- #
 
 
@@ -64,6 +65,17 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         match_id = get_match_id_or_None(match_name)
         await manager.connect(websocket, match_id, player_name)
+
+        # Enviar estado inicial de la partida
+        # Si la partida esta iniciada
+
+        if db_is_match_initiated(match_name):
+            data = {
+                "message_type": "estado inicial",
+                "message_content": get_game_state_for(player_name),
+            }
+            await manager.send_message_to(data, player_name)
+
         while True:
             # Mandar la info de la partida a todos los jugadores
             # TODO: Sacar cuando se haga todo por sockets
