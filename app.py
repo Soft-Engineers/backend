@@ -140,7 +140,7 @@ async def handle_request(request, match_id, player_name, websocket):
 
 def play_card_msg(player_name: str, card_id: int, target: str):
     alert = {
-        "message_type": "notificación",
+        "message_type": "notificación jugada",
         "message_content": player_name + " jugó " + get_card_name(card_id),
     }
     if target:
@@ -372,7 +372,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = None
         dead_player_name = target
         manager.broadcast(
             {
-                "message_type": "notificación",
+                "message_type": "notificación muerte",
                 "message_content": target + " ha muerto",
             },
             match_id,
