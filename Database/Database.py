@@ -179,7 +179,7 @@ def play_card_from_hand(player_name: str, card_id: int, target_name: str = None)
         raise InvalidCard("No puedes jugar la carta ¡Infectado!")
 
     if card.card_name == "Lanzallamas":
-        if target_name is None:
+        if player_target is None:
             raise InvalidCard("Lanzallamas requiere un objetivo")
         _play_lanzallamas(player, player_target)
     else:
