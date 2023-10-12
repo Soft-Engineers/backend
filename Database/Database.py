@@ -459,8 +459,9 @@ def get_cards(player: Player) -> list:
     for card in player.cards:
         deck_data.append(
             {
+                "card_id": card.id,
                 "card_name": card.card_name,
-                "number": card.number,
+                "type": card.type,
             }
         )
     return deck_data
