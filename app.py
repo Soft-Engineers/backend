@@ -114,14 +114,7 @@ async def handle_request(request, match_id, player_name, websocket):
 
         elif msg_type == "jugar carta":
             msg = await play_card(player_name, content["card_id"], content["target"])
-            alert = {
-                "message_type": "notificación",
-                "message_content": player_name
-                + " jugó "
-                + content["card_name"]
-                + " a "
-                + content["target"],
-            }
+            alert = play_card_msg(player_name, content["card_id"], content["target"])
             await manager.broadcast(alert, match_id)
             await manager.broadcast(msg, match_id)
             win_msg = await check_win(match_id)
@@ -137,6 +130,16 @@ async def handle_request(request, match_id, player_name, websocket):
         await manager.send_error_message(str(e), websocket)
     except GameException as e:
         await manager.send_error_message(str(e), websocket)
+
+
+def play_card_msg(player_name: str, card_id: int, target: str):
+    alert = {
+        "message_type": "notificacion",
+        "message_content": player_name + " jugó " + get_card_name(card_id),
+    }
+    if target:
+        alert["message_content"] += " a " + target
+    return alert
 
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
@@ -320,7 +323,7 @@ async def pickup_card(player_name: str):
     if not is_player_turn(player_id):
         raise GameException("No es tu turno")
     elif get_game_state(match_id) != GAME_STATE["DRAW_CARD"]:
-        raise GameException("No es el momento de robar carta")
+        raise GameException("No puedes robar carta en este momento")
 
     try:
         card = pick_random_card(player_id)
@@ -332,7 +335,7 @@ async def pickup_card(player_name: str):
         "message_type": "cards",
         "message_content": get_player_hand(player_id),
     }
-    await manager.send_personal_message(card_msg,match_id, player_name)
+    await manager.send_personal_message(card_msg, match_id, player_name)
     return {"card_id": card.id, "name": card.card_name, "type": card.type}
 
 
@@ -349,7 +352,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = None
     if not is_player_turn(player_id):
         raise GameException("No es tu turno")
     elif get_game_state(match_id) != GAME_STATE["PLAY_TURN"]:
-        raise GameException("No es tu turno de jugar carta")
+        raise GameException("No puedes jugar carta en este momento")
 
     try:
         play_card_from_hand(player_name, card_id, target)
@@ -361,13 +364,20 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = None
     # De aca para abajo habría que cambiar
     if card_name == "Lanzallamas":
         dead_player_name = target
+        manager.broadcast(
+            {
+                "message_type": "notificacion",
+                "message_content": target + " ha muerto",
+            },
+            match_id,
+        )
     else:
         dead_player_name = ""
 
     msg = {
         "message_type": "datos jugada",
         "message_content": {
-            #"cards": get_player_hand(player_id),
+            # "cards": get_player_hand(player_id),
             "posiciones": get_match_locations(match_id),
             "target": target,
             "turn": get_player_in_turn(match_id),
@@ -379,7 +389,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = None
         "message_type": "cards",
         "message_content": get_player_hand(player_id),
     }
-    await manager.send_personal_message(card_msg,match_id, player_name)
+    await manager.send_personal_message(card_msg, match_id, player_name)
     return msg
 
 
