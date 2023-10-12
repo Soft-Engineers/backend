@@ -110,7 +110,13 @@ async def handle_request(request, match_id, player_name, websocket):
             pass
 
         elif msg_type == "robar carta":
+            player_id = get_player_id(player_name)
             await pickup_card(player_name)
+            card_msg = {
+                "message_type": "cards",
+                "message_content": get_player_hand(player_id),
+            }
+            await manager.send_personal_message(card_msg, match_id, player_name)
 
         elif msg_type == "jugar carta":
             msg = await play_card(player_name, content["card_id"], content["target"])
@@ -134,7 +140,7 @@ async def handle_request(request, match_id, player_name, websocket):
 
 def play_card_msg(player_name: str, card_id: int, target: str):
     alert = {
-        "message_type": "notificacion",
+        "message_type": "notificación",
         "message_content": player_name + " jugó " + get_card_name(card_id),
     }
     if target:
@@ -331,11 +337,11 @@ async def pickup_card(player_name: str):
         raise GameException(str(e))
 
     set_game_state(match_id, GAME_STATE["PLAY_TURN"])
-    card_msg = {
-        "message_type": "cards",
-        "message_content": get_player_hand(player_id),
-    }
-    await manager.send_personal_message(card_msg, match_id, player_name)
+    #card_msg = {
+    #    "message_type": "cards",
+    #    "message_content": get_player_hand(player_id),
+    #}
+    #await manager.send_personal_message(card_msg, match_id, player_name)
     return {"card_id": card.id, "name": card.card_name, "type": card.type}
 
 
@@ -366,7 +372,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = None
         dead_player_name = target
         manager.broadcast(
             {
-                "message_type": "notificacion",
+                "message_type": "notificación",
                 "message_content": target + " ha muerto",
             },
             match_id,
