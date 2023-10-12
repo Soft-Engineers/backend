@@ -614,11 +614,13 @@ def is_adyacent(player: Player, player_target: Player) -> bool:
 def get_cards(player: Player) -> list:
     deck_data = []
     for card in player.cards:
-        deck_data.append({
-            "card_id": card.id,
-            "card_name": card.card_name,
-            "type": card.type, 
-        })
+        deck_data.append(
+            {
+                "card_id": card.id,
+                "card_name": card.card_name,
+                "type": card.type,
+            }
+        )
     return deck_data
 
 

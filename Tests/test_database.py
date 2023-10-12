@@ -206,3 +206,107 @@ class test_new_deck_from_discard(TestCase):
         mock_get_deck.assert_called_once_with(1)
         mock_get_discard_deck.assert_called_once_with(1)
         self.assertEqual(mock_deck.cards, [mock_card_1, mock_card_2])
+
+
+
+class test_get_game_state_for(TestCase):
+    @patch("Database.Database.get_player_by_name")
+    def test_game_state_for_not_in_match(self, mock_get_player_by_name):
+        player = Mock()
+        player.match = None
+
+        mock_get_player_by_name.return_value = player
+
+        with self.assertRaises(PlayerNotInMatch):
+            get_game_state_for("test_player")
+
+        mock_get_player_by_name.assert_called_once_with("test_player")
+
+    @patch("Database.Database.get_player_by_name")
+    def test_game_state_for_not_initiated(self, mock_get_player_by_name):
+        player = Mock()
+        player.match = Mock()
+        player.match.initiated = False
+
+        mock_get_player_by_name.return_value = player
+
+        with self.assertRaises(MatchNotStarted):
+            get_game_state_for("test_player")
+
+        mock_get_player_by_name.assert_called_once_with("test_player")
+
+    def test_game_state_for(self):
+        match_name = generate_unique_testing_name()
+        player_name1 = generate_unique_testing_name()
+        player_name2 = generate_unique_testing_name()
+        player_name3 = generate_unique_testing_name()
+        player_name4 = generate_unique_testing_name()
+        players = [player_name1, player_name2, player_name3, player_name4]
+
+        create_player(player_name1)
+        create_player(player_name2)
+        create_player(player_name3)
+        create_player(player_name4)
+
+        db_create_match(match_name, player_name1, 4, 12)
+        db_add_player(player_name2, match_name)
+        db_add_player(player_name3, match_name)
+        db_add_player(player_name4, match_name)
+
+        started_match(match_name)
+
+        game_state1 = get_game_state_for(player_name1)
+        game_state2 = get_game_state_for(player_name2)
+        game_state3 = get_game_state_for(player_name3)
+        game_state4 = get_game_state_for(player_name4)
+
+        turns = [
+            game_state1["current_turn"],
+            game_state2["current_turn"],
+            game_state3["current_turn"],
+            game_state4["current_turn"],
+        ]
+        e = turns[0]
+        self.assertNotEqual(e, None)
+        for turn in turns[1:]:
+            self.assertEqual(e, turn)
+            e = turn
+        self.assertIn(
+            game_state1["current_turn"],
+            [player_name1, player_name2, player_name3, player_name4],
+        )
+
+        positions = [
+            sorted(game_state1["locations"], key=lambda d: d["player_name"]),
+            sorted(game_state2["locations"], key=lambda d: d["player_name"]),
+            sorted(game_state3["locations"], key=lambda d: d["player_name"]),
+            sorted(game_state4["locations"], key=lambda d: d["player_name"]),
+        ]
+
+        e = positions[0]
+        self.assertNotEqual(e, None)
+        for position in positions[1:]:
+            self.assertEqual(e, position)
+            e = position
+        self.assertEqual(len(positions), 4)
+
+        for position in positions:
+            keys = [dict["player_name"] for dict in position]
+            for player in players:
+                self.assertIn(player, keys)
+
+        for position in positions:
+            values = [dict["location"] for dict in position]
+            for value in values:
+                self.assertIn(value, range(5))
+
+        hands = [
+            game_state1["hand"],
+            game_state2["hand"],
+            game_state3["hand"],
+            game_state4["hand"],
+        ]
+
+        for hand in hands:
+            self.assertEqual(len(hand), 4)
+
