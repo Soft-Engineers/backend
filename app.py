@@ -370,6 +370,8 @@ def check_win(match_id: int):
     """
     reason = ""
     win = check_win_condition(match_id)
+    if not win:
+        return None
     set_game_state(match_id, GAME_STATE["FINISHED"])
 
     if check_one_player_alive(match_id):
