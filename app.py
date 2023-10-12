@@ -137,7 +137,6 @@ async def handle_request(request, match_id, player_name, websocket):
             pass
         else:
             pass
-
     except RequestException as e:
         await manager.send_error_message(str(e), websocket)
     except GameException as e:
@@ -327,7 +326,11 @@ def pickup_card(player_name: str):
     elif get_game_state(match_id) != GAME_STATE["DRAW_CARD"]:
         raise GameException("No es el momento de robar carta")
 
-    card = pick_random_card(player_id)
+    try:
+        card = pick_random_card(player_id)
+    except DatabaseError as e:
+        raise GameException(str(e))
+
     set_game_state(match_id, GAME_STATE["PLAY_TURN"])
     return {"card_id": card.id, "name": card.card_name, "type": card.type}
 
@@ -347,9 +350,12 @@ def play_card(player_name: str, card_id: int, target: Optional[str] = None):
     elif get_game_state(match_id) != GAME_STATE["PLAY_TURN"]:
         raise GameException("No es tu turno de jugar carta")
 
-    play_card_from_hand(player_name, card_id, target)
-    set_next_turn(match_id)
-    set_game_state(match_id, GAME_STATE["DRAW_CARD"])
+    try:
+        play_card_from_hand(player_name, card_id, target)
+        set_next_turn(match_id)
+        set_game_state(match_id, GAME_STATE["DRAW_CARD"])
+    except DatabaseError as e:
+        raise GameException(str(e))
 
     # De aca para abajo habría que cambiar
     if card_name == "Lanzallamas":
