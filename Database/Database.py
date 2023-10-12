@@ -139,6 +139,9 @@ def get_card_by_id(card_id: int) -> Card:
         raise CardNotFound("Carta no encontrada")
     return Card[card_id]
 
+@db_session
+def get_card_name(card_id: int) -> str:
+    return get_card_by_id(card_id).card_name
 
 @db_session
 def discard_card(player_id: int, card_id: int):
@@ -159,27 +162,30 @@ def _play_lanzallamas(player: Player, player_target: Player):
 
 
 @db_session
-def play_card_from_hand(player_id: int, card_id: int, target_id: int = None):
+def play_card_from_hand(player_name: str, card_id: int, target_name: str = None):
     card = get_card_by_id(card_id)
-    player = get_player_by_id(player_id)
-    if target_id is not None:
-        player_target = get_player_by_id(target_id)
+    player = get_player_by_name(player_name)
+
+    try:
+        player_target = get_player_by_name(target_name)
+    except:
+        player_target = None
+
     if not card in player.cards:
         raise InvalidCard("No tienes esa carta en tu mano")
-
     if card.card_name == "La Cosa":
         raise InvalidCard("No puedes jugar la carta La Cosa")
     elif card.type == CardType.CONTAGIO.value:
         raise InvalidCard("No puedes jugar la carta ¡Infectado!")
 
     if card.card_name == "Lanzallamas":
-        if target_id is None:
+        if target_name is None:
             raise InvalidCard("Lanzallamas requiere un objetivo")
         _play_lanzallamas(player, player_target)
     else:
         pass
 
-    discard_card(player_id, card_id)
+    discard_card(player.id, card_id)
 
 
 # --- Match Functions --- #
@@ -555,7 +561,10 @@ def get_player_match(player_id: int) -> int:
 
 @db_session
 def player_exists(player_name):
-    return Player.exists(player_name=player_name)
+    try:
+        return Player.exists(player_name=player_name)
+    except:
+        return False
 
 
 @db_session
@@ -605,12 +614,11 @@ def is_adyacent(player: Player, player_target: Player) -> bool:
 def get_cards(player: Player) -> list:
     deck_data = []
     for card in player.cards:
-        deck_data.append(
-            {
-                "card_name": card.card_name,
-                "number": card.number,
-            }
-        )
+        deck_data.append({
+            "card_id": card.id,
+            "card_name": card.card_name,
+            "type": card.type, 
+        })
     return deck_data
 
 

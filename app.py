@@ -332,22 +332,20 @@ def play_card(player_name: str, card_id: int, target: Optional[str] = None):
     try:
         player_id = get_player_id(player_name)
         match_id = get_player_match(player_id)
-        card = get_card_by_id(card_id)
+        card_name = get_card_name(card_id)
     except DatabaseError as e:
         raise GameException(str(e))
     if not is_player_turn(player_id):
         raise GameException("No es tu turno")
     elif get_game_state(match_id) != GAME_STATE["PLAY_TURN"]:
         raise GameException("No es tu turno de jugar carta")
-    elif not card in get_player_hand(player_id):
-        raise GameException("No tienes esa carta en tu mano")
 
-    play_card_from_hand(player_id, card_id, target)
+    play_card_from_hand(player_name, card_id, target)
     set_next_turn(match_id)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
 
     # De aca para abajo habría que cambiar
-    if card.card_name == "Lanzallamas":
+    if card_name == "Lanzallamas":
         dead_player_name = target
     else:
         dead_player_name = ""
@@ -355,7 +353,7 @@ def play_card(player_name: str, card_id: int, target: Optional[str] = None):
     msg = {
         "message_type": "datos jugada",
         "message_content": {
-            "card_id": card.id,
+            "card_id": card_id,
             "posiciones": get_match_locations(match_id),
             "target": target,
             "turn": get_player_in_turn(match_id),
