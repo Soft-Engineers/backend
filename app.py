@@ -280,8 +280,10 @@ async def start_game(match_player: PlayerInMatch):
             "message_content": "LA PARTIDA COMIENZA!!!",
         }
         await manager.broadcast(start_alert, get_match_id(match_player.match_name))
-        return {"detail": "Partida inicializada",
-                "posiciones": get_players_positions(match_player.match_name)}
+        return {
+            "detail": "Partida inicializada",
+            "posiciones": get_players_positions(match_player.match_name),
+        }
 
 
 def pickup_card(player_name: str):

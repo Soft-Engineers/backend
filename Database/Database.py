@@ -474,6 +474,7 @@ def get_match_locations(match_id: int) -> list:
         )
     return locations
 
+
 @db_session
 def get_game_state_for(player_name: str):
     player = get_player_by_name(player_name)
@@ -489,16 +490,17 @@ def get_game_state_for(player_name: str):
     )[0]["player_name"]
     return {"hand": hand, "locations": locations, "current_turn": current_turn}
 
+
 @db_session
 def get_players_positions(match_name) -> list:
     match = get_match_by_name(match_name)
     positions = []
     for player in match.players:
-        positions.append({
-            "player_name": player.player_name,
-            "position": player.position
-        })
+        positions.append(
+            {"player_name": player.player_name, "position": player.position}
+        )
     return positions
+
 
 # --------------- Deck Functions -----------------
 
