@@ -75,6 +75,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 "message_content": get_game_state_for(player_name),
             }
             await manager.send_message_to(data, player_name)
+            data_positions = {
+                "message_type": "posiciones",
+                "message_content": get_players_positions(match_name),
+            }
+            await manager.broadcast(data_positions, match_id)
 
         while True:
             # Mandar la info de la partida a todos los jugadores
@@ -302,7 +307,9 @@ async def start_game(match_player: PlayerInMatch):
             "message_content": "LA PARTIDA COMIENZA!!!",
         }
         await manager.broadcast(start_alert, get_match_id(match_player.match_name))
-        return {"detail": "Partida inicializada"}
+        return {
+            "detail": "Partida inicializada",
+        }
 
 
 def pickup_card(player_name: str):
