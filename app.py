@@ -366,7 +366,7 @@ def play_card(player_name: str, card_id: int, target: Optional[str] = None):
     msg = {
         "message_type": "datos jugada",
         "message_content": {
-            "cards": get_player_hand(player_id),
+            #"cards": get_player_hand(player_id),
             "posiciones": get_match_locations(match_id),
             "target": target,
             "turn": get_player_in_turn(match_id),
@@ -374,6 +374,11 @@ def play_card(player_name: str, card_id: int, target: Optional[str] = None):
             "game_state": "DRAW_CARD",
         },
     }
+    card_msg = {
+        "message_type": "cards",
+        "message_content": get_player_hand(player_id),
+    }
+    manager.send_personal_message(card_msg,match_id, player_name)
     return msg
 
 
