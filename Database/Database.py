@@ -5,6 +5,7 @@ from pathlib import Path
 from Database.exceptions import *
 from Database.cards import card_templates, amount_cards, CardType
 from random import randrange
+import json
 
 db = pony.orm.Database()
 
@@ -581,10 +582,6 @@ def get_player_id(player_name: str) -> int:
     return Player.get(player_name=player_name).id
 
 
-@db_session
-def get_player_hand(player_id: int) -> list[Card]:
-    player = get_player_by_id(player_id)
-    return list(player.cards)
 
 
 @db_session
@@ -608,6 +605,11 @@ def is_adyacent(player: Player, player_target: Player) -> bool:
         get_previous_player(player.match.id, player.position) == player_target.position
     )
     return is_next or is_previous
+
+@db_session
+def get_player_hand(player_id: int) -> list:
+    player = get_player_by_id(player_id)
+    return get_cards(player)
 
 
 @db_session
