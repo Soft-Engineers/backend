@@ -122,6 +122,7 @@ def _deal_cards(match: Match):
         ).random(required_cards - 1)
     )
     cosa_card = deck.cards.filter(lambda c: c.card_name == "La Cosa").first()
+    deal_deck = list(filter(lambda c: not c.card_name == "La Cosa", deal_deck))
     deal_deck.insert(randrange(len(deal_deck) + 1), cosa_card)
 
     players = match.players

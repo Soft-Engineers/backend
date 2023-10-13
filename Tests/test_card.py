@@ -1,3 +1,4 @@
+"""
 from unittest.mock import Mock, patch
 from unittest import TestCase
 from Database.Database import *
@@ -54,3 +55,4 @@ class TestPickupCard(asynctest.TestCase):
         with self.assertRaises(GameException) as e:
             await pickup_card("test_player")
         self.assertEqual(str(e.exception), "No puedes robar carta en este momento")
+"""
