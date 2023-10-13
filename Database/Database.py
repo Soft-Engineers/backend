@@ -141,9 +141,11 @@ def get_card_by_id(card_id: int) -> Card:
         raise CardNotFound("Carta no encontrada")
     return Card[card_id]
 
+
 @db_session
 def get_card_name(card_id: int) -> str:
     return get_card_by_id(card_id).card_name
+
 
 @db_session
 def discard_card(player_id: int, card_id: int):
@@ -583,8 +585,6 @@ def get_player_id(player_name: str) -> int:
     return Player.get(player_name=player_name).id
 
 
-
-
 @db_session
 def set_player_alive(player_id: int, alive: bool):
     player = get_player_by_id(player_id)
@@ -606,6 +606,7 @@ def is_adyacent(player: Player, player_target: Player) -> bool:
         get_previous_player(player.match.id, player.position) == player_target.position
     )
     return is_next or is_previous
+
 
 @db_session
 def get_player_hand(player_id: int) -> list:
