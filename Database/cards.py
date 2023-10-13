@@ -76,7 +76,7 @@ card_templates = [
     ),
     CardTemplate("¡Fallaste!", [T(4, 1), T(6, 1), T(11, 1)], CardType.DEFENSA),
     CardTemplate("¡Nada de barbacoas!", [T(4, 1), T(6, 1), T(11, 1)], CardType.DEFENSA),
-    CardTemplate("Cuartentena", [T(5, 1), T(9, 1)], CardType.OBSTACULO),
+    CardTemplate("Cuarentena", [T(5, 1), T(9, 1)], CardType.OBSTACULO),
     CardTemplate("Revelaciones", [T(8, 1)], CardType.PANICO),
     CardTemplate("Cuerdas podridas", [T(6, 1), T(9, 1)], CardType.PANICO),
     CardTemplate("¡Sal de aquí!", [T(5, 1)], CardType.PANICO),
