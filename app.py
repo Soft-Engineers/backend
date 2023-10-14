@@ -320,18 +320,27 @@ async def start_game(match_player: PlayerInMatch):
         }
 
 
-@app.delete("/match/delete", tags=["Matches"], status_code=status.HTTP_200_OK)
+@app.delete("/match/leave", tags=["Matches"], status_code=status.HTTP_200_OK)
 async def left_lobby(lobby_left: PlayerInMatch = Depends()):
     """
     Left a lobby
     """
     if not _match_exists(lobby_left.match_name):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
         )
     elif not player_exists(lobby_left.player_name):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Jugador no existe",
+        )
+    elif not is_in_match(
+        get_player_by_name(lobby_left.player_name).id,
+        get_match_id(lobby_left.match_name),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Jugador no está en la partida",
         )
     elif get_player_by_name(lobby_left.player_name).is_host:
         data_msg = {
@@ -340,7 +349,10 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
         }
         await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
         delete_match(lobby_left.match_name)
-        response = {"detail": lobby_left.player_name + " abandono el lobby"}
+        response = {
+            "detail": lobby_left.player_name
+            + " abandono el lobby y la partida se elimino"
+        }
     else:
         left_match(lobby_left.player_name, lobby_left.match_name)
         data_msg = {
