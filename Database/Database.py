@@ -493,6 +493,7 @@ def get_winners(match_id: int) -> list[str]:
             winners.append(player.player_name)
     return winners
 
+
 @db_session
 def left_match(player_name, match_name):
     player = Player.get(player_name=player_name)
@@ -506,7 +507,9 @@ def delete_match(match_name):
     match = Match.get(name=match_name)
     for player in match.players:
         player.match = None
+        match.players.remove(player)
     match.delete()
+
 
 # ------------ player functions ----------------
 

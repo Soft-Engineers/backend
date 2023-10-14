@@ -334,12 +334,12 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
             status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
         )
     elif get_player_by_name(lobby_left.player_name).is_host:
-        delete_match(lobby_left.match_name)
         data_msg = {
             "message_type": "match_deleted",
             "message_content": "La partida ha sido eliminada debido a que el host la ha abandonado",
         }
         await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
+        delete_match(lobby_left.match_name)
         response = {"detail": lobby_left.player_name + " abandono el lobby"}
     else:
         left_match(lobby_left.player_name, lobby_left.match_name)
