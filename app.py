@@ -320,6 +320,38 @@ async def start_game(match_player: PlayerInMatch):
         }
 
 
+@app.delete("/match/delete", tags=["Matches"], status_code=status.HTTP_200_OK)
+async def left_lobby(lobby_left: LobbyTemp = Depends()):
+    """
+    Left a lobby
+    """
+    if not _match_exists(lobby_left.match_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
+        )
+    elif not player_exists(lobby_left.player_name):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
+        )
+    elif get_player_by_name(lobby_left.player_name).is_host:
+        delete_match(lobby_left.match_name)
+        data_msg = {
+            "message_type": "match_deleted",
+            "message_content": "La partida ha sido eliminada debido a que el host la ha abandonado",
+        }
+        await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
+        response = {"detail": lobby_left.player_name + " abandono el lobby"}
+    else:
+        left_match(lobby_left.player_name, lobby_left.match_name)
+        data_msg = {
+            "message_type": "player_left",
+            "message_content": lobby_left.player_name + " ha abandonado el lobby",
+        }
+        await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
+        response = {"detail": lobby_left.player_name + " abandono el lobby"}
+    return response
+
+
 async def pickup_card(player_name: str):
     """
     The player get a random card from the deck and add it to his hand
