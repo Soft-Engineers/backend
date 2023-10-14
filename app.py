@@ -321,7 +321,7 @@ async def start_game(match_player: PlayerInMatch):
 
 
 @app.delete("/match/delete", tags=["Matches"], status_code=status.HTTP_200_OK)
-async def left_lobby(lobby_left: LobbyTemp = Depends()):
+async def left_lobby(lobby_left: PlayerInMatch = Depends()):
     """
     Left a lobby
     """
