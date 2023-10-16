@@ -12,6 +12,19 @@ class ConnectionManager:
     def __init__(self):
         self.connections: dict = defaultdict(dict)
 
+    def __gen_msg(self, message_type: str, message_content):
+        if message_type == "datos jugada":
+            print(
+                {
+                    "message_type": message_type,
+                    "message_content": message_content,
+                }
+            )
+        return {
+            "message_type": message_type,
+            "message_content": message_content,
+        }
+
     async def connect(self, websocket: WebSocket, match_id: int, player_name: str):
         await websocket.accept()
         if match_id is None or not check_match_existence(match_id):
@@ -29,19 +42,26 @@ class ConnectionManager:
             del self.connections[db_get_player_match_id(player_name)][player_name]
 
     async def send_personal_message(
-        self, message: str, match_id: int, player_name: str
+        self, message_type: str, message_content, match_id: int, player_name: str
     ):
-        await self.connections[match_id][player_name].send_json(message)
+        msg = self.__gen_msg(message_type, message_content)
 
-    async def send_message_to(self, message: str, player_name: str):
+        await self.connections[match_id][player_name].send_json(msg)
+
+    async def send_message_to(
+        self, message_type: str, message_content, player_name: str
+    ):
         match_id = db_get_player_match_id(player_name)
 
-        await self.send_personal_message(message, match_id, player_name)
+        await self.send_personal_message(
+            message_type, message_content, match_id, player_name
+        )
 
-    async def send_error_message(self, message: str, websocket: str):
-        msg = {"message_type": "error", "message_content": message}
+    async def send_error_message(self, message_content, websocket: str):
+        msg = self.__gen_msg("error", message_content)
         await websocket.send_json(msg)
 
-    async def broadcast(self, message: str, match_id: int):
+    async def broadcast(self, message_type: str, message_content, match_id: int):
+        msg = self.__gen_msg(message_type, message_content)
         for socket in self.connections[match_id].values():
-            await socket.send_json(message)
+            await socket.send_json(msg)
