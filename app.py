@@ -70,25 +70,21 @@ async def websocket_endpoint(websocket: WebSocket):
         # Si la partida esta iniciada
 
         if db_is_match_initiated(match_name):
-            data = {
-                "message_type": "estado inicial",
-                "message_content": get_game_state_for(player_name),
-            }
-            await manager.send_message_to(data, player_name)
-            data_positions = {
-                "message_type": "posiciones",
-                "message_content": get_players_positions(match_name),
-            }
-            await manager.broadcast(data_positions, match_id)
+            await manager.send_message_to(
+                "estado inicial", get_game_state_for(player_name), player_name
+            )
+
+            await manager.broadcast(
+                "posiciones", get_players_positions(match_name), match_id
+            )
 
         while True:
             # Mandar la info de la partida a todos los jugadores
             # TODO: Sacar cuando se haga todo por sockets
-            data = {
-                "message_type": "jugadores lobby",
-                "message_content": db_get_players(match_name),
-            }
-            await manager.broadcast(data, match_id)
+
+            await manager.broadcast(
+                "jugadores lobby", db_get_players(match_name), match_id
+            )
 
             request = await websocket.receive_text()
             await handle_request(request, match_id, player_name, websocket)
@@ -112,20 +108,22 @@ async def handle_request(request, match_id, player_name, websocket):
         elif msg_type == "robar carta":
             player_id = get_player_id(player_name)
             await pickup_card(player_name)
-            card_msg = {
-                "message_type": "cards",
-                "message_content": get_player_hand(player_id),
-            }
-            await manager.send_personal_message(card_msg, match_id, player_name)
+            await manager.send_personal_message(
+                "cards", get_player_hand(player_id), player_name
+            )
 
         elif msg_type == "jugar carta":
-            msg = await play_card(player_name, content["card_id"], content["target"])
-            alert = play_card_msg(player_name, content["card_id"], content["target"])
-            await manager.broadcast(alert, match_id)
-            await manager.broadcast(msg, match_id)
-            win_msg = await check_win(match_id)
+            type_msg, msg = await play_card(
+                player_name, content["card_id"], content["target"]
+            )
+            type_alert, alert = play_card_msg(
+                player_name, content["card_id"], content["target"]
+            )
+            await manager.broadcast(type_alert, alert, match_id)
+            await manager.broadcast(type_msg, msg, match_id)
+            type_win_msg, win_msg = await check_win(match_id)
             if win_msg:
-                await manager.broadcast(win_msg, match_id)
+                await manager.broadcast(type_win_msg, win_msg, match_id)
 
         elif msg_type == "leave match":
             # Llamar a la función leave_match
@@ -139,13 +137,13 @@ async def handle_request(request, match_id, player_name, websocket):
 
 
 def play_card_msg(player_name: str, card_id: int, target: str):
+    type = {"message_type": "notificación jugada"}
     alert = {
-        "message_type": "notificación jugada",
         "message_content": player_name + " jugó " + get_card_name(card_id),
     }
     if target:
         alert["message_content"] += " a " + target
-    return alert
+    return type, alert
 
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
@@ -310,11 +308,12 @@ async def start_game(match_player: PlayerInMatch):
     else:
         started_match(match_player.match_name)
         set_game_state(get_match_id(match_player.match_name), GAME_STATE["DRAW_CARD"])
-        start_alert = {
-            "message_type": "start_match",
-            "message_content": "LA PARTIDA COMIENZA!!!",
-        }
-        await manager.broadcast(start_alert, get_match_id(match_player.match_name))
+
+        await manager.broadcast(
+            "start_match",
+            "LA PARTIDA COMIENZA!!!",
+            get_match_id(match_player.match_name),
+        )
         return {
             "detail": "Partida inicializada",
         }
@@ -343,11 +342,11 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
             detail="Jugador no está en la partida",
         )
     elif get_player_by_name(lobby_left.player_name).is_host:
-        data_msg = {
-            "message_type": "match_deleted",
-            "message_content": "La partida ha sido eliminada debido a que el host la ha abandonado",
-        }
-        await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
+        await manager.broadcast(
+            "match_deleted",
+            "La partida ha sido eliminada debido a que el host la ha abandonado",
+            get_match_id(lobby_left.match_name),
+        )
         delete_match(lobby_left.match_name)
         response = {
             "detail": lobby_left.player_name
@@ -355,11 +354,11 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
         }
     else:
         left_match(lobby_left.player_name, lobby_left.match_name)
-        data_msg = {
-            "message_type": "player_left",
-            "message_content": lobby_left.player_name + " ha abandonado el lobby",
-        }
-        await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
+        await manager.broadcast(
+            "player_left",
+            lobby_left.player_name + " ha abandonado el lobby",
+            get_match_id(lobby_left.match_name),
+        )
         response = {"detail": lobby_left.player_name + " abandono el lobby"}
     return response
 
@@ -419,17 +418,15 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = None
     if card_name == "Lanzallamas":
         dead_player_name = target
         await manager.broadcast(
-            {
-                "message_type": "notificación muerte",
-                "message_content": target + " ha muerto",
-            },
+            "notificación muerte",
+            target + " ha muerto",
             match_id,
         )
     else:
         dead_player_name = ""
 
+    type = {"message_type": "datos jugada"}
     msg = {
-        "message_type": "datos jugada",
         "message_content": {
             # "cards": get_player_hand(player_id),
             "posiciones": get_match_locations(match_id),
@@ -437,20 +434,23 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = None
             "turn": get_player_in_turn(match_id),
             "dead_player_name": dead_player_name,
             "game_state": "DRAW_CARD",
-        },
+        }
     }
-    card_msg = {
-        "message_type": "cards",
-        "message_content": get_player_hand(player_id),
-    }
+
     alert = {
         "message_type": "notificación turno",
         "message_content": " Es el turno de " + get_player_in_turn(match_id),
     }
 
-    await manager.send_personal_message(card_msg, match_id, player_name)
-    await manager.broadcast(alert, match_id)
-    return msg
+    await manager.send_personal_message(
+        "cards", get_player_hand(player_id), match_id, player_name
+    )
+    await manager.broadcast(
+        "notificación turno",
+        " Es el turno de " + get_player_in_turn(match_id),
+        match_id,
+    )
+    return type, msg
 
 
 async def check_win(match_id: int):
@@ -470,13 +470,13 @@ async def check_win(match_id: int):
 
     winners = get_winners(match_id)
     if win:
+        type = {"message_type": "partida finalizada"}
         msg = {
-            "message_type": "partida finalizada",
             "message_content": {
                 "winners": winners,
                 "reason": reason,
             },
         }
-        return msg
+        return type, msg
     else:
         return None
