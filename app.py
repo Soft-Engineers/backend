@@ -320,6 +320,50 @@ async def start_game(match_player: PlayerInMatch):
         }
 
 
+@app.delete("/match/leave", tags=["Matches"], status_code=status.HTTP_200_OK)
+async def left_lobby(lobby_left: PlayerInMatch = Depends()):
+    """
+    Left a lobby
+    """
+    if not _match_exists(lobby_left.match_name):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
+        )
+    elif not player_exists(lobby_left.player_name):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Jugador no existe",
+        )
+    elif not is_in_match(
+        get_player_by_name(lobby_left.player_name).id,
+        get_match_id(lobby_left.match_name),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Jugador no está en la partida",
+        )
+    elif get_player_by_name(lobby_left.player_name).is_host:
+        data_msg = {
+            "message_type": "match_deleted",
+            "message_content": "La partida ha sido eliminada debido a que el host la ha abandonado",
+        }
+        await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
+        delete_match(lobby_left.match_name)
+        response = {
+            "detail": lobby_left.player_name
+            + " abandono el lobby y la partida se elimino"
+        }
+    else:
+        left_match(lobby_left.player_name, lobby_left.match_name)
+        data_msg = {
+            "message_type": "player_left",
+            "message_content": lobby_left.player_name + " ha abandonado el lobby",
+        }
+        await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
+        response = {"detail": lobby_left.player_name + " abandono el lobby"}
+    return response
+
+
 async def pickup_card(player_name: str):
     """
     The player get a random card from the deck and add it to his hand
