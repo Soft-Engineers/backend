@@ -289,9 +289,7 @@ async def start_game(match_player: PlayerInMatch):
         await manager.broadcast(
             "start_match", start_alert, get_match_id(match_player.match_name)
         )
-        return {
-            "detail": "Partida inicializada",
-        }
+        return {"detail": "Partida inicializada"}
 
 
 @app.delete("/match/leave", tags=["Matches"], status_code=status.HTTP_200_OK)
@@ -317,11 +315,8 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
             detail="Jugador no está en la partida",
         )
     elif get_player_by_name(lobby_left.player_name).is_host:
-        data_msg = {
-            "message_type": "match_deleted",
-            "message_content": "La partida ha sido eliminada debido a que el host la ha abandonado",
-        }
-        await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
+        data_msg = "La partida ha sido eliminada debido a que el host la ha abandonado",
+        await manager.broadcast("match_deleted", data_msg, get_match_id(lobby_left.match_name))
         delete_match(lobby_left.match_name)
         response = {
             "detail": lobby_left.player_name
@@ -329,11 +324,8 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
         }
     else:
         left_match(lobby_left.player_name, lobby_left.match_name)
-        data_msg = {
-            "message_type": "player_left",
-            "message_content": lobby_left.player_name + " ha abandonado el lobby",
-        }
-        await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
+        data_msg =  lobby_left.player_name + " ha abandonado el lobby",
+        await manager.broadcast("player_left",data_msg, get_match_id(lobby_left.match_name))
         response = {"detail": lobby_left.player_name + " abandono el lobby"}
     return response
 
