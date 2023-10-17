@@ -163,7 +163,7 @@ class test_db_add_player(TestCase):
 
 class test_pick_random_card(TestCase):
     @patch("Database.Database.is_deck_empty", return_value=False)
-    @patch("Database.Database.get_player_by_id")
+    @patch("Database.Database.get_player_by_name")
     @patch("Database.Database._get_deck")
     def test_pick_random_card(self, mock_get_deck, mock_get_player, mock_is_deck_empty):
         mock_player = Mock()
@@ -176,9 +176,9 @@ class test_pick_random_card(TestCase):
         mock_card = Mock()
         mock_deck.cards.random.return_value = [mock_card]
 
-        card = pick_random_card(1)
+        card = pick_random_card("test_player")
 
-        mock_get_player.assert_called_once_with(1)
+        mock_get_player.assert_called_once_with("test_player")
         mock_get_deck.assert_called_once_with(mock_player.match.id)
         mock_deck.cards.random.assert_called_once_with(1)
         mock_deck.cards.remove.assert_called_once_with(mock_card)

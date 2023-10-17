@@ -148,8 +148,8 @@ def get_card_name(card_id: int) -> str:
 
 
 @db_session
-def discard_card(player_id: int, card_id: int):
-    player = get_player_by_id(player_id)
+def discard_card(player_name: str, card_id: int):
+    player = get_player_by_name(player_name)
     card = get_card_by_id(card_id)
     discard_deck = _get_discard_deck(player.match.id)
     player.cards.remove(card)
@@ -160,20 +160,34 @@ def discard_card(player_id: int, card_id: int):
 
 @db_session
 def _play_lanzallamas(player: Player, player_target: Player):
-    if not is_adyacent(player, player_target):
+    if player_target is None:
+        raise InvalidCard("Lanzallamas requiere un objetivo")
+    elif not is_adyacent(player, player_target):
         raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
     player_target.is_alive = False
 
 
 @db_session
-def play_card_from_hand(player_name: str, card_id: int, target_name: str = None):
+def _get_target_player(player_name: str, target_name: str) -> Player:
+    """
+    Returns the target player if the target is valid, else returns None
+    """
+    if target_name == "":
+        return None
+    elif not player_exists(target_name):
+        raise InvalidPlayer("Jugador no válido")
+    elif get_player_match(player_name) != get_player_match(target_name):
+        raise InvalidPlayer("Jugador no válido")
+    elif not is_player_alive(target_name):
+        raise InvalidPlayer("El jugador seleccionado está muerto")
+    return get_player_by_name(target_name)
+
+
+@db_session
+def play_card_from_hand(player_name: str, card_id: int, target_name: str = ""):
     card = get_card_by_id(card_id)
     player = get_player_by_name(player_name)
-
-    try:
-        player_target = get_player_by_name(target_name)
-    except:
-        player_target = None
+    player_target = _get_target_player(player_name, target_name)
 
     if not card in player.cards:
         raise InvalidCard("No tienes esa carta en tu mano")
@@ -183,13 +197,11 @@ def play_card_from_hand(player_name: str, card_id: int, target_name: str = None)
         raise InvalidCard("No puedes jugar la carta ¡Infectado!")
 
     if card.card_name == "Lanzallamas":
-        if player_target is None:
-            raise InvalidCard("Lanzallamas requiere un objetivo")
         _play_lanzallamas(player, player_target)
     else:
         pass
 
-    discard_card(player.id, card_id)
+    discard_card(player_name, card_id)
 
 
 # --- Match Functions --- #
@@ -520,7 +532,7 @@ def create_player(new_player_name):
 
 
 @db_session
-def get_player_by_name(player_name):
+def get_player_by_name(player_name: str) -> Player:
     if not player_exists(player_name):
         raise PlayerNotFound("Jugador no encontrado")
     return Player.get(player_name=player_name)
@@ -547,15 +559,15 @@ def get_match_turn(match_id: int) -> int:
 
 
 @db_session
-def is_player_alive(player_id: int) -> bool:
-    player = get_player_by_id(player_id)
+def is_player_alive(player_name: str) -> bool:
+    player = get_player_by_name(player_name)
     return player.is_alive
 
 
 @db_session
-def is_player_turn(player_id: int) -> bool:
-    player = get_player_by_id(player_id)
-    match_id = get_player_match(player_id)
+def is_player_turn(player_name: str) -> bool:
+    player = get_player_by_name(player_name)
+    match_id = get_player_match(player_name)
     turn = get_match_turn(match_id)
     return player.position == turn
 
@@ -573,19 +585,16 @@ def is_deck_empty(match_id: int) -> bool:
 
 
 @db_session
-def get_player_match(player_id: int) -> int:
-    player = get_player_by_id(player_id)
+def get_player_match(player_name: str) -> int:
+    player = get_player_by_name(player_name)
     if not player.match:
-        raise PlayerNotInMatch("Player not in a match")
+        raise PlayerNotInMatch("El jugador no está en partida")
     return player.match.id
 
 
 @db_session
-def player_exists(player_name):
-    try:
-        return Player.exists(player_name=player_name)
-    except:
-        return False
+def player_exists(player_name: str) -> bool:
+    return Player.exists(player_name=player_name)
 
 
 @db_session
@@ -626,8 +635,8 @@ def is_adyacent(player: Player, player_target: Player) -> bool:
 
 
 @db_session
-def get_player_hand(player_id: int) -> list:
-    player = get_player_by_id(player_id)
+def get_player_hand(player_name: str) -> list:
+    player = get_player_by_name(player_name)
     return get_cards(player)
 
 
@@ -707,9 +716,9 @@ def new_deck_from_discard(match_id: int):
 
 
 @db_session
-def pick_random_card(player_id: int) -> Card:
+def pick_random_card(player_name: str) -> Card:
     """If the deck is empty, form a new deck from the discard deck"""
-    player = get_player_by_id(player_id)
+    player = get_player_by_name(player_name)
     match_id = player.match.id
     deck = _get_deck(match_id)
     if is_deck_empty(match_id):
