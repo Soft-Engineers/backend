@@ -148,8 +148,8 @@ def get_card_name(card_id: int) -> str:
 
 
 @db_session
-def discard_card(player_id: int, card_id: int):
-    player = get_player_by_id(player_id)
+def discard_card(player_name: str, card_id: int):
+    player = get_player_by_name(player_name)
     card = get_card_by_id(card_id)
     discard_deck = _get_discard_deck(player.match.id)
     player.cards.remove(card)
@@ -201,7 +201,7 @@ def play_card_from_hand(player_name: str, card_id: int, target_name: str = ""):
     else:
         pass
 
-    discard_card(player.id, card_id)
+    discard_card(player_name, card_id)
 
 
 # --- Match Functions --- #

@@ -13,13 +13,6 @@ class ConnectionManager:
         self.connections: dict = defaultdict(dict)
 
     def __gen_msg(self, message_type: str, message_content):
-        if message_type == "datos jugada":
-            print(
-                {
-                    "message_type": message_type,
-                    "message_content": message_content,
-                }
-            )
         return {
             "message_type": message_type,
             "message_content": message_content,

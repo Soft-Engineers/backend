@@ -396,7 +396,7 @@ async def check_win(match_id: int):
         "winners": winners,
         "reason": reason,
     }
-    manager.broadcast("partida finalizada", content, match_id)
+    await manager.broadcast("partida finalizada", content, match_id)
 
 
 def play_card_msg(player_name: str, card_id: int, target: str):
