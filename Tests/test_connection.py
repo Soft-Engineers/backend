@@ -1,9 +1,7 @@
 from Database.Database import *
 from app import *
-from fastapi.testclient import TestClient
 from Tests.auxiliar_functions import *
 import pytest
-import asyncio
 
 
 class _WebStub:
