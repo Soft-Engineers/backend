@@ -71,6 +71,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
         if db_is_match_initiated(match_name):
             data = get_game_state_for(player_name)
+
+            # Estado inicial
             await manager.send_message_to("estado inicial", data, player_name)
 
             positions = get_players_positions(match_name)
@@ -82,6 +84,7 @@ async def websocket_endpoint(websocket: WebSocket):
             data = db_get_players(match_name)
             await manager.broadcast("jugadores lobby", data, match_id)
             
+            # Listado de muertes
             if db_is_match_initiated(match_name):
                 await manager.broadcast("muertes", get_dead_players(match_id), match_id)
 
@@ -375,7 +378,6 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
         "posiciones": get_match_locations(match_id),
         "target": target,
         "turn": get_player_in_turn(match_id),
-        "dead_players": get_dead_players(match_id),
         "game_state": "DRAW_CARD",
     }
 
