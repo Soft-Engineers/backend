@@ -84,7 +84,6 @@ async def websocket_endpoint(websocket: WebSocket):
             data = db_get_players(match_name)
             await manager.broadcast("jugadores lobby", data, match_id)
             
-            # Listado de muertes
             if db_is_match_initiated(match_name):
                 await manager.broadcast("muertes", get_dead_players(match_id), match_id)
 

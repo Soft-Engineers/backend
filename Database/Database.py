@@ -66,6 +66,13 @@ db.generate_mapping(create_tables=True)
 ROL = {"HUMAN": 1, "LA_COSA": 2, "INFECTED": 3}
 GAME_STATE = {"DRAW_CARD": 1, "PLAY_TURN": 2, "FINISHED": 3}
 
+
+def _get_role_name(rol: int) -> str:
+    for r in ROL:
+        if ROL[r] == rol:
+            return r
+
+
 # -- Cards Functions -- #
 
 
@@ -676,11 +683,18 @@ def get_game_state_for(player_name: str):
 
     hand = get_cards(player)
     locations = get_match_locations(match.id)
+    rol = _get_role_name(player.rol)
+
     current_turn = list(
         filter(lambda p: p["location"] == match.current_player, locations)
     )[0]["player_name"]
-    
-    return {"hand": hand, "locations": locations, "current_turn": current_turn}
+
+    return {
+        "hand": hand,
+        "locations": locations,
+        "current_turn": current_turn,
+        "role": rol,
+    }
 
 
 @db_session
