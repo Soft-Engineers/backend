@@ -27,12 +27,15 @@ class ConnectionManager:
         self.connections[match_id][player_name] = websocket
 
     def disconnect(self, player_name: str):
-        if (
-            player_exists(player_name)
-            and player_name
-            in self.connections[db_get_player_match_id(player_name)].keys()
-        ):
-            del self.connections[db_get_player_match_id(player_name)][player_name]
+        try:
+            if (
+                player_exists(player_name)
+                and player_name
+                in self.connections[db_get_player_match_id(player_name)].keys()
+            ):
+                del self.connections[db_get_player_match_id(player_name)][player_name]
+        except:
+            raise RequestException("Can't disconnect player")
 
     async def send_personal_message(
         self, message_type: str, message_content, match_id: int, player_name: str
