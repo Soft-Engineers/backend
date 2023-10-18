@@ -670,9 +670,17 @@ def get_match_locations(match_id: int) -> list:
         )
     return locations
 
+@db_session
+def _get_match_locations(match: Match) -> list: 
+    locations = []
+    for player in match.players:
+        locations.append(
+            {"player_name": player.player_name, "location": player.position}
+        )
+    return locations
 
 @db_session
-def get_game_state_for(player_name: str):
+def get_game_state_for(player_name: str) -> dict:
     player = get_player_by_name(player_name)
     match = player.match
 
@@ -682,7 +690,7 @@ def get_game_state_for(player_name: str):
         raise MatchNotStarted("Partida no ha iniciado")
 
     hand = get_cards(player)
-    locations = get_match_locations(match.id)
+    locations = _get_match_locations(match)
     rol = _get_role_name(player.rol)
 
     current_turn = list(

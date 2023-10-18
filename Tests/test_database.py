@@ -353,3 +353,89 @@ class test_get_game_state_for(TestCase):
 
         for hand in hands:
             self.assertEqual(len(hand), 4)
+
+
+class test_get_game_state_for(TestCase):
+
+    @patch("Database.Database.get_player_by_name")
+    def test_get_game_state_for(self, mock_get_player_by_name):
+        mock_player = Mock()
+        mock_player.player_name = "test_player1"
+        mock_player.match = Mock()
+        mock_player.match.initiated = True
+        mock_player.match.players = set()
+        mock_player.match.players.add(mock_player)
+        mock_player.match.current_player = 0
+        mock_player.cards = set()
+        mock_player.position = 0
+        mock_player.rol = ROL["HUMAN"]
+
+        for i in range(2, 5):
+            mock_player_i = Mock()
+            mock_player_i.player_name = f"test_player{i}"
+            mock_player_i.position = i - 1
+            mock_player.match.players.add(mock_player_i)
+
+        for i in range(4):
+            mock_card = Mock()
+            mock_card.id = i
+            mock_card.card_name = f"test_card{i}"
+            mock_card.type = f"test_type{i}"
+            mock_player.cards.add(mock_card)
+
+        mock_get_player_by_name.return_value = mock_player
+
+        game_state = get_game_state_for("test_player1")
+
+        game_state["hand"] = sorted(game_state["hand"], key=lambda d: d["card_id"])
+        game_state["locations"] = sorted(
+            game_state["locations"], key=lambda d: d["location"]
+        )
+
+        self.assertEqual(
+            game_state,
+            {
+                "hand": [
+                    {"card_id": 0, "card_name": "test_card0", "type": "test_type0"},
+                    {"card_id": 1, "card_name": "test_card1", "type": "test_type1"},
+                    {"card_id": 2, "card_name": "test_card2", "type": "test_type2"},
+                    {"card_id": 3, "card_name": "test_card3", "type": "test_type3"},
+                ],
+                "locations": [
+                    {"player_name": "test_player1", "location": 0},
+                    {"player_name": "test_player2", "location": 1},
+                    {"player_name": "test_player3", "location": 2},
+                    {"player_name": "test_player4", "location": 3},
+                ],
+                "current_turn": "test_player1",
+                "role": "HUMAN",
+            },
+        )
+
+        mock_get_player_by_name.assert_called_once_with("test_player1")
+
+    @patch("Database.Database.get_player_by_name")
+    def test_get_game_state_for_player_not_in_game(self, mock_get_player_by_name):
+        mock_player = Mock()
+        mock_player.player_name = "test_player1"
+        mock_player.match = None
+
+        mock_get_player_by_name.return_value = mock_player
+
+        with self.assertRaises(PlayerNotInMatch):
+            get_game_state_for("test_player1")
+
+        mock_get_player_by_name.assert_called_once_with("test_player1")
+
+    @patch("Database.Database.get_player_by_name")
+    def test_get_game_state_for_player_not_initiated(self, mock_get_player_by_name):
+        
+        mock_player = Mock()
+        mock_player.player_name = "test_player1"
+        mock_player.match = Mock()
+        mock_player.match.initiated = False
+        
+        mock_get_player_by_name.return_value = mock_player
+
+        with self.assertRaises(MatchNotStarted):
+            get_game_state_for("test_player1")
