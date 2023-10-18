@@ -118,7 +118,6 @@ def test_player_create_match_invalid_player():
 
     response = client.post("/match/create", json=body)
 
-    print(response.json())
     _assert_invalid(response, "Jugador no encontrado")
 
 

@@ -208,6 +208,50 @@ class test_new_deck_from_discard(TestCase):
         self.assertEqual(mock_deck.cards, [mock_card_1, mock_card_2])
 
 
+class test_get_dead_players(TestCase):
+    @patch("Database.Database._get_match")
+    def test_get_dead_players(self, mock_get_match):
+        mock_match = Mock()
+        mock_match.initiated = True
+        mock_match.players = set()
+
+        mock_player1 = Mock()
+        mock_player1.player_name = "player1"
+        mock_player1.is_alive = False
+
+        mock_player2 = Mock()
+        mock_player2.player_name = "player2"
+        mock_player2.is_alive = True
+
+        mock_match.players.add(mock_player1)
+        mock_match.players.add(mock_player2)
+
+        mock_get_match.return_value = mock_match
+
+        dead_players = get_dead_players(42)
+
+        mock_get_match.assert_called_once_with(42)
+        self.assertEqual(dead_players, ["player1"])
+        self.assertEqual(len(dead_players), 1)
+
+    @patch("Database.Database._get_match")
+    def test_get_dead_players_match_not_initiated(self, mock_get_match):
+        mock_match = Mock()
+        mock_match.initiated = False
+        mock_match.players = set()
+
+        mock_get_match.return_value = mock_match
+
+        with self.assertRaises(MatchNotStarted):
+            get_dead_players(42)
+
+    @patch("Database.Database._get_match")
+    def test_get_dead_players_match_not_found(self, mock_get_match):
+        mock_get_match.side_effect = MatchNotFound("Partida no encontrada")
+
+        with self.assertRaises(MatchNotFound):
+            get_dead_players(1)
+
 
 class test_get_game_state_for(TestCase):
     @patch("Database.Database.get_player_by_name")
@@ -309,4 +353,3 @@ class test_get_game_state_for(TestCase):
 
         for hand in hands:
             self.assertEqual(len(hand), 4)
-

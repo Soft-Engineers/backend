@@ -81,6 +81,9 @@ async def websocket_endpoint(websocket: WebSocket):
             # TODO: Sacar cuando se haga todo por sockets
             data = db_get_players(match_name)
             await manager.broadcast("jugadores lobby", data, match_id)
+            
+            if db_is_match_initiated(match_name):
+                await manager.broadcast("muertes", get_dead_players(match_id), match_id)
 
             request = await websocket.receive_text()
             await handle_request(request, match_id, player_name, websocket)
@@ -363,16 +366,16 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
     )
 
     if card_name == "Lanzallamas" and not is_player_alive(target):
-        dead_player_name = target
+    #    dead_player_name = target
         await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
-    else:
-        dead_player_name = ""
+    #else:
+    #    dead_player_name = ""
 
     msg = {
         "posiciones": get_match_locations(match_id),
         "target": target,
         "turn": get_player_in_turn(match_id),
-        "dead_player_name": dead_player_name,
+        "dead_players": get_dead_players(match_id),
         "game_state": "DRAW_CARD",
     }
 
