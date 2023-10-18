@@ -34,6 +34,8 @@ class ConnectionManager:
                 in self.connections[db_get_player_match_id(player_name)].keys()
             ):
                 del self.connections[db_get_player_match_id(player_name)][player_name]
+            else:
+                raise Exception()
         except:
             raise RequestException("Can't disconnect player")
 

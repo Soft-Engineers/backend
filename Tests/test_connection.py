@@ -16,9 +16,6 @@ class _WebStub:
     async def send_json(self, msg):
         self.messages.append(msg)
 
-    def contains(self, msg):
-        return msg in self.messages
-
     def buff_size(self):
         return len(self.messages)
 
@@ -110,8 +107,8 @@ async def test_disconnect_player_twice(mocker):
     cm.disconnect(player_name)
     assert not player_name in cm.connections[match_id].keys()
 
-    cm.disconnect(player_name)
-    assert not player_name in cm.connections[match_id].keys()
+    with pytest.raises(RequestException):
+        cm.disconnect(player_name)
 
 
 @pytest.mark.asyncio
