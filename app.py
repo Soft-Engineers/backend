@@ -93,8 +93,6 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(player_name)
     except Exception as e:
         print(str(e))
-    finally:
-        manager.disconnect(player_name)
 
 
 # Request handler
