@@ -1,3 +1,4 @@
+from threading import Lock
 from fastapi import WebSocket
 from collections import defaultdict
 from Database.Database import (
@@ -9,6 +10,8 @@ from request import RequestException
 
 
 class ConnectionManager:
+    lock: Lock = Lock()
+
     def __init__(self):
         self.connections: dict = defaultdict(dict)
 
@@ -27,6 +30,7 @@ class ConnectionManager:
         self.connections[match_id][player_name] = websocket
 
     def disconnect(self, player_name: str):
+        self.lock.acquire()
         try:
             if (
                 player_exists(player_name)
@@ -38,10 +42,16 @@ class ConnectionManager:
                 raise Exception()
         except:
             raise RequestException("Can't disconnect player")
+        finally:
+            self.lock.release()
 
     async def send_personal_message(
         self, message_type: str, message_content, match_id: int, player_name: str
     ):
+        print("----------------------------------")
+        print(message_type)
+        print(message_content)
+        print("----------------------------------")
         msg = self.__gen_msg(message_type, message_content)
 
         await self.connections[match_id][player_name].send_json(msg)
@@ -56,10 +66,22 @@ class ConnectionManager:
         )
 
     async def send_error_message(self, message_content, websocket: str):
+        print("----------------------------------")
+        print("error")
+        print(message_content)
+        print("----------------------------------")
         msg = self.__gen_msg("error", message_content)
+
         await websocket.send_json(msg)
 
     async def broadcast(self, message_type: str, message_content, match_id: int):
+        print("----------------------------------")
+        print(message_type)
+        print(message_content)
+        print("----------------------------------")
         msg = self.__gen_msg(message_type, message_content)
+
+        self.lock.acquire()
         for socket in self.connections[match_id].values():
             await socket.send_json(msg)
+        self.lock.release()
