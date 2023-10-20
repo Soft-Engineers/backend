@@ -73,6 +73,22 @@ def _get_role_name(rol: int) -> str:
             return r
 
 
+# Game DB functions
+
+
+@db_session
+def play_lanzallamas(player_name: Player, target_name: Player):
+    if target_name is None:
+        raise InvalidCard("Lanzallamas requiere un objetivo")
+
+    player = get_player_by_name(player_name)
+    player_target = get_player_by_name(target_name)
+
+    if not is_adyacent(player, player_target):
+        raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
+    player_target.is_alive = False
+
+
 # -- Cards Functions -- #
 
 
@@ -163,52 +179,6 @@ def discard_card(player_name: str, card_id: int):
     card.player.remove(player)
     discard_deck.cards.add(card)
     card.deck.add(discard_deck)
-
-
-@db_session
-def _play_lanzallamas(player: Player, player_target: Player):
-    if player_target is None:
-        raise InvalidCard("Lanzallamas requiere un objetivo")
-    elif not is_adyacent(player, player_target):
-        raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
-    player_target.is_alive = False
-
-
-@db_session
-def _get_target_player(player_name: str, target_name: str) -> Player:
-    """
-    Returns the target player if the target is valid, else returns None
-    """
-    if target_name == "":
-        return None
-    elif not player_exists(target_name):
-        raise InvalidPlayer("Jugador no válido")
-    elif get_player_match(player_name) != get_player_match(target_name):
-        raise InvalidPlayer("Jugador no válido")
-    elif not is_player_alive(target_name):
-        raise InvalidPlayer("El jugador seleccionado está muerto")
-    return get_player_by_name(target_name)
-
-
-@db_session
-def play_card_from_hand(player_name: str, card_id: int, target_name: str = ""):
-    card = get_card_by_id(card_id)
-    player = get_player_by_name(player_name)
-    player_target = _get_target_player(player_name, target_name)
-
-    if not card in player.cards:
-        raise InvalidCard("No tienes esa carta en tu mano")
-    if card.card_name == "La Cosa":
-        raise InvalidCard("No puedes jugar la carta La Cosa")
-    elif card.type == CardType.CONTAGIO.value:
-        raise InvalidCard("No puedes jugar la carta ¡Infectado!")
-
-    if card.card_name == "Lanzallamas":
-        _play_lanzallamas(player, player_target)
-    else:
-        pass
-
-    discard_card(player_name, card_id)
 
 
 # --- Match Functions --- #
@@ -316,7 +286,7 @@ def db_get_players(match_name: str) -> list[str]:
 
 
 @db_session
-def _match_exists(match_name):
+def match_exists(match_name):
     return Match.exists(name=match_name)
 
 
@@ -340,7 +310,7 @@ def get_match_info(match_id):
 def db_create_match(
     match_name: str, player_name: str, min_players: int, max_players: int
 ):
-    if _match_exists(match_name):
+    if match_exists(match_name):
         raise NameNotAvailable("Nombre de partida ya utilizado")
 
     creator = get_player_by_name(player_name)
@@ -370,7 +340,7 @@ def is_in_match(player_id, match_id):
 
 @db_session
 def get_match_id(match_name):
-    if not _match_exists(match_name):
+    if not match_exists(match_name):
         raise MatchNotFound("Partida no encontrada")
     return Match.get(name=match_name).id
 
@@ -390,7 +360,7 @@ def db_get_player_match_id(player_name: str):
 
 @db_session
 def get_match_id_or_None(match_name):
-    if not _match_exists(match_name):
+    if not match_exists(match_name):
         return None
     return Match.get(name=match_name).id
 
@@ -431,7 +401,7 @@ def set_game_state(match_id: int, state: int):
 
 @db_session
 def get_match_id(match_name):
-    if not _match_exists(match_name):
+    if not match_exists(match_name):
         raise MatchNotFound("Partida no encontrada")
     return Match.get(name=match_name).id
 
@@ -531,6 +501,23 @@ def delete_match(match_name):
 
 
 # ------------ player functions ----------------
+
+
+@db_session
+def get_card_name(card_id: int) -> str:
+    return get_card_by_id(card_id).card_name
+
+
+@db_session
+def get_card_type(card_id: int) -> int:
+    return get_card_by_id(card_id).type
+
+
+@db_session
+def has_card(player_name, card_id):
+    player = Player.get(player_name=player_name)
+    card = Card.get(id=card_id)
+    return card in player.cards
 
 
 @db_session
@@ -670,14 +657,16 @@ def get_match_locations(match_id: int) -> list:
         )
     return locations
 
+
 @db_session
-def _get_match_locations(match: Match) -> list: 
+def _get_match_locations(match: Match) -> list:
     locations = []
     for player in match.players:
         locations.append(
             {"player_name": player.player_name, "location": player.position}
         )
     return locations
+
 
 @db_session
 def get_game_state_for(player_name: str) -> dict:
