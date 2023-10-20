@@ -12,7 +12,7 @@ manager = ConnectionManager()
 
 
 async def play_whisky(player_name: str, target_name: str):
-    if not player_name == target_name:
+    if not player_name == target_name and not target_name == "" and not target_name is None:
         raise InvalidCard("No puedes jugar Whisky a otro jugador")
 
     match_id = get_player_match(player_name)
@@ -30,11 +30,11 @@ async def play_whisky(player_name: str, target_name: str):
         await manager.send_personal_message("revelar cartas", msg, match_id, p)
 
 
-def check_target_player(player_name: str, target_name: str):
+def check_target_player(player_name: str, target_name: str = ""):
     """
     Checks whether target player is valid
     """
-    if not target_name == "":
+    if not target_name == "" and not target_name is None:
         if not player_exists(target_name):
             raise InvalidPlayer("Jugador no válido")
         if not is_player_alive(target_name):
@@ -46,7 +46,6 @@ def check_target_player(player_name: str, target_name: str):
 async def play_card_from_hand(player_name: str, card_id: int, target_name: str = ""):
     card_name = get_card_name(card_id)
     check_target_player(player_name, target_name)
-
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
     elif card_name == "La Cosa":
@@ -85,6 +84,12 @@ async def check_win(match_id: int):
 
 
 async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
+    print("------play_card DATA-------")
+    print(player_name)
+    print(card_id)
+    print(target)
+    print("------play_card DATA-------")
+
     """The player play a action card from his hand"""
     match_id = get_player_match(player_name)
     card_name = get_card_name(card_id)
@@ -105,8 +110,6 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
     if card_name == "Lanzallamas" and not is_player_alive(target):
         #    dead_player_name = target
         await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
-    # else:
-    #    dead_player_name = ""
 
     msg = {
         "posiciones": get_match_locations(match_id),
