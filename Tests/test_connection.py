@@ -1,6 +1,6 @@
-from Database.Database import *
-from app import *
+from app_auxiliars import * 
 from Tests.auxiliar_functions import *
+from request import RequestException
 import pytest
 
 
