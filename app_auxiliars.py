@@ -11,7 +11,9 @@ manager = ConnectionManager()
 # Ninguna función de este módulo debería requerir @db_session
 
 
-async def play_whisky(player_name: str):
+async def play_whisky(player_name: str, target_name: str):
+    if not player_name == target_name:
+        raise InvalidCard("No puedes jugar Whisky a otro jugador")
 
     match_id = get_player_match(player_name)
     receivers = get_match_players_names(match_id)
@@ -55,7 +57,7 @@ async def play_card_from_hand(player_name: str, card_id: int, target_name: str =
     if card_name == "Lanzallamas":
         play_lanzallamas(player_name, target_name)
     elif card_name == "Whisky":
-        await play_whisky(player_name)
+        await play_whisky(player_name, target_name)
     else:
         pass
 
@@ -118,6 +120,6 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
 
 def play_card_msg(player_name: str, card_id: int, target: str):
     alert = player_name + " jugó " + get_card_name(card_id)
-    if target:
+    if target and not target == player_name:
         alert += " a " + target
     return alert
