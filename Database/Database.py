@@ -191,6 +191,11 @@ def get_match_games(match_id):
 def get_match_players(match_id):
     return Match[match_id].players
 
+@db_session
+def get_match_players_names(match_id):
+    players = get_match_players(match_id)
+    return [p.player_name for p in players]
+
 
 @db_session
 def get_match_max_players(match_id):
@@ -646,6 +651,11 @@ def get_cards(player: Player) -> list:
             }
         )
     return deck_data
+
+@db_session
+def get_player_cards_names(player_name: str) -> list:
+    player = get_player_by_name(player_name)
+    return [c.card_name for c in player.cards]
 
 
 @db_session

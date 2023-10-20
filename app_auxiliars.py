@@ -10,36 +10,40 @@ manager = ConnectionManager()
 # y que no deben ir en Database.py ya que no son transacciones.
 # Ninguna función de este módulo debería requerir @db_session
 
-"""
-def play_whisky(player: Player, match: Match):
-    players = filter(lambda p: not p.id == player.id, match.players)
-    for p in players:
+
+async def play_whisky(player_name: str):
+
+    match_id = get_player_match(player_name)
+    receivers = get_match_players_names(match_id)
+    receivers.remove(player_name)
+    cards = get_player_cards_names(player_name)
+    cards.remove("Whisky")
+    for p in receivers:
         msg = {
-            "cards": [],
-            "cards_owner": p.player_name,
-            "trigger_player": p.player_name,
+            "cards": cards,
+            "cards_owner": player_name,
+            "trigger_player": player_name,
             "trigger_card": "Whisky",
         }
-        manager.broadcast("revelar cartas", msg, )
-"""
+        await manager.send_personal_message("revelar cartas", msg, match_id, p)
 
 
 def check_target_player(player_name: str, target_name: str):
     """
     Checks whether target player is valid
     """
-    if not player_exists(target_name):
-        raise InvalidPlayer("Jugador no válido")
-    elif get_player_match(player_name) != get_player_match(target_name):
-        raise InvalidPlayer("Jugador no válido")
-    elif not is_player_alive(target_name):
-        raise InvalidPlayer("El jugador seleccionado está muerto")
+    if not target_name == "":
+        if not player_exists(target_name):
+            raise InvalidPlayer("Jugador no válido")
+        if not is_player_alive(target_name):
+            raise InvalidPlayer("El jugador seleccionado está muerto")
+        if get_player_match(player_name) != get_player_match(target_name):
+            raise InvalidPlayer("Jugador no válido")
 
 
-def play_card_from_hand(player_name: str, card_id: int, target_name: str = ""):
-    
-    check_target_player(player_name, target_name)
+async def play_card_from_hand(player_name: str, card_id: int, target_name: str = ""):
     card_name = get_card_name(card_id)
+    check_target_player(player_name, target_name)
 
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
@@ -50,6 +54,8 @@ def play_card_from_hand(player_name: str, card_id: int, target_name: str = ""):
 
     if card_name == "Lanzallamas":
         play_lanzallamas(player_name, target_name)
+    elif card_name == "Whisky":
+        await play_whisky(player_name)
     else:
         pass
 
@@ -86,7 +92,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
     elif get_game_state(match_id) != GAME_STATE["PLAY_TURN"]:
         raise GameException("No puedes jugar carta en este momento")
 
-    play_card_from_hand(player_name, card_id, target)
+    await play_card_from_hand(player_name, card_id, target)
     set_next_turn(match_id)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
 
