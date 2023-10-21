@@ -27,19 +27,27 @@ class ConnectionManager:
         self.connections[match_id][player_name] = websocket
 
     def disconnect(self, player_name: str):
-        if (
-            player_exists(player_name)
-            and player_name
-            in self.connections[db_get_player_match_id(player_name)].keys()
-        ):
-            del self.connections[db_get_player_match_id(player_name)][player_name]
+        try:
+            if (
+                player_exists(player_name)
+                and player_name
+                in self.connections[db_get_player_match_id(player_name)].keys()
+            ):
+                del self.connections[db_get_player_match_id(player_name)][player_name]
+            else:
+                raise Exception()
+        except:
+            raise RequestException("Can't disconnect player")
 
     async def send_personal_message(
         self, message_type: str, message_content, match_id: int, player_name: str
     ):
         msg = self.__gen_msg(message_type, message_content)
 
-        await self.connections[match_id][player_name].send_json(msg)
+        try:
+            await self.connections[match_id][player_name].send_json(msg)
+        except:
+            print("Socket closed")
 
     async def send_message_to(
         self, message_type: str, message_content, player_name: str
@@ -52,9 +60,16 @@ class ConnectionManager:
 
     async def send_error_message(self, message_content, websocket: str):
         msg = self.__gen_msg("error", message_content)
-        await websocket.send_json(msg)
+        try:
+            await websocket.send_json(msg)
+        except:
+            print("Socket closed")
 
     async def broadcast(self, message_type: str, message_content, match_id: int):
         msg = self.__gen_msg(message_type, message_content)
+
         for socket in self.connections[match_id].values():
-            await socket.send_json(msg)
+            try:
+                await socket.send_json(msg)
+            except:
+                print("Socket closed")

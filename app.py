@@ -11,14 +11,11 @@ from fastapi import (
 )
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional
-from Database.Database import _match_exists
 from pydantic_models import *
-import json
-from connections import WebSocket, ConnectionManager
-from request import RequestException, parse_request, valid_exchange_response
+from connections import WebSocket
+from request import RequestException, parse_request
 from game_exception import GameException
-
+from app_auxiliars import *
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -52,8 +49,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-manager = ConnectionManager()
-
 
 # --- WebSockets --- #
 
@@ -71,6 +66,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
         if db_is_match_initiated(match_name):
             data = get_game_state_for(player_name)
+
+            # Estado inicial
             await manager.send_message_to("estado inicial", data, player_name)
 
             positions = get_players_positions(match_name)
@@ -87,14 +84,15 @@ async def websocket_endpoint(websocket: WebSocket):
             }
             await manager.broadcast("estado partida", state, match_id)
 
+            if db_is_match_initiated(match_name):
+                await manager.broadcast("muertes", get_dead_players(match_id), match_id)
+
             request = await websocket.receive_text()
             await handle_request(request, match_id, player_name, websocket)
     except WebSocketDisconnect:
         manager.disconnect(player_name)
     except Exception as e:
         print(str(e))
-    finally:
-        manager.disconnect(player_name)
 
 
 # Request handler
@@ -204,7 +202,7 @@ async def is_host(player_in_match: PlayerInMatch = Depends()):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
         )
-    elif not _match_exists(player_in_match.match_name):
+    elif not match_exists(player_in_match.match_name):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
         )
@@ -268,7 +266,7 @@ async def start_game(match_player: PlayerInMatch):
     """
     Start a match
     """
-    if not _match_exists(match_player.match_name):
+    if not match_exists(match_player.match_name):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
         )
@@ -315,7 +313,7 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
     """
     Left a lobby
     """
-    if not _match_exists(lobby_left.match_name):
+    if not match_exists(lobby_left.match_name):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
         )
