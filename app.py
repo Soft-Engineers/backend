@@ -374,7 +374,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
 
     play_card_from_hand(player_name, card_id, target)
     set_next_turn(match_id)
-    set_game_state(match_id, GAME_STATE["DRAW_CARD"])
+    set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     await manager.broadcast(
         "notificación jugada", play_card_msg(player_name, card_id, target), match_id

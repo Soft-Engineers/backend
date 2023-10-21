@@ -69,7 +69,6 @@ GAME_STATE = {
     "PLAY_TURN": 2,
     "FINISHED": 3,
     "EXCHANGE": 4,
-    "WAIT_EXCHANGE": 5,
 }
 
 # -- Cards Functions -- #
