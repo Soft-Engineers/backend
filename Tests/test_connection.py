@@ -1,4 +1,4 @@
-from app_auxiliars import * 
+from app_auxiliars import *
 from Tests.auxiliar_functions import *
 from request import RequestException
 import pytest

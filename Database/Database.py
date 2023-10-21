@@ -433,19 +433,6 @@ def get_match_id(match_name):
 
 
 @db_session
-def db_get_player_match_id(player_name: str):
-    if not player_exists(player_name):
-        raise PlayerNotFound("Player not found")
-
-    match = Player.get(player_name=player_name).match
-
-    if match is None:
-        raise PlayerNotInMatch("Player not in match")
-
-    return match.id
-
-
-@db_session
 def get_match_id_or_None(match_name):
     if not match_exists(match_name):
         return None
@@ -766,16 +753,6 @@ def get_cards(player: Player) -> list:
 def get_player_cards_names(player_name: str) -> list:
     player = get_player_by_name(player_name)
     return [c.card_name for c in player.cards]
-
-
-@db_session
-def get_match_locations(match_id: int) -> list:
-    locations = []
-    for player in Match[match_id].players:
-        locations.append(
-            {"player_name": player.player_name, "location": player.position}
-        )
-    return locations
 
 
 @db_session
