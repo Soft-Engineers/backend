@@ -64,7 +64,13 @@ db.generate_mapping(create_tables=True)
 # --- Constants --- #
 
 ROL = {"HUMAN": 1, "LA_COSA": 2, "INFECTED": 3}
-GAME_STATE = {"DRAW_CARD": 1, "PLAY_TURN": 2, "FINISHED": 3}
+GAME_STATE = {
+    "DRAW_CARD": 1,
+    "PLAY_TURN": 2,
+    "FINISHED": 3,
+    "EXCHANGE": 4,
+    "WAIT_EXCHANGE": 5,
+}
 
 # -- Cards Functions -- #
 
@@ -202,6 +208,54 @@ def play_card_from_hand(player_name: str, card_id: int, target_name: str = ""):
         pass
 
     discard_card(player_name, card_id)
+
+
+@db_session
+def is_valid_exchange(card_id: int, player_name: str, target: str) -> bool:
+    card = get_card_by_id(card_id)
+    player = get_player_by_name(player_name)
+    target_player = get_player_by_name(target)
+
+    if card not in player.cards or card.card_name == "La Cosa":
+        return False
+    elif is_contagio(card_id):
+        if player.rol == ROL["HUMAN"] or (
+            player.rol == ROL["INFECTED"] and target_player.rol == ROL["HUMAN"]
+        ):
+            return False
+        elif player.rol == ROL["LA_COSA"]:
+            return True
+    return True
+
+
+@db_session
+def is_defensa(card_id: int) -> bool:
+    card = get_card_by_id(card_id)
+    return card.type == CardType.DEFENSA.value
+
+
+@db_session
+def is_contagio(card_id: int) -> bool:
+    card = get_card_by_id(card_id)
+    return card.type == CardType.CONTAGIO.value
+
+
+@db_session
+def exchange_players_cards(player1: str, card1: int, player2: str, card2: int):
+    player1 = get_player_by_name(player1)
+    player2 = get_player_by_name(player2)
+    card1 = get_card_by_id(card1)
+    card2 = get_card_by_id(card2)
+
+    player1.cards.remove(card1)
+    player2.cards.remove(card2)
+    card1.player.remove(player1)
+    card2.player.remove(player2)
+
+    player1.cards.add(card2)
+    player2.cards.add(card1)
+    card1.player.add(player2)
+    card2.player.add(player1)
 
 
 # --- Match Functions --- #
@@ -430,13 +484,20 @@ def get_match_id(match_name):
 
 
 @db_session
-def get_player_by_position(match_id: int, position: int) -> Player:
+def get_next_player(match_id: int) -> str:
+    match = _get_match(match_id)
+    next_pos = get_next_player_position(match_id, match.current_player)
+    return _get_player_by_position(match_id, next_pos).player_name
+
+
+@db_session
+def _get_player_by_position(match_id: int, position: int) -> Player:
     match = _get_match(match_id)
     return match.players.filter(lambda p: p.position == position).first()
 
 
 @db_session
-def get_next_player(match_id: int, start: int) -> int:
+def get_next_player_position(match_id: int, start: int) -> int:
     match = _get_match(match_id)
     current_player = start
     total_players = match.players.count()
@@ -444,13 +505,13 @@ def get_next_player(match_id: int, start: int) -> int:
 
     while True:
         current_player = (current_player + direction) % total_players
-        player = get_player_by_position(match_id, current_player)
+        player = _get_player_by_position(match_id, current_player)
         if player.is_alive:
             return current_player
 
 
 @db_session
-def get_previous_player(match_id: int, start: int) -> int:
+def get_previous_player_position(match_id: int, start: int) -> int:
     match = _get_match(match_id)
     current_player = start
     total_players = match.players.count()
@@ -458,7 +519,7 @@ def get_previous_player(match_id: int, start: int) -> int:
 
     while True:
         current_player = (current_player - direction) % total_players
-        player = get_player_by_position(match_id, current_player)
+        player = _get_player_by_position(match_id, current_player)
         if player.is_alive:
             return current_player
 
@@ -466,7 +527,7 @@ def get_previous_player(match_id: int, start: int) -> int:
 @db_session
 def set_next_turn(match_id: int):
     match = _get_match(match_id)
-    match.current_player = get_next_player(match_id, match.current_player)
+    match.current_player = get_next_player_position(match_id, match.current_player)
 
 
 @db_session
@@ -624,12 +685,26 @@ def get_player_alive(player_id: int) -> bool:
 
 
 @db_session
+def is_lacosa(player_name: str) -> int:
+    player = get_player_by_name(player_name)
+    return player.rol == ROL["LA_COSA"]
+
+
+@db_session
+def infect_player(player_name: str):
+    player = get_player_by_id(player_name)
+    player.rol = ROL["INFECTED"]
+
+
+@db_session
 def is_adyacent(player: Player, player_target: Player) -> bool:
     is_next = (
-        get_next_player(player.match.id, player.position) == player_target.position
+        get_next_player_position(player.match.id, player.position)
+        == player_target.position
     )
     is_previous = (
-        get_previous_player(player.match.id, player.position) == player_target.position
+        get_previous_player_position(player.match.id, player.position)
+        == player_target.position
     )
     return is_next or is_previous
 

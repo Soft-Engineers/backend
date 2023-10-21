@@ -16,7 +16,7 @@ from Database.Database import _match_exists
 from pydantic_models import *
 import json
 from connections import WebSocket, ConnectionManager
-from request import RequestException, parse_request
+from request import RequestException, parse_request, valid_exchange_response
 from game_exception import GameException
 
 
@@ -81,6 +81,11 @@ async def websocket_endpoint(websocket: WebSocket):
             # TODO: Sacar cuando se haga todo por sockets
             data = db_get_players(match_name)
             await manager.broadcast("jugadores lobby", data, match_id)
+            state = {
+                "turn": get_player_in_turn(match_id),
+                "game_state": get_game_state(match_id),
+            }
+            await manager.broadcast("estado partida", state, match_id)
 
             request = await websocket.receive_text()
             await handle_request(request, match_id, player_name, websocket)
@@ -117,6 +122,13 @@ async def handle_request(request, match_id, player_name, websocket):
         elif msg_type == "leave match":
             # Llamar a la función leave_match
             pass
+
+        elif msg_type == "intercambiar carta":
+            target = content["target"]
+            await exchange_card(player_name, content["card_id"], target)
+            alert = player_name + " intercambió una carta con " + target
+            await manager.broadcast("notificación jugada", alert, match_id)
+
         else:
             pass
     except (RequestException, GameException, DatabaseError) as e:
@@ -315,8 +327,12 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
             detail="Jugador no está en la partida",
         )
     elif get_player_by_name(lobby_left.player_name).is_host:
-        data_msg = "La partida ha sido eliminada debido a que el host la ha abandonado",
-        await manager.broadcast("match_deleted", data_msg, get_match_id(lobby_left.match_name))
+        data_msg = (
+            "La partida ha sido eliminada debido a que el host la ha abandonado",
+        )
+        await manager.broadcast(
+            "match_deleted", data_msg, get_match_id(lobby_left.match_name)
+        )
         delete_match(lobby_left.match_name)
         response = {
             "detail": lobby_left.player_name
@@ -324,8 +340,10 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
         }
     else:
         left_match(lobby_left.player_name, lobby_left.match_name)
-        data_msg =  lobby_left.player_name + " ha abandonado el lobby",
-        await manager.broadcast("player_left",data_msg, get_match_id(lobby_left.match_name))
+        data_msg = (lobby_left.player_name + " ha abandonado el lobby",)
+        await manager.broadcast(
+            "player_left", data_msg, get_match_id(lobby_left.match_name)
+        )
         response = {"detail": lobby_left.player_name + " abandono el lobby"}
     return response
 
@@ -404,3 +422,50 @@ def play_card_msg(player_name: str, card_id: int, target: str):
     if target:
         alert += " a " + target
     return alert
+
+
+async def exchange_card(player_name: str, card: int, target: str):
+    match_id = get_player_match(player_name)
+    game_state = get_game_state(match_id)
+
+    if not is_player_turn(player_name):
+        raise GameException("No es tu turno")
+    elif game_state != GAME_STATE["EXCHANGE"]:
+        raise GameException("No puedes intercambiar cartas en este momento")
+    elif not is_valid_exchange(card, player_name, target):
+        raise GameException("No puedes intercambiar esta carta")
+
+    await manager.send_message_to("esperando intercambio", card, target)
+
+    while True:
+        response = await manager.connections[match_id][target].receive_text()
+        if valid_exchange_response(response) and is_valid_exchange(response):
+            break
+        else:
+            await manager.send_message_to(
+                "error", "No puedes intercambiar esta carta", target
+            )
+
+    card2 = response["message_content"]["card_id"]
+
+    if response["message_type"] == "jugar carta":
+        pass
+        # Aca irían todas las cartas que niegan intercambio
+        # play_card_from_hand(target, card2, player_name)
+    elif response["message_type"] == "intercambiar carta":
+        exchange_players_cards(player_name, card, target, card2)
+        check_infection(player_name, target, card, card2)
+
+    set_next_turn(match_id)
+    set_game_state(match_id, GAME_STATE["DRAW_CARD"])
+    await manager.send_message_to("cards", get_player_hand(player_name), player_name)
+    await manager.send_message_to("cards", get_player_hand(target), target)
+
+
+async def check_infection(player_name, target, card, card2):
+    if is_lacosa(player_name) and is_contagio(card):
+        infect_player(target)
+        await manager.send_message_to("infectado", "", target)
+    elif is_lacosa(target) == ROL["LA_COSA"] and is_contagio(card2):
+        infect_player(player_name)
+        await manager.send_message_to("infectado", "", player_name)
