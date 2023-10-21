@@ -11,14 +11,10 @@ from fastapi import (
 )
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional
-from Database.Database import _match_exists
 from pydantic_models import *
-import json
-from connections import WebSocket, ConnectionManager
 from request import RequestException, parse_request
 from game_exception import GameException
-
+from app_auxiliars import *
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -52,8 +48,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-manager = ConnectionManager()
-
 
 # --- WebSockets --- #
 
@@ -71,6 +65,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
         if db_is_match_initiated(match_name):
             data = get_game_state_for(player_name)
+
+            # Estado inicial
             await manager.send_message_to("estado inicial", data, player_name)
 
             positions = get_players_positions(match_name)
@@ -82,14 +78,15 @@ async def websocket_endpoint(websocket: WebSocket):
             data = db_get_players(match_name)
             await manager.broadcast("jugadores lobby", data, match_id)
 
+            if db_is_match_initiated(match_name):
+                await manager.broadcast("muertes", get_dead_players(match_id), match_id)
+
             request = await websocket.receive_text()
             await handle_request(request, match_id, player_name, websocket)
     except WebSocketDisconnect:
         manager.disconnect(player_name)
     except Exception as e:
         print(str(e))
-    finally:
-        manager.disconnect(player_name)
 
 
 # Request handler
@@ -186,7 +183,7 @@ async def is_host(player_in_match: PlayerInMatch = Depends()):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
         )
-    elif not _match_exists(player_in_match.match_name):
+    elif not match_exists(player_in_match.match_name):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
         )
@@ -250,7 +247,7 @@ async def start_game(match_player: PlayerInMatch):
     """
     Start a match
     """
-    if not _match_exists(match_player.match_name):
+    if not match_exists(match_player.match_name):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
         )
@@ -297,7 +294,7 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
     """
     Left a lobby
     """
-    if not _match_exists(lobby_left.match_name):
+    if not match_exists(lobby_left.match_name):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
         )
@@ -315,8 +312,12 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
             detail="Jugador no está en la partida",
         )
     elif get_player_by_name(lobby_left.player_name).is_host:
-        data_msg = "La partida ha sido eliminada debido a que el host la ha abandonado",
-        await manager.broadcast("match_deleted", data_msg, get_match_id(lobby_left.match_name))
+        data_msg = (
+            "La partida ha sido eliminada debido a que el host la ha abandonado",
+        )
+        await manager.broadcast(
+            "match_deleted", data_msg, get_match_id(lobby_left.match_name)
+        )
         delete_match(lobby_left.match_name)
         response = {
             "detail": lobby_left.player_name
@@ -324,8 +325,10 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
         }
     else:
         left_match(lobby_left.player_name, lobby_left.match_name)
-        data_msg =  lobby_left.player_name + " ha abandonado el lobby",
-        await manager.broadcast("player_left",data_msg, get_match_id(lobby_left.match_name))
+        data_msg = (lobby_left.player_name + " ha abandonado el lobby",)
+        await manager.broadcast(
+            "player_left", data_msg, get_match_id(lobby_left.match_name)
+        )
         response = {"detail": lobby_left.player_name + " abandono el lobby"}
     return response
 
@@ -342,65 +345,3 @@ def pickup_card(player_name: str):
 
     pick_random_card(player_name)
     set_game_state(match_id, GAME_STATE["PLAY_TURN"])
-
-
-async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
-    """The player play a action card from his hand"""
-    match_id = get_player_match(player_name)
-    card_name = get_card_name(card_id)
-
-    if not is_player_turn(player_name):
-        raise GameException("No es tu turno")
-    elif get_game_state(match_id) != GAME_STATE["PLAY_TURN"]:
-        raise GameException("No puedes jugar carta en este momento")
-
-    play_card_from_hand(player_name, card_id, target)
-    set_next_turn(match_id)
-    set_game_state(match_id, GAME_STATE["DRAW_CARD"])
-
-    await manager.broadcast(
-        "notificación jugada", play_card_msg(player_name, card_id, target), match_id
-    )
-
-    if card_name == "Lanzallamas" and not is_player_alive(target):
-        dead_player_name = target
-        await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
-    else:
-        dead_player_name = ""
-
-    msg = {
-        "posiciones": get_match_locations(match_id),
-        "target": target,
-        "turn": get_player_in_turn(match_id),
-        "dead_player_name": dead_player_name,
-        "game_state": "DRAW_CARD",
-    }
-
-    await manager.broadcast("datos jugada", msg, match_id)
-
-
-async def check_win(match_id: int):
-    reason = ""
-    win = check_win_condition(match_id)
-    if not win:
-        return None
-    set_game_state(match_id, GAME_STATE["FINISHED"])
-
-    if check_one_player_alive(match_id):
-        reason = "Solo queda un jugador vivo"
-    elif not is_la_cosa_alive(match_id):
-        reason = "La cosa ha muerto"
-
-    winners = get_winners(match_id)
-    content = {
-        "winners": winners,
-        "reason": reason,
-    }
-    await manager.broadcast("partida finalizada", content, match_id)
-
-
-def play_card_msg(player_name: str, card_id: int, target: str):
-    alert = player_name + " jugó " + get_card_name(card_id)
-    if target:
-        alert += " a " + target
-    return alert

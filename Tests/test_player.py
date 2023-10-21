@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from app import app
+from app import app, MIN_LEN_ALIAS
 from pydantic_models import *
 from Database.Database import *
 from base64 import b64encode
@@ -24,9 +24,13 @@ def test_player_with_existing_name():
 
 
 def test_player_with_invalid_name():
-    response = client.post("/player/create", data={"name_player": "t"})
-    assert response.status_code == 401
-    assert response.json() == {"detail": "Campo inválido"}
+    if MIN_LEN_ALIAS > 1:
+        response = client.post(
+            "/player/create",
+            data={"name_player": get_random_string_lower(MIN_LEN_ALIAS - 1)},
+        )
+        assert response.status_code == 401
+        assert response.json() == {"detail": "Campo inválido"}  
 
 
 def test_player_with_invalid_name2():
