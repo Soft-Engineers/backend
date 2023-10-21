@@ -42,10 +42,6 @@ class ConnectionManager:
     async def send_personal_message(
         self, message_type: str, message_content, match_id: int, player_name: str
     ):
-        #print("----------------------------------")
-        #print(message_type)
-        #print(message_content)
-        #print("----------------------------------")
         msg = self.__gen_msg(message_type, message_content)
 
         try:
@@ -63,10 +59,6 @@ class ConnectionManager:
         )
 
     async def send_error_message(self, message_content, websocket: str):
-        #print("----------------------------------")
-        #print("error")
-        #print(message_content)
-        #print("----------------------------------")
         msg = self.__gen_msg("error", message_content)
         try:
             await websocket.send_json(msg)
@@ -74,10 +66,6 @@ class ConnectionManager:
             print("Socket closed")
 
     async def broadcast(self, message_type: str, message_content, match_id: int):
-        #print("----------------------------------")
-        #print(message_type)
-        #print(message_content)
-        #print("----------------------------------")
         msg = self.__gen_msg(message_type, message_content)
 
         for socket in self.connections[match_id].values():

@@ -12,7 +12,11 @@ manager = ConnectionManager()
 
 
 async def play_whisky(player_name: str, target_name: str):
-    if not player_name == target_name and not target_name == "" and not target_name is None:
+    if (
+        not player_name == target_name
+        and not target_name == ""
+        and not target_name is None
+    ):
         raise InvalidCard("No puedes jugar Whisky a otro jugador")
 
     match_id = get_player_match(player_name)
@@ -84,12 +88,6 @@ async def check_win(match_id: int):
 
 
 async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
-    print("------play_card DATA-------")
-    print(player_name)
-    print(card_id)
-    print(target)
-    print("------play_card DATA-------")
-
     """The player play a action card from his hand"""
     match_id = get_player_match(player_name)
     card_name = get_card_name(card_id)
