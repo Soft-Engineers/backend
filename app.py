@@ -124,7 +124,7 @@ async def handle_request(request, match_id, player_name, websocket):
             pass
 
         elif msg_type == "intercambiar carta":
-            target = get_next_player(player_name)
+            target = get_next_player(match_id)
             await exchange_card(player_name, content["card_id"], target)
             alert = player_name + " intercambió una carta con " + target
             await manager.broadcast("notificación jugada", alert, match_id)
@@ -373,7 +373,6 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
         raise GameException("No puedes jugar carta en este momento")
 
     play_card_from_hand(player_name, card_id, target)
-    set_next_turn(match_id)
     set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     await manager.broadcast(
@@ -434,7 +433,7 @@ async def exchange_card(player_name: str, card: int, target: str):
     elif not is_valid_exchange(card, player_name, target):
         raise GameException("No puedes intercambiar esta carta")
 
-    await manager.send_message_to("esperando intercambio", card, target)
+    await manager.send_message_to("esperando intercambio", "", target)
 
     while True:
         response = await manager.connections[match_id][target].receive_text()
@@ -465,6 +464,6 @@ async def check_infection(player_name, target, card, card2):
     if is_lacosa(player_name) and is_contagio(card):
         infect_player(target)
         await manager.send_message_to("infectado", "", target)
-    elif is_lacosa(target) == ROL["LA_COSA"] and is_contagio(card2):
+    elif is_lacosa(target) and is_contagio(card2):
         infect_player(player_name)
         await manager.send_message_to("infectado", "", player_name)
