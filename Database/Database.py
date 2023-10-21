@@ -28,6 +28,8 @@ class Match(db.Entity):
     current_player = Required(int, default=0)
     deck = Set("Deck")
     game_state = Optional(int, default=0)
+    exchange_card = Optional(int, default=None, nullable=True)
+    exchange_player = Optional(str, default=None, nullable=True)
 
 
 class Player(db.Entity):
@@ -69,6 +71,7 @@ GAME_STATE = {
     "PLAY_TURN": 2,
     "FINISHED": 3,
     "EXCHANGE": 4,
+    "WAIT_EXCHANGE": 5,
 }
 
 # -- Cards Functions -- #
@@ -256,6 +259,28 @@ def exchange_players_cards(player1: str, card1: int, player2: str, card2: int):
     card1.player.add(player2)
     card2.player.add(player1)
 
+
+@db_session
+def get_exchange_player(match_id: int) -> str:
+    match = _get_match(match_id)
+    return match.exchange_player
+
+@db_session
+def get_exchange_card(match_id: int) -> int:
+    match = _get_match(match_id)
+    return match.exchange_card
+
+@db_session
+def save_exchange(player_name: str, card_id: int):
+    match = get_player_by_name(player_name).match
+    match.exchange_player = player_name
+    match.exchange_card = card_id
+
+@db_session
+def clear_exchange(match_id: int):
+    match = _get_match(match_id)
+    match.exchange_player = None
+    match.exchange_card = None
 
 # --- Match Functions --- #
 @db_session
@@ -463,6 +488,10 @@ def started_match(match_name):
 
     return match
 
+@db_session
+def set_match_turn(match_id: int, player_name: str):
+    match = _get_match(match_id)
+    match.current_player = get_player_position(player_name)
 
 @db_session
 def get_game_state(match_id: int) -> int:
@@ -633,9 +662,10 @@ def is_player_turn(player_name: str) -> bool:
 
 
 @db_session
-def get_player_position(player_id: int) -> int:
-    player = get_player_by_id(player_id)
+def get_player_position(player_name: str) -> int:
+    player = get_player_by_name(player_name)
     return player.position
+
 
 
 @db_session
@@ -763,6 +793,7 @@ def get_players_positions(match_name) -> list:
             {"player_name": player.player_name, "position": player.position}
         )
     return positions
+
 
 
 # --------------- Deck Functions -----------------

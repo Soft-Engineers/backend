@@ -124,10 +124,17 @@ async def handle_request(request, match_id, player_name, websocket):
             pass
 
         elif msg_type == "intercambiar carta":
-            target = get_next_player(match_id)
-            await exchange_card(player_name, content["card_id"], target)
-            alert = player_name + " intercambió una carta con " + target
-            await manager.broadcast("notificación jugada", alert, match_id)
+            if get_game_state(match_id) == GAME_STATE["EXCHANGE"]:
+                print("Intercambio de cartas")
+                target = get_next_player(match_id)
+                exchange_card(player_name, content["card_id"], target)
+            elif get_game_state(match_id) == GAME_STATE["WAIT_EXCHANGE"]:
+                print("Esperando intercambio de cartas")
+                target = get_player_in_turn(match_id)
+                await wait_exchange_card(target, content["card_id"])
+
+            else:
+                raise GameException("No puedes intercambiar cartas en este momento")
 
         else:
             pass
@@ -390,7 +397,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
         "target": target,
         "turn": get_player_in_turn(match_id),
         "dead_player_name": dead_player_name,
-        "game_state": "DRAW_CARD",
+        #"game_state": "DRAW_CARD",
     }
 
     await manager.broadcast("datos jugada", msg, match_id)
@@ -423,44 +430,56 @@ def play_card_msg(player_name: str, card_id: int, target: str):
     return alert
 
 
-async def exchange_card(player_name: str, card: int, target: str):
+def exchange_card(player_name: str, card: int, target: str):
     match_id = get_player_match(player_name)
+    game_state = get_game_state(match_id)
 
     if not is_player_turn(player_name):
         raise GameException("No es tu turno")
-    elif get_game_state(match_id) != GAME_STATE["EXCHANGE"]:
+    elif game_state != GAME_STATE["EXCHANGE"]:
         raise GameException("No puedes intercambiar cartas en este momento")
     elif not is_valid_exchange(card, player_name, target):
         raise GameException("No puedes intercambiar esta carta")
 
-    await manager.send_message_to("esperando intercambio", "", target)
+    # Guardar p1, c1 en la base de datos
+    save_exchange(player_name, card)
+    # Cambiar de turno a target
+    set_match_turn(match_id, target)
+    # cambiar estado a Wait_exchange
+    set_game_state(match_id, GAME_STATE["WAIT_EXCHANGE"])
+    print(player_name+ "quiere cambiar" + get_card_name(card) + "con" + target)
 
-    while True:
-        response = await manager.connections[match_id][target].receive_text()
-        if valid_exchange_response(response) and is_valid_exchange(response):
-            break
-        else:
-            await manager.send_message_to(
-                "error", "No puedes intercambiar esta carta", target
-            )
 
-    card2 = response["message_content"]["card_id"]
+async def wait_exchange_card(target: str, card2: int):
+    match_id = get_player_match(target)
+    game_state = get_game_state(match_id)
+    # Buscar p1 y c1 en la bd
+    player1 = get_exchange_player(match_id)
+    card1 = get_exchange_card(match_id)
 
-    if response["message_type"] == "jugar carta":
-        pass
-        # Aca irían todas las cartas que niegan intercambio
-        # play_card_from_hand(target, card2, player_name)
-    elif response["message_type"] == "intercambiar carta":
-        exchange_players_cards(player_name, card, target, card2)
-        check_infection(player_name, target, card, card2)
+    if not is_player_turn(target):
+        raise GameException("No es tu turno")
+    elif game_state != GAME_STATE["WAIT_EXCHANGE"]:
+        raise GameException("No puedes intercambiar cartas en este momento")
+    elif not is_valid_exchange(card2, target, player1):
+        raise GameException("No puedes intercambiar esta carta")
 
+    # Intercambiar cartas
+    exchange_players_cards(player1, card1, target, card2)
+    await check_infection(player1, target, card1, card2)
+    clear_exchange(match_id)
+    # Volver el turno a p1
+    set_match_turn(match_id, player1)
     set_next_turn(match_id)
+    # Cambiar estado a DRAW_CARD 
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
-    await manager.send_message_to("cards", get_player_hand(player_name), player_name)
+    alert = player1 + " intercambió una carta con " + target
+    await manager.broadcast("notificación jugada", alert, match_id)
+    await manager.send_message_to("cards", get_player_hand(player1), player1)
     await manager.send_message_to("cards", get_player_hand(target), target)
 
 
-async def check_infection(player_name, target, card, card2):
+async def check_infection(player_name: str, target: str, card: int, card2:int ):
     if is_lacosa(player_name) and is_contagio(card):
         infect_player(target)
         await manager.send_message_to("infectado", "", target)
