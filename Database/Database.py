@@ -721,7 +721,7 @@ def is_lacosa(player_name: str) -> int:
 
 @db_session
 def infect_player(player_name: str):
-    player = get_player_by_id(player_name)
+    player = get_player_by_name(player_name)
     player.rol = ROL["INFECTADO"]
 
 
