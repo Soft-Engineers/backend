@@ -124,7 +124,7 @@ async def handle_request(request, match_id, player_name, websocket):
             pass
 
         elif msg_type == "intercambiar carta":
-            target = content["target"]
+            target = get_next_player(player_name)
             await exchange_card(player_name, content["card_id"], target)
             alert = player_name + " intercambió una carta con " + target
             await manager.broadcast("notificación jugada", alert, match_id)
@@ -426,11 +426,10 @@ def play_card_msg(player_name: str, card_id: int, target: str):
 
 async def exchange_card(player_name: str, card: int, target: str):
     match_id = get_player_match(player_name)
-    game_state = get_game_state(match_id)
 
     if not is_player_turn(player_name):
         raise GameException("No es tu turno")
-    elif game_state != GAME_STATE["EXCHANGE"]:
+    elif get_game_state(match_id) != GAME_STATE["EXCHANGE"]:
         raise GameException("No puedes intercambiar cartas en este momento")
     elif not is_valid_exchange(card, player_name, target):
         raise GameException("No puedes intercambiar esta carta")
