@@ -216,16 +216,15 @@ def play_card_from_hand(player_name: str, card_id: int, target_name: str = ""):
 def is_valid_exchange(card_id: int, player_name: str, target: str) -> bool:
     card = get_card_by_id(card_id)
     player = get_player_by_name(player_name)
-    target_player = get_player_by_name(target)
 
     if card not in player.cards or card.card_name == "La Cosa":
         return False
     elif is_contagio(card_id):
-        if player.rol == ROL["HUMANO"] or (
-            player.rol == ROL["INFECTADO"] and target_player.rol == ROL["HUMANO"]
-        ):
+        if is_human(player_name) or (is_infected(player_name) and is_human(target)):
             return False
-        elif player.rol == ROL["LA_COSA"]:
+        if is_infected(player_name) and is_infected(target):
+            return False
+        elif is_lacosa(player_name):
             return True
     return True
 
@@ -265,10 +264,12 @@ def get_exchange_player(match_id: int) -> str:
     match = _get_match(match_id)
     return match.exchange_player
 
+
 @db_session
 def get_exchange_card(match_id: int) -> int:
     match = _get_match(match_id)
     return match.exchange_card
+
 
 @db_session
 def save_exchange(player_name: str, card_id: int):
@@ -276,11 +277,13 @@ def save_exchange(player_name: str, card_id: int):
     match.exchange_player = player_name
     match.exchange_card = card_id
 
+
 @db_session
 def clear_exchange(match_id: int):
     match = _get_match(match_id)
     match.exchange_player = None
     match.exchange_card = None
+
 
 # --- Match Functions --- #
 @db_session
@@ -488,10 +491,12 @@ def started_match(match_name):
 
     return match
 
+
 @db_session
 def set_match_turn(match_id: int, player_name: str):
     match = _get_match(match_id)
     match.current_player = get_player_position(player_name)
+
 
 @db_session
 def get_game_state(match_id: int) -> int:
@@ -667,7 +672,6 @@ def get_player_position(player_name: str) -> int:
     return player.position
 
 
-
 @db_session
 def is_deck_empty(match_id: int) -> bool:
     deck = _get_deck(match_id)
@@ -714,7 +718,7 @@ def get_player_alive(player_id: int) -> bool:
 
 
 @db_session
-def is_lacosa(player_name: str) -> int:
+def is_lacosa(player_name: str) -> bool:
     player = get_player_by_name(player_name)
     return player.rol == ROL["LA_COSA"]
 
@@ -794,6 +798,17 @@ def get_players_positions(match_name) -> list:
         )
     return positions
 
+
+@db_session
+def is_infected(player_name: str) -> bool:
+    player = get_player_by_name(player_name)
+    return player.rol == ROL["INFECTADO"]
+
+
+@db_session
+def is_human(player_name: str) -> bool:
+    player = get_player_by_name(player_name)
+    return player.rol == ROL["HUMANO"]
 
 
 # --------------- Deck Functions -----------------
