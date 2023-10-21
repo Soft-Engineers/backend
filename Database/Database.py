@@ -65,7 +65,7 @@ db.generate_mapping(create_tables=True)
 
 # --- Constants --- #
 
-ROL = {"HUMAN": 1, "LA_COSA": 2, "INFECTED": 3}
+ROL = {"HUMANO": 1, "LA_COSA": 2, "INFECTADO": 3}
 GAME_STATE = {
     "DRAW_CARD": 1,
     "PLAY_TURN": 2,
@@ -221,8 +221,8 @@ def is_valid_exchange(card_id: int, player_name: str, target: str) -> bool:
     if card not in player.cards or card.card_name == "La Cosa":
         return False
     elif is_contagio(card_id):
-        if player.rol == ROL["HUMAN"] or (
-            player.rol == ROL["INFECTED"] and target_player.rol == ROL["HUMAN"]
+        if player.rol == ROL["HUMANO"] or (
+            player.rol == ROL["INFECTADO"] and target_player.rol == ROL["HUMANO"]
         ):
             return False
         elif player.rol == ROL["LA_COSA"]:
@@ -722,7 +722,7 @@ def is_lacosa(player_name: str) -> int:
 @db_session
 def infect_player(player_name: str):
     player = get_player_by_id(player_name)
-    player.rol = ROL["INFECTED"]
+    player.rol = ROL["INFECTADO"]
 
 
 @db_session
