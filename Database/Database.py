@@ -77,7 +77,7 @@ def _get_role_name(rol: int) -> str:
 
 
 @db_session
-def play_lanzallamas(player_name: Player, target_name: Player):
+def play_lanzallamas(player_name: str, target_name: str):
     if target_name is None:
         raise InvalidCard("Lanzallamas requiere un objetivo")
 
