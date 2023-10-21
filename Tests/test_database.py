@@ -368,7 +368,7 @@ class test_get_game_state_for(TestCase):
         mock_player.match.current_player = 0
         mock_player.cards = set()
         mock_player.position = 0
-        mock_player.rol = ROL["HUMAN"]
+        mock_player.rol = ROL["HUMANO"]
 
         for i in range(2, 5):
             mock_player_i = Mock()
@@ -408,7 +408,7 @@ class test_get_game_state_for(TestCase):
                     {"player_name": "test_player4", "location": 3},
                 ],
                 "current_turn": "test_player1",
-                "role": "HUMAN",
+                "role": "HUMANO",
             },
         )
 
