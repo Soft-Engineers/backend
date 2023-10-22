@@ -668,6 +668,8 @@ def is_deck_empty(match_id: int) -> bool:
 
 @db_session
 def get_player_match(player_name: str) -> int:
+    if not player_exists(player_name):
+        raise PlayerNotFound("Jugador no encontrado")
     player = get_player_by_name(player_name)
     if not player.match:
         raise PlayerNotInMatch("El jugador no está en partida")
@@ -819,6 +821,9 @@ def get_dead_players(match_id: int) -> list:
 
 # --------------- Deck Functions -----------------
 
+@db_session
+def card_exists(card_id: int) -> bool:
+    return Card.exists(id=card_id)
 
 @db_session
 def _get_discard_deck(match_id: int) -> Deck:

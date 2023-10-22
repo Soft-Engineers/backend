@@ -247,6 +247,12 @@ def defended_card_msg(player_name: str, card_id: int):
 
 
 async def discard_player_card(player_name: str, card_id: int):
+
+    if card_id is None or card_id == "":
+        raise InvalidCard("Debes seleccionar una carta para descartar")
+    if not card_exists(card_id):
+        raise InvalidCard("No existe esa carta")
+
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
     card_name = get_card_name(card_id)
