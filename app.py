@@ -11,14 +11,11 @@ from fastapi import (
 )
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional
-from Database.Database import _match_exists
 from pydantic_models import *
-import json
-from connections import WebSocket, ConnectionManager
+from connections import WebSocket
 from request import RequestException, parse_request
 from game_exception import GameException
-
+from app_auxiliars import *
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -52,8 +49,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-manager = ConnectionManager()
-
 
 # --- WebSockets --- #
 
@@ -70,25 +65,27 @@ async def websocket_endpoint(websocket: WebSocket):
         # Si la partida esta iniciada
 
         if db_is_match_initiated(match_name):
-            data = {
-                "message_type": "estado inicial",
-                "message_content": get_game_state_for(player_name),
-            }
-            await manager.send_message_to(data, player_name)
-            data_positions = {
-                "message_type": "posiciones",
-                "message_content": get_players_positions(match_name),
-            }
-            await manager.broadcast(data_positions, match_id)
+            data = get_game_state_for(player_name)
+
+            # Estado inicial
+            await manager.send_message_to("estado inicial", data, player_name)
+
+            positions = get_players_positions(match_name)
+            await manager.broadcast("posiciones", positions, match_id)
 
         while True:
             # Mandar la info de la partida a todos los jugadores
             # TODO: Sacar cuando se haga todo por sockets
-            data = {
-                "message_type": "jugadores lobby",
-                "message_content": db_get_players(match_name),
+            data = db_get_players(match_name)
+            await manager.broadcast("jugadores lobby", data, match_id)
+            state = {
+                "turn": get_player_in_turn(match_id),
+                "game_state": get_game_state(match_id),
             }
-            await manager.broadcast(data, match_id)
+            await manager.broadcast("estado partida", state, match_id)
+
+            if db_is_match_initiated(match_name):
+                await manager.broadcast("muertes", get_dead_players(match_id), match_id)
 
             request = await websocket.receive_text()
             await handle_request(request, match_id, player_name, websocket)
@@ -96,8 +93,6 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(player_name)
     except Exception as e:
         print(str(e))
-    finally:
-        manager.disconnect(player_name)
 
 
 # Request handler
@@ -110,42 +105,39 @@ async def handle_request(request, match_id, player_name, websocket):
             pass
 
         elif msg_type == "robar carta":
-            player_id = get_player_id(player_name)
-            await pickup_card(player_name)
-            card_msg = {
-                "message_type": "cards",
-                "message_content": get_player_hand(player_id),
-            }
-            await manager.send_personal_message(card_msg, match_id, player_name)
+            pickup_card(player_name)
+            await manager.send_message_to(
+                "cards", get_player_hand(player_name), player_name
+            )
 
         elif msg_type == "jugar carta":
-            msg = await play_card(player_name, content["card_id"], content["target"])
-            alert = play_card_msg(player_name, content["card_id"], content["target"])
-            await manager.broadcast(alert, match_id)
-            await manager.broadcast(msg, match_id)
-            win_msg = await check_win(match_id)
-            if win_msg:
-                await manager.broadcast(win_msg, match_id)
+            await play_card(player_name, content["card_id"], content["target"])
+            await manager.send_message_to(
+                "cards", get_player_hand(player_name), player_name
+            )
+            await check_win(match_id)
 
         elif msg_type == "leave match":
             # Llamar a la función leave_match
             pass
+
+        elif msg_type == "intercambiar carta":
+            if get_game_state(match_id) == GAME_STATE["EXCHANGE"]:
+                target = get_next_player(match_id)
+                exchange_card(player_name, content["card_id"], target)
+
+                alert = "Esperando intercambio entre " + player_name + " y " + target
+                await manager.broadcast("notificacion espera", alert, match_id)
+            elif get_game_state(match_id) == GAME_STATE["WAIT_EXCHANGE"]:
+                target = get_player_in_turn(match_id)
+                await wait_exchange_card(target, content["card_id"])
+            else:
+                raise GameException("No puedes intercambiar cartas en este momento")
+
         else:
             pass
-    except RequestException as e:
+    except (RequestException, GameException, DatabaseError) as e:
         await manager.send_error_message(str(e), websocket)
-    except GameException as e:
-        await manager.send_error_message(str(e), websocket)
-
-
-def play_card_msg(player_name: str, card_id: int, target: str):
-    alert = {
-        "message_type": "notificación jugada",
-        "message_content": player_name + " jugó " + get_card_name(card_id),
-    }
-    if target:
-        alert["message_content"] += " a " + target
-    return alert
 
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
@@ -211,7 +203,7 @@ async def is_host(player_in_match: PlayerInMatch = Depends()):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
         )
-    elif not _match_exists(player_in_match.match_name):
+    elif not match_exists(player_in_match.match_name):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
         )
@@ -275,7 +267,7 @@ async def start_game(match_player: PlayerInMatch):
     """
     Start a match
     """
-    if not _match_exists(match_player.match_name):
+    if not match_exists(match_player.match_name):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
         )
@@ -310,14 +302,11 @@ async def start_game(match_player: PlayerInMatch):
     else:
         started_match(match_player.match_name)
         set_game_state(get_match_id(match_player.match_name), GAME_STATE["DRAW_CARD"])
-        start_alert = {
-            "message_type": "start_match",
-            "message_content": "LA PARTIDA COMIENZA!!!",
-        }
-        await manager.broadcast(start_alert, get_match_id(match_player.match_name))
-        return {
-            "detail": "Partida inicializada",
-        }
+        start_alert = ("LA PARTIDA COMIENZA!!!",)
+        await manager.broadcast(
+            "start_match", start_alert, get_match_id(match_player.match_name)
+        )
+        return {"detail": "Partida inicializada"}
 
 
 @app.put("/match/leave", tags=["Matches"], status_code=status.HTTP_200_OK)
@@ -356,127 +345,10 @@ async def left_lobby(lobby_left: PlayerInMatch):
     else:
         data_msg = {
             "message_type": "player_left",
-            "message_content": lobby_left.player_name + " abandono el lobby",
+            "message_content": db_get_players(lobby_left.match_name),
         }
         await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
         left_match(lobby_left.player_name, lobby_left.match_name)
-        response = {"detail": lobby_left.player_name + " abandono el lobby"}
+
+        response = {"players": lobby_left.player_name + " abandono el lobby"}
     return response
-
-
-async def pickup_card(player_name: str):
-    """
-    The player get a random card from the deck and add it to his hand
-    if the deck is empty, form a new deck from the discard deck
-    """
-    try:
-        player_id = get_player_id(player_name)
-        match_id = get_player_match(player_id)
-    except DatabaseError as e:
-        raise GameException(str(e))
-    if not is_player_turn(player_id):
-        raise GameException("No es tu turno")
-    elif get_game_state(match_id) != GAME_STATE["DRAW_CARD"]:
-        raise GameException("No puedes robar carta en este momento")
-
-    try:
-        card = pick_random_card(player_id)
-    except DatabaseError as e:
-        raise GameException(str(e))
-
-    set_game_state(match_id, GAME_STATE["PLAY_TURN"])
-    # card_msg = {
-    #    "message_type": "cards",
-    #    "message_content": get_player_hand(player_id),
-    # }
-    # await manager.send_personal_message(card_msg, match_id, player_name)
-    return {"card_id": card.id, "name": card.card_name, "type": card.type}
-
-
-async def play_card(player_name: str, card_id: int, target: Optional[str] = None):
-    """
-    The player play a action card from his hand
-    """
-    try:
-        player_id = get_player_id(player_name)
-        match_id = get_player_match(player_id)
-        card_name = get_card_name(card_id)
-    except DatabaseError as e:
-        raise GameException(str(e))
-    if not is_player_turn(player_id):
-        raise GameException("No es tu turno")
-    elif get_game_state(match_id) != GAME_STATE["PLAY_TURN"]:
-        raise GameException("No puedes jugar carta en este momento")
-
-    try:
-        play_card_from_hand(player_name, card_id, target)
-        set_next_turn(match_id)
-        set_game_state(match_id, GAME_STATE["DRAW_CARD"])
-    except DatabaseError as e:
-        raise GameException(str(e))
-
-    # De aca para abajo habría que cambiar
-    if card_name == "Lanzallamas":
-        dead_player_name = target
-        await manager.broadcast(
-            {
-                "message_type": "notificación muerte",
-                "message_content": target + " ha muerto",
-            },
-            match_id,
-        )
-    else:
-        dead_player_name = ""
-
-    msg = {
-        "message_type": "datos jugada",
-        "message_content": {
-            # "cards": get_player_hand(player_id),
-            "posiciones": get_match_locations(match_id),
-            "target": target,
-            "turn": get_player_in_turn(match_id),
-            "dead_player_name": dead_player_name,
-            "game_state": "DRAW_CARD",
-        },
-    }
-    card_msg = {
-        "message_type": "cards",
-        "message_content": get_player_hand(player_id),
-    }
-    alert = {
-        "message_type": "notificación turno",
-        "message_content": " Es el turno de " + get_player_in_turn(match_id),
-    }
-
-    await manager.send_personal_message(card_msg, match_id, player_name)
-    await manager.broadcast(alert, match_id)
-    return msg
-
-
-async def check_win(match_id: int):
-    """
-    Check if a player has won the game
-    """
-    reason = ""
-    win = check_win_condition(match_id)
-    if not win:
-        return None
-    set_game_state(match_id, GAME_STATE["FINISHED"])
-
-    if check_one_player_alive(match_id):
-        reason = "Solo queda un jugador vivo"
-    elif not is_la_cosa_alive(match_id):
-        reason = "La cosa ha muerto"
-
-    winners = get_winners(match_id)
-    if win:
-        msg = {
-            "message_type": "partida finalizada",
-            "message_content": {
-                "winners": winners,
-                "reason": reason,
-            },
-        }
-        return msg
-    else:
-        return None
