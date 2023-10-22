@@ -137,6 +137,8 @@ async def persist_played_card_data(
 """
 TODO
 Lanzar excepción si se juega carta de defensa en PLAY_TURN
+Resolver omitir defensa
+Resolver enviar muerte
 """
 async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
     match_id = get_player_match(player_name)
@@ -214,6 +216,37 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
 
     else:
         raise GameException("No puedes jugar carta en este momento")
+
+async def skip_defense(player_name: str):
+
+    match_id = get_player_match(player_name)
+    game_state = get_game_state(match_id)
+    
+    if not game_state == GAME_STATE["WAIT_DEFENSE"]:
+        raise GameException("No puedes saltear defensa en este momento")
+    if not is_player_turn(player_name):
+        raise GameException("No puedes saltear defensa ahora")
+
+    played_card_name = get_card_name(get_played_card(match_id))
+    target = get_target_player(match_id)
+    
+    execute_card(match_id)
+    
+    assign_next_turn_to(match_id, get_turn_player(match_id))
+    set_next_turn(match_id)
+    set_game_state(match_id, GAME_STATE["EXCHANGE"])
+
+    if played_card_name == "Lanzallamas":
+        await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
+    
+    msg = {
+            "posiciones": get_match_locations(match_id),
+            "target": "",
+            "turn": get_player_in_turn(match_id),
+            "game_state": get_state_name(get_game_state(match_id)),
+        }
+
+    await manager.broadcast("datos jugada", msg, match_id)
 
 """
 async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
