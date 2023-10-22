@@ -1,4 +1,3 @@
-from app import *
 import json
 
 

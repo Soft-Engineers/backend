@@ -47,3 +47,7 @@ class CardNotFound(DatabaseError):
 
 class MatchNotStarted(DatabaseError):
     pass
+
+
+class InvalidPlayer(DatabaseError):
+    pass

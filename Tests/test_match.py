@@ -118,11 +118,10 @@ def test_player_create_match_invalid_player():
 
     response = client.post("/match/create", json=body)
 
-    print(response.json())
     _assert_invalid(response, "Jugador no encontrado")
 
 
-def test_player_create_match_invalid_bounds():
+def test_player_create_match_invalid_bounds_min():
     nameGame = generate_unique_testing_name()
     namePlayer = generate_unique_testing_name()
 
@@ -133,6 +132,42 @@ def test_player_create_match_invalid_bounds():
         "player_name": namePlayer,
         "min_players": 3,
         "max_players": 12,
+    }
+
+    response = client.post("/match/create", json=body)
+
+    _assert_invalid(response, "Cantidad inválida de jugadores")
+
+
+def test_player_create_match_invalid_bounds_max():
+    nameGame = generate_unique_testing_name()
+    namePlayer = generate_unique_testing_name()
+
+    _create_player(namePlayer)
+
+    body = {
+        "match_name": nameGame,
+        "player_name": namePlayer,
+        "min_players": 4,
+        "max_players": 13,
+    }
+
+    response = client.post("/match/create", json=body)
+
+    _assert_invalid(response, "Cantidad inválida de jugadores")
+
+
+def test_player_create_match_invalid_bounds_inconsistent():
+    nameGame = generate_unique_testing_name()
+    namePlayer = generate_unique_testing_name()
+
+    _create_player(namePlayer)
+
+    body = {
+        "match_name": nameGame,
+        "player_name": namePlayer,
+        "min_players": 5,
+        "max_players": 4,
     }
 
     response = client.post("/match/create", json=body)
