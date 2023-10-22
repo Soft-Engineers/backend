@@ -158,7 +158,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
         if not requires_target(card_id):
             await execute_card(match_id=match_id)
             set_next_turn(match_id)
-            set_game_state(match_id, GAME_STATE["EXCHANGE"])
+            set_game_state(match_id, GAME_STATE["DRAW_CARD"])    # Cambiar a "EXCHANGE"
         else:
             assign_next_turn_to(match_id, target)
             set_game_state(match_id, GAME_STATE["WAIT_DEFENSE"])
@@ -206,7 +206,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
 
         assign_next_turn_to(match_id, turn_player)
         set_next_turn(match_id)
-        set_game_state(match_id, GAME_STATE["EXCHANGE"])
+        set_game_state(match_id, GAME_STATE["DRAW_CARD"])  # Cambiar a "EXCHANGE"
 
         await manager.broadcast(
             "notificación jugada", defended_card_msg(player_name, card_id), match_id
@@ -242,7 +242,7 @@ async def skip_defense(player_name: str):
 
     assign_next_turn_to(match_id, turn_player)
     set_next_turn(match_id)
-    set_game_state(match_id, GAME_STATE["EXCHANGE"])
+    set_game_state(match_id, GAME_STATE["DRAW_CARD"]) # Cambiar a "EXCHANGE"
 
     if played_card_name == "Lanzallamas":
         await manager.broadcast(
