@@ -11,6 +11,8 @@ from fastapi import (
 )
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
+
+from Database.Database import _match_exists
 from pydantic_models import *
 from connections import WebSocket
 from request import RequestException, parse_request
@@ -203,7 +205,7 @@ async def is_host(player_in_match: PlayerInMatch = Depends()):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
         )
-    elif not check_match_existence(player_in_match.match_name):
+    elif not match_exists(player_in_match.match_name):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
         )
@@ -267,7 +269,7 @@ async def start_game(match_player: PlayerInMatch):
     """
     Start a match
     """
-    if not match_exists(match_player.match_name):
+    if not _match_exists(match_player.match_name):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
         )
@@ -314,7 +316,7 @@ async def left_lobby(lobby_left: PlayerInMatch):
     """
     Left a lobby
     """
-    if not check_match_existence(lobby_left.match_name):
+    if not _match_exists(lobby_left.match_name):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
         )
