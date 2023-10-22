@@ -205,7 +205,7 @@ async def is_host(player_in_match: PlayerInMatch = Depends()):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
         )
-    elif not match_exists(player_in_match.match_name):
+    elif not _match_exists(player_in_match.match_name):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
         )
