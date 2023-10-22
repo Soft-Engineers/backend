@@ -9,4 +9,5 @@ Database/__pycache__
 Tests/__pycache__
 .coverage
 .vscode/settings.json
+*.json
 
