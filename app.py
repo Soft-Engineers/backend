@@ -77,6 +77,12 @@ async def websocket_endpoint(websocket: WebSocket):
             # TODO: Sacar cuando se haga todo por sockets
             data = db_get_players(match_name)
             await manager.broadcast("jugadores lobby", data, match_id)
+            
+            state = {
+                "turn": get_player_in_turn(match_id),
+                "game_state": get_game_state(match_id),
+            }
+            await manager.broadcast("estado partida", state, match_id)
 
             if db_is_match_initiated(match_name):
                 await manager.broadcast("muertes", get_dead_players(match_id), match_id)
