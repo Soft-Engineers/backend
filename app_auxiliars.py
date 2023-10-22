@@ -77,10 +77,10 @@ async def persist_played_card_data(
 
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
-    elif card_name == "La Cosa":
-        raise InvalidCard("No puedes jugar la carta La Cosa")
+    elif get_card_type(card_id) == CardType.DEFENSA.value:
+        raise InvalidCard("No puedes jugar una carta de defensa ahora")
     elif get_card_type(card_id) == CardType.CONTAGIO.value:
-        raise InvalidCard("No puedes jugar la carta ¡Infectado!")
+        raise InvalidCard("No puedes jugar una carta de contagio")
 
     if requires_target(card_id):
         if target_name is None or target_name == "":
@@ -244,3 +244,28 @@ def wait_defense_card_msg(player_name: str, card_id: int, target: str):
 def defended_card_msg(player_name: str, card_id: int):
     alert = player_name + " se defendió con " + get_card_name(card_id)
     return alert
+
+
+async def discard_player_card(player_name: str, card_id: int):
+    match_id = get_player_match(player_name)
+    game_state = get_game_state(match_id)
+    card_name = get_card_name(card_id)
+    role = get_player_role(player_name)
+
+    if not game_state == GAME_STATE["PLAY_TURN"]:
+        raise GameException("No puedes descartar carta en este momento")
+    if not has_card(player_name, card_id):
+        raise InvalidCard("No tienes esa carta en tu mano")
+    if card_name == "La Cosa":
+        raise InvalidCard("No puedes jugar la carta La Cosa")
+    if role == "INFECTADO" and count_infection_cards(player_name) == 1:
+        raise InvalidCard("No puedes descartar tu última carta de infectado")
+
+    discard_card(player_name, card_id)
+
+    set_next_turn(match_id)
+    set_game_state(match_id, GAME_STATE["DRAW_CARD"])  # Cambiar a "EXCHANGE"
+
+    await manager.broadcast(
+        "notificación jugada", player_name + " ha descartado una carta", match_id
+    )

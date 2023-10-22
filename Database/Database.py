@@ -581,6 +581,15 @@ def delete_match(match_name):
 
 # ------------ player functions ----------------
 
+@db_session
+def count_infection_cards(player_name: str) -> int:
+    player = get_player_by_name(player_name)
+    return player.cards.filter(lambda c: c.type == CardType.CONTAGIO.value).count()
+
+@db_session
+def get_player_role(player_name: str) -> int:
+    player = get_player_by_name(player_name)
+    return get_role_name(player.rol)
 
 @db_session
 def get_card_name(card_id: int) -> str:
