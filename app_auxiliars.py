@@ -127,8 +127,7 @@ def exchange_card(player_name: str, card: int, target: str):
         raise GameException("No es tu turno")
     elif game_state != GAME_STATE["EXCHANGE"]:
         raise GameException("No puedes intercambiar cartas en este momento")
-    elif not is_valid_exchange(card, player_name, target):
-        raise GameException("No puedes intercambiar esta carta")
+    check_valid_exchange(card, player_name, target)
 
     # Guardar p1, c1 en la base de datos
     save_exchange(player_name, card)
@@ -149,8 +148,7 @@ async def wait_exchange_card(target: str, card2: int):
         raise GameException("No es tu turno")
     elif game_state != GAME_STATE["WAIT_EXCHANGE"]:
         raise GameException("No puedes intercambiar cartas en este momento")
-    elif not is_valid_exchange(card2, target, player1):
-        raise GameException("No puedes intercambiar esta carta")
+    check_valid_exchange(card2, target, player1)
 
     # Intercambiar cartas
     exchange_players_cards(player1, card1, target, card2)
@@ -174,6 +172,26 @@ async def check_infection(player_name: str, target: str, card: int, card2: int):
     elif is_lacosa(target) and is_contagio(card2):
         infect_player(player_name)
         await manager.send_message_to("infectado", "", player_name)
+
+
+@db_session
+def check_valid_exchange(card_id: int, player_name: str, target: str):
+    card_name = get_card_name(card_id)
+    if not has_card(player_name, card_id):
+        raise InvalidCard("No tienes esa carta en tu mano")
+    elif card_name == "La Cosa":
+        raise InvalidCard("No puedes intercambiar la carta La Cosa")
+    elif is_contagio(card_id):
+        if is_human(player_name):
+            raise InvalidCard("Los humanos no pueden intercambiar la carta ¡Infectado!")
+        if is_infected(player_name) and not is_lacosa(target):
+            raise InvalidCard(
+                "Solo puedes intercambiar la carta ¡Infectado! con La Cosa"
+            )
+        if is_infected(player_name) and count_infection_cards(player_name) == 1:
+            raise InvalidCard(
+                "Debes tener al menos una carta de ¡Infectado! en tu mano"
+            )
 
 
 # ----------- Check win ------------

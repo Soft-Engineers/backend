@@ -190,20 +190,9 @@ def discard_card(player_name: str, card_id: int):
 
 
 @db_session
-def is_valid_exchange(card_id: int, player_name: str, target: str) -> bool:
-    card = get_card_by_id(card_id)
+def count_infection_cards(player_name: str) -> int:
     player = get_player_by_name(player_name)
-
-    if card not in player.cards or card.card_name == "La Cosa":
-        return False
-    elif is_contagio(card_id):
-        if is_human(player_name) or (is_infected(player_name) and is_human(target)):
-            return False
-        if is_infected(player_name) and is_infected(target):
-            return False
-        elif is_lacosa(player_name):
-            return True
-    return True
+    return player.cards.filter(lambda c: c.type == CardType.CONTAGIO.value).count()
 
 
 @db_session
@@ -764,6 +753,7 @@ def get_match_locations(match_id: int) -> list:
             {"player_name": player.player_name, "location": player.position}
         )
     return locations
+
 
 # TODO: Borrar
 @db_session

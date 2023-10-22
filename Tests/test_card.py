@@ -247,7 +247,7 @@ class test_exchange_card(TestCase):
         self.patch_set_match_turn.stop()
 
     @patch("app_auxiliars.is_player_turn", return_value=True)
-    @patch("app_auxiliars.is_valid_exchange", return_value=True)
+    @patch("app_auxiliars.check_valid_exchange", return_value=None)
     @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"])
     def test_exchange_card(self, *args):
         exchange_card("test_player", 1, "test_target")
@@ -261,7 +261,7 @@ class test_exchange_card(TestCase):
 
     @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["PLAY_TURN"])
     @patch("app_auxiliars.is_player_turn", return_value=True)
-    @patch("app_auxiliars.is_valid_exchange", return_value=True)
+    @patch("app_auxiliars.check_valid_exchange", return_value=None)
     def test_exchange_card_not_exchange_state(self, *args):
         with self.assertRaises(GameException) as e:
             exchange_card("test_player", 1, "test_target")
@@ -271,8 +271,80 @@ class test_exchange_card(TestCase):
 
     @patch("app_auxiliars.is_player_turn", return_value=True)
     @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"])
-    @patch("app_auxiliars.is_valid_exchange", return_value=False)
+    @patch("app_auxiliars.check_valid_exchange", side_effect=InvalidCard("test"))
     def test_exchange_card_invalid_exchange(self, *args):
-        with self.assertRaises(GameException) as e:
+        with self.assertRaises(InvalidCard) as e:
             exchange_card("test_player", 1, "test_target")
-        self.assertEqual(str(e.exception), "No puedes intercambiar esta carta")
+
+
+class TestCheckValidExchange(TestCase):
+    @patch("app_auxiliars.get_card_name", return_value="SomeCard")
+    @patch("app_auxiliars.has_card", return_value=True)
+    @patch("app_auxiliars.is_contagio", return_value=True)
+    @patch("app_auxiliars.is_human", return_value=False)
+    @patch("app_auxiliars.is_infected", return_value=True)
+    @patch("app_auxiliars.is_lacosa", return_value=True)
+    @patch("app_auxiliars.count_infection_cards", return_value=2)
+    def test_check_valid_exchange(
+        self,
+        mock_count_infection_cards,
+        mock_lacosa,
+        mock_infected,
+        mock_human,
+        mock_contagio,
+        mock_has_card,
+        mock_get_card_name,
+    ):
+        # Test a valid exchange
+        try:
+            check_valid_exchange(1, "Player1", "TargetPlayer")
+        except InvalidCard as e:
+            self.fail(f"InvalidCard raised: {e}")
+
+        # Assert that the mocked functions were called with the correct arguments
+        mock_get_card_name.assert_called_with(1)
+        mock_has_card.assert_called_with("Player1", 1)
+        mock_contagio.assert_called_with(1)
+        mock_human.assert_called_with("Player1")
+        mock_infected.assert_called_with("Player1")
+        mock_lacosa.assert_called_with("TargetPlayer")
+        mock_count_infection_cards.assert_called_with("Player1")
+
+        # Test with a missing card
+        mock_has_card.return_value = False
+        with self.assertRaises(InvalidCard) as e:
+            check_valid_exchange(1, "Player1", "TargetPlayer")
+        self.assertEqual(str(e.exception), "No tienes esa carta en tu mano")
+
+        # Test with "La Cosa" card
+        mock_has_card.return_value = True
+        mock_get_card_name.return_value = "La Cosa"
+        with self.assertRaises(InvalidCard) as e:
+            check_valid_exchange(2, "Player1", "TargetPlayer")
+        self.assertEqual(str(e.exception), "No puedes intercambiar la carta La Cosa")
+
+        mock_get_card_name.return_value = "SomeCard"
+        mock_human.return_value = True
+        with self.assertRaises(InvalidCard) as e:
+            check_valid_exchange(3, "Player1", "TargetPlayer")
+        self.assertEqual(
+            str(e.exception), "Los humanos no pueden intercambiar la carta ¡Infectado!"
+        )
+
+        mock_human.return_value = False
+        mock_infected.return_value = True
+        mock_lacosa.return_value = False
+        with self.assertRaises(InvalidCard) as e:
+            check_valid_exchange(3, "Player1", "TargetPlayer")
+        self.assertEqual(
+            str(e.exception),
+            "Solo puedes intercambiar la carta ¡Infectado! con La Cosa",
+        )
+
+        mock_lacosa.return_value = True
+        mock_count_infection_cards.return_value = 1
+        with self.assertRaises(InvalidCard) as e:
+            check_valid_exchange(3, "Player1", "TargetPlayer")
+        self.assertEqual(
+            str(e.exception), "Debes tener al menos una carta de ¡Infectado! en tu mano"
+        )
