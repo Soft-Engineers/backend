@@ -218,3 +218,61 @@ class test_check_target_player(TestCase):
         with self.assertRaises(InvalidPlayer) as e:
             check_target_player("PlayerA", "PlayerB")
         self.assertEqual(str(e.exception), "Jugador no válido")
+
+
+class test_exchange_card(TestCase):
+    def setUp(self):
+        self.patch_get_player_match = patch("app_auxiliars.get_player_match")
+        self.patch_set_game_state = patch("app_auxiliars.set_game_state")
+        self.patch_save_exchange = patch("app_auxiliars.save_exchange")
+        self.patch_exchange_card = patch("app_auxiliars.exchange_card")
+        self.patch_set_match_turn = patch("app_auxiliars.set_match_turn")
+        self.patch_get_player_match.return_value = 1
+        self.patch_set_game_state.return_value = None
+        self.patch_save_exchange.return_value = None
+        self.patch_exchange_card.return_value = None
+        self.patch_set_match_turn.return_value = None
+
+        self.patch_get_player_match.start()
+        self.patch_set_game_state.start()
+        self.patch_save_exchange.start()
+        self.patch_exchange_card.start()
+        self.patch_set_match_turn.start()
+
+    def tearDown(self):
+        self.patch_get_player_match.stop()
+        self.patch_set_game_state.stop()
+        self.patch_save_exchange.stop()
+        self.patch_exchange_card.stop()
+        self.patch_set_match_turn.stop()
+
+    @patch("app_auxiliars.is_player_turn", return_value=True)
+    @patch("app_auxiliars.is_valid_exchange", return_value=True)
+    @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"])
+    def test_exchange_card(self, *args):
+        exchange_card("test_player", 1, "test_target")
+
+    @patch("app_auxiliars.is_player_turn", return_value=False)
+    @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"])
+    def test_exchange_card_not_player_turn(self, *args):
+        with self.assertRaises(GameException) as e:
+            exchange_card("test_player", 1, "test_target")
+        self.assertEqual(str(e.exception), "No es tu turno")
+
+    @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["PLAY_TURN"])
+    @patch("app_auxiliars.is_player_turn", return_value=True)
+    @patch("app_auxiliars.is_valid_exchange", return_value=True)
+    def test_exchange_card_not_exchange_state(self, *args):
+        with self.assertRaises(GameException) as e:
+            exchange_card("test_player", 1, "test_target")
+        self.assertEqual(
+            str(e.exception), "No puedes intercambiar cartas en este momento"
+        )
+
+    @patch("app_auxiliars.is_player_turn", return_value=True)
+    @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"])
+    @patch("app_auxiliars.is_valid_exchange", return_value=False)
+    def test_exchange_card_invalid_exchange(self, *args):
+        with self.assertRaises(GameException) as e:
+            exchange_card("test_player", 1, "test_target")
+        self.assertEqual(str(e.exception), "No puedes intercambiar esta carta")

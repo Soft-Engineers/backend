@@ -127,7 +127,7 @@ async def handle_request(request, match_id, player_name, websocket):
                 exchange_card(player_name, content["card_id"], target)
 
                 alert = "Esperando intercambio entre " + player_name + " y " + target
-                await manager.broadcast("notificación jugada", alert, match_id)
+                await manager.broadcast("notificacion espera", alert, match_id)
             elif get_game_state(match_id) == GAME_STATE["WAIT_EXCHANGE"]:
                 target = get_player_in_turn(match_id)
                 await wait_exchange_card(target, content["card_id"])
