@@ -117,15 +117,17 @@ async def persist_played_card_data(
     elif get_card_type(card_id) == CardType.CONTAGIO.value:
         raise InvalidCard("No puedes jugar la carta ¡Infectado!")
 
-    if get_card_name(card_id) == "Lanzallamas":  # Si la carta requiere objetivo.
+    if requires_target(card_id):
         if target_name is None or target_name == "":
-            raise InvalidCard("Lanzallamas requiere un objetivo")
+            raise InvalidCard("Esta carta requiere un objetivo")
         if not player_exists(target_name):
             raise InvalidPlayer("Jugador no válido")
         if not is_player_alive(target_name):
             raise InvalidPlayer("El jugador seleccionado está muerto")
         if get_player_match(player_name) != get_player_match(target_name):
             raise InvalidPlayer("Jugador no válido")
+        if not check_adyacent_by_names(player_name, target_name):
+            raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
 
     # agregar carta a BDD
     match_id = get_player_match(player_name)
@@ -142,6 +144,8 @@ async def persist_played_card_data(
 TODO
 Lanzar excepción si se juega carta de defensa en PLAY_TURN
 """
+
+
 async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
@@ -150,9 +154,9 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
         if not is_player_turn(player_name):
             raise GameException("No es tu turno")
 
-        persist_played_card_data(player_name, card_id, target)
-        if player_name == "" or target is None:
-            execute_card(match_id=match_id)
+        await persist_played_card_data(player_name, card_id, target)
+        if not requires_target(card_id):
+            await execute_card(match_id=match_id)
             set_next_turn(match_id)
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
@@ -165,7 +169,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
             "notificación jugada", play_card_msg(player_name, card_id, target), match_id
         )
 
-        if not player_name == "" and not target is None:
+        if requires_target(card_id):
             await manager.broadcast(
                 "notificación jugada",
                 wait_defense_card_msg(player_name, card_id, target),
@@ -197,7 +201,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
 
         turn_player = get_turn_player(match_id)
 
-        execute_card(match_id, card_id)
+        await execute_card(match_id, card_id)
         discard_card(player_name, card_id)
 
         assign_next_turn_to(match_id, turn_player)
@@ -234,13 +238,11 @@ async def skip_defense(player_name: str):
     target = get_target_player(match_id)
     turn_player = get_turn_player(match_id)
 
-    execute_card(match_id)
+    await execute_card(match_id)
 
     assign_next_turn_to(match_id, turn_player)
     set_next_turn(match_id)
     set_game_state(match_id, GAME_STATE["EXCHANGE"])
-
-
 
     if played_card_name == "Lanzallamas":
         await manager.broadcast(
@@ -293,7 +295,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
 
 def play_card_msg(player_name: str, card_id: int, target: str):
     alert = player_name + " jugó " + get_card_name(card_id)
-    if target and not target == player_name:
+    if requires_target(card_id):
         alert += " a " + target
     return alert
 

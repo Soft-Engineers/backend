@@ -93,6 +93,13 @@ def get_state_name(state: int) -> str:
 
 # Game DB functions
 
+target_cards = ["Lanzallamas"]
+
+def requires_target(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in target_cards
+
+
 
 @db_session
 def set_played_card(match_id: int, card_id: int):
@@ -698,6 +705,12 @@ def is_adyacent(player: Player, player_target: Player) -> bool:
         get_previous_player(player.match.id, player.position) == player_target.position
     )
     return is_next or is_previous
+
+@db_session
+def check_adyacent_by_names(player_name: str, target_name: str) -> bool:
+    player = get_player_by_name(player_name)
+    target = get_player_by_name(target_name)
+    return is_adyacent(player, target)
 
 
 @db_session
