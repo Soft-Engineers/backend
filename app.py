@@ -12,6 +12,7 @@ from fastapi import (
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic_models import *
+from connections import WebSocket
 from request import RequestException, parse_request
 from game_exception import GameException
 from app_auxiliars import *
@@ -77,6 +78,11 @@ async def websocket_endpoint(websocket: WebSocket):
             # TODO: Sacar cuando se haga todo por sockets
             data = db_get_players(match_name)
             await manager.broadcast("jugadores lobby", data, match_id)
+            state = {
+                "turn": get_player_in_turn(match_id),
+                "game_state": get_game_state(match_id),
+            }
+            await manager.broadcast("estado partida", state, match_id)
 
             state = {
                 "turn": get_player_in_turn(match_id),
@@ -133,6 +139,20 @@ async def handle_request(request, match_id, player_name, websocket):
         elif msg_type == "leave match":
             # Llamar a la función leave_match
             pass
+
+        elif msg_type == "intercambiar carta":
+            if get_game_state(match_id) == GAME_STATE["EXCHANGE"]:
+                target = get_next_player(match_id)
+                exchange_card(player_name, content["card_id"], target)
+
+                alert = "Esperando intercambio entre " + player_name + " y " + target
+                await manager.broadcast("notificacion espera", alert, match_id)
+            elif get_game_state(match_id) == GAME_STATE["WAIT_EXCHANGE"]:
+                target = get_player_in_turn(match_id)
+                await wait_exchange_card(target, content["card_id"])
+            else:
+                raise GameException("No puedes intercambiar cartas en este momento")
+
         else:
             pass
     except (RequestException, GameException, DatabaseError) as e:
@@ -350,17 +370,3 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
         )
         response = {"detail": lobby_left.player_name + " abandono el lobby"}
     return response
-
-
-def pickup_card(player_name: str):
-    """
-    The player get a random card from the deck and add it to his hand
-    """
-    match_id = get_player_match(player_name)
-    if not is_player_turn(player_name):
-        raise GameException("No es tu turno")
-    elif get_game_state(match_id) != GAME_STATE["DRAW_CARD"]:
-        raise GameException("No puedes robar carta en este momento")
-
-    pick_random_card(player_name)
-    set_game_state(match_id, GAME_STATE["PLAY_TURN"])

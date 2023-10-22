@@ -30,7 +30,7 @@ def test_player_with_invalid_name():
             data={"name_player": get_random_string_lower(MIN_LEN_ALIAS - 1)},
         )
         assert response.status_code == 401
-        assert response.json() == {"detail": "Campo inválido"}  
+        assert response.json() == {"detail": "Campo inválido"}
 
 
 def test_player_with_invalid_name2():

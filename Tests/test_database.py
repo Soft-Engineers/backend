@@ -356,7 +356,6 @@ class test_get_game_state_for(TestCase):
 
 
 class test_get_game_state_for(TestCase):
-
     @patch("Database.Database.get_player_by_name")
     def test_get_game_state_for(self, mock_get_player_by_name):
         mock_player = Mock()
@@ -368,7 +367,7 @@ class test_get_game_state_for(TestCase):
         mock_player.match.current_player = 0
         mock_player.cards = set()
         mock_player.position = 0
-        mock_player.rol = ROL["HUMAN"]
+        mock_player.rol = ROL["HUMANO"]
 
         for i in range(2, 5):
             mock_player_i = Mock()
@@ -408,7 +407,7 @@ class test_get_game_state_for(TestCase):
                     {"player_name": "test_player4", "location": 3},
                 ],
                 "current_turn": "test_player1",
-                "role": "HUMAN",
+                "role": "HUMANO",
             },
         )
 
@@ -429,13 +428,224 @@ class test_get_game_state_for(TestCase):
 
     @patch("Database.Database.get_player_by_name")
     def test_get_game_state_for_player_not_initiated(self, mock_get_player_by_name):
-        
+
         mock_player = Mock()
         mock_player.player_name = "test_player1"
         mock_player.match = Mock()
         mock_player.match.initiated = False
-        
+
         mock_get_player_by_name.return_value = mock_player
 
         with self.assertRaises(MatchNotStarted):
             get_game_state_for("test_player1")
+
+
+class test_exchange_players_card(TestCase):
+    @patch("Database.Database.get_player_by_name")
+    @patch("Database.Database.get_card_by_id")
+    def test_exchange_players_cards(self, mock_get_card_by_id, mock_get_player_by_name):
+        player1 = Mock()
+        player2 = Mock()
+        card1 = Mock()
+        card2 = Mock()
+
+        mock_get_player_by_name.side_effect = [player1, player2]
+        mock_get_card_by_id.side_effect = [card1, card2]
+
+        player1.cards = {card1}
+        player2.cards = {card2}
+        card1.player = {player1}
+        card2.player = {player2}
+
+        exchange_players_cards("player1_name", 1, "player2_name", 2)
+
+        self.assertEqual(player1.cards, {card2})
+        self.assertEqual(player2.cards, {card1})
+        self.assertEqual(card1.player, {player2})
+        self.assertEqual(card2.player, {player1})
+
+
+class TestGetNextPlayerPosition(TestCase):
+    @patch("Database.Database._get_match")
+    @patch("Database.Database._get_player_by_position")
+    def test_get_next_player_position(
+        self, mock_get_player_by_position, mock_get_match
+    ):
+        mock_match = mock_get_match.return_value
+        mock_match.players.count.return_value = 4
+        mock_match.clockwise = True
+
+        mock_player = Mock(is_alive=True)
+        mock_get_player_by_position.side_effect = [mock_player] * 4
+
+        result = get_next_player_position(1, 0)
+
+        self.assertEqual(result, 1)
+
+    @patch("Database.Database._get_match")
+    @patch("Database.Database._get_player_by_position")
+    def test_get_next_player_position_dead_player(
+        self, mock_get_player_by_position, mock_get_match
+    ):
+        mock_match = mock_get_match.return_value
+        mock_match.players.count.return_value = 4
+        mock_match.clockwise = True
+
+        mock_player = Mock(is_alive=True)
+        mock_dead_player = Mock(is_alive=False)
+        mock_get_player_by_position.side_effect = [
+            mock_dead_player,
+            mock_player,
+            mock_player,
+            mock_player,
+        ]
+
+        result = get_next_player_position(1, 0)
+
+        self.assertEqual(result, 2)
+
+
+class TestGetPreviousPlayerPosition(TestCase):
+    @patch("Database.Database._get_match")
+    @patch("Database.Database._get_player_by_position")
+    def test_get_previous_player_position(
+        self, mock_get_player_by_position, mock_get_match
+    ):
+        mock_match = mock_get_match.return_value
+        mock_match.players.count.return_value = 4
+        mock_match.clockwise = True
+
+        mock_player = Mock(is_alive=True)
+        mock_get_player_by_position.side_effect = [mock_player] * 4
+
+        result = get_previous_player_position(1, 0)
+        self.assertEqual(result, 3)
+
+
+class TestPlayLanzallamas(TestCase):
+    def test_successful_lanzallamas_play(self):
+        player = Mock()
+        target = Mock()
+
+        with patch("Database.Database.get_player_by_name") as mock_get_player_by_name:
+            with patch("Database.Database.is_adyacent", return_value=True):
+                mock_get_player_by_name.side_effect = [player, target]
+                play_lanzallamas("Player1", "Player2")
+
+        target.is_alive = False
+        self.assertFalse(target.is_alive)
+
+    def test_invalid_target(self):
+        with self.assertRaises(InvalidCard) as context:
+            play_lanzallamas("Player1", None)
+
+        self.assertEqual(str(context.exception), "Lanzallamas requiere un objetivo")
+
+    def test_non_adjacent_players(self):
+        player = Mock()
+        target = Mock()
+
+        with patch("Database.Database.get_player_by_name") as mock_get_player_by_name:
+            with patch("Database.Database.is_adyacent", return_value=False):
+                mock_get_player_by_name.side_effect = [player, target]
+                with self.assertRaises(InvalidCard) as context:
+                    play_lanzallamas("Player1", "Player2")
+        self.assertEqual(
+            str(context.exception), "No puedes jugar Lanzallamas a ese jugador"
+        )
+
+
+class TestDiscardCard(TestCase):
+    @patch("Database.Database.get_player_by_name")
+    @patch("Database.Database.get_card_by_id")
+    @patch("Database.Database._get_discard_deck")
+    def test_discard_card(
+        self, mock_get_discard_deck, mock_get_card_by_id, mock_get_player_by_name
+    ):
+        player = Mock()
+        card = Mock()
+        player.cards = set({card})
+        card.player = set({player})
+        discard_deck = Mock()
+        discard_deck.cards = set({})
+
+        mock_get_player_by_name.return_value = player
+        mock_get_card_by_id.return_value = card
+        mock_get_discard_deck.return_value = discard_deck
+
+        discard_card("Player1", 20)
+
+        assert card not in player.cards
+        assert card in discard_deck.cards
+
+
+class TestGetPlayerInTurn(TestCase):
+    @patch("Database.Database._get_match")
+    def test_get_player_in_turn(self, mock_get_match):
+        match = Mock()
+        player1 = Mock()
+        player2 = Mock()
+        player3 = Mock()
+
+        match.players = [player1, player2, player3]
+        match.current_player = 2
+        player2.name = "player2"
+        player2.position = 2
+
+        mock_get_match.return_value = match
+        result = get_player_in_turn(1)
+        self.assertEqual(result, player2.player_name)
+
+
+class TestGetWinnersFunction(TestCase):
+    @patch("Database.Database._get_match")
+    def test_get_winners(self, mock_get_match):
+        mock_match = Mock()
+        mock_match.players = [
+            Mock(player_name="Player1", is_alive=True),
+            Mock(player_name="Player2", is_alive=True),
+            Mock(player_name="Player3", is_alive=False),
+        ]
+
+        mock_get_match.return_value = mock_match
+        winners = get_winners(1)
+        self.assertEqual(winners, ["Player1", "Player2"])
+
+
+class TestGetCardsFunction(TestCase):
+    @patch("Database.Database.Player")
+    def test_get_cards(self, mock_player):
+        mock_card1 = Mock(id=1, card_name="Card1", type="Type1")
+        mock_card2 = Mock(id=2, card_name="Card2", type="Type2")
+
+        mock_player_instance = mock_player.return_value
+        mock_player_instance.cards = [mock_card1, mock_card2]
+
+        player = Mock()
+        player.cards = [mock_card1, mock_card2]
+        deck_data = get_cards(player)
+
+        expected_deck_data = [
+            {"card_id": 1, "card_name": "Card1", "type": "Type1"},
+            {"card_id": 2, "card_name": "Card2", "type": "Type2"},
+        ]
+        self.assertEqual(deck_data, expected_deck_data)
+
+
+class TestGetDeadPlayersFunction(TestCase):
+    @patch("Database.Database._get_match")
+    def test_get_dead_players(self, mock_get_match):
+        mock_match = Mock()
+        mock_match.initiated = True
+        mock_player1 = Mock(player_name="Player1", is_alive=False)
+        mock_player2 = Mock(player_name="Player2", is_alive=True)
+        mock_match.players = [mock_player1, mock_player2]
+
+        mock_get_match.return_value = mock_match
+        dead_players = get_dead_players(1)
+
+        self.assertEqual(dead_players, ["Player1"])
+
+    def test_get_dead_players_match_not_started(self):
+        with self.assertRaises(MatchNotStarted):
+            get_dead_players(1)
