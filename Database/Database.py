@@ -28,6 +28,9 @@ class Match(db.Entity):
     current_player = Required(int, default=0)
     deck = Set("Deck")
     game_state = Optional(int, default=0)
+    played_card = Optional(int, default=None, nullable=True)
+    turn_player = Optional(str, default=None, nullable=True)
+    target_player = Optional(str, default=None, nullable=True)
 
 
 class Player(db.Entity):
@@ -63,17 +66,73 @@ db.generate_mapping(create_tables=True)
 
 # --- Constants --- #
 
-ROL = {"HUMAN": 1, "LA_COSA": 2, "INFECTED": 3}
-GAME_STATE = {"DRAW_CARD": 1, "PLAY_TURN": 2, "FINISHED": 3}
+ROL = {"HUMANO": 1, "LA_COSA": 2, "INFECTADO": 3}
+GAME_STATE = {
+    "DRAW_CARD": 1,
+    "PLAY_TURN": 2,
+    "FINISHED": 3,
+    "EXCHANGE": 4,
+    "WAIT_EXCHANGE": 5,
+    "WAIT_DEFENSE": 6,
+}
 
 
-def _get_role_name(rol: int) -> str:
-    for r in ROL:
-        if ROL[r] == rol:
-            return r
+def _get_first_ocurrence(dic: dict, value: int) -> str:
+    for key in dic:
+        if dic[key] == value:
+            return key
+
+
+def get_role_name(rol: int) -> str:
+    return _get_first_ocurrence(ROL, rol)
+
+
+def get_state_name(state: int) -> str:
+    return _get_first_ocurrence(GAME_STATE, state)
 
 
 # Game DB functions
+
+
+@db_session
+def set_played_card(match_id: int, card_id: int):
+    match = Match[match_id]
+    match.played_card = card_id
+
+
+@db_session
+def set_turn_player(match_id: int, player_name: str):
+    match = Match[match_id]
+    match.turn_player = player_name
+
+
+@db_session
+def set_target_player(match_id: int, player_name: str):
+    match = Match[match_id]
+    match.target_player = player_name
+
+
+@db_session
+def get_played_card(match_id: int) -> int:
+    return Match[match_id].played_card
+
+
+@db_session
+def get_turn_player(match_id: int) -> str:
+    return Match[match_id].turn_player
+
+
+@db_session
+def get_target_player(match_id: int) -> str:
+    return Match[match_id].target_player
+
+
+@db_session
+def clean_played_card_data(match_id: int):
+    match = Match[match_id]
+    match.played_card = None
+    match.turn_player = None
+    match.target_player = None
 
 
 @db_session
@@ -190,6 +249,7 @@ def get_match_games(match_id):
 @db_session
 def get_match_players(match_id):
     return Match[match_id].players
+
 
 @db_session
 def get_match_players_names(match_id):
@@ -452,6 +512,13 @@ def set_next_turn(match_id: int):
 
 
 @db_session
+def assign_next_turn_to(match_id: int, player_name: str):
+    match = _get_match(match_id)
+    player = get_player_by_name(player_name)
+    match.current_player = player.position
+
+
+@db_session
 def get_player_in_turn(match_id: int) -> str:
     match = _get_match(match_id)
     for player in match.players:
@@ -652,6 +719,7 @@ def get_cards(player: Player) -> list:
         )
     return deck_data
 
+
 @db_session
 def get_player_cards_names(player_name: str) -> list:
     player = get_player_by_name(player_name)
@@ -690,7 +758,7 @@ def get_game_state_for(player_name: str) -> dict:
 
     hand = get_cards(player)
     locations = _get_match_locations(match)
-    rol = _get_role_name(player.rol)
+    rol = get_role_name(player.rol)
 
     current_turn = list(
         filter(lambda p: p["location"] == match.current_player, locations)
