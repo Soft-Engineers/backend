@@ -320,8 +320,8 @@ async def start_game(match_player: PlayerInMatch):
         }
 
 
-@app.delete("/match/leave", tags=["Matches"], status_code=status.HTTP_200_OK)
-async def left_lobby(lobby_left: PlayerInMatch = Depends()):
+@app.put("/match/leave", tags=["Matches"], status_code=status.HTTP_200_OK)
+async def left_lobby(lobby_left: PlayerInMatch):
     """
     Left a lobby
     """
@@ -357,7 +357,10 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
         left_match(lobby_left.player_name, lobby_left.match_name)
         data_msg = {
             "message_type": "player_left",
-            "message_content": lobby_left.player_name + " ha abandonado el lobby",
+            "message_content": {
+                "player_name": lobby_left.player_name,
+                "players": db_get_players(lobby_left.match_name),
+            },
         }
         await manager.broadcast(data_msg, get_match_id(lobby_left.match_name))
         response = {"detail": lobby_left.player_name + " abandono el lobby"}
