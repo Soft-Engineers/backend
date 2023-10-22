@@ -14,9 +14,12 @@ manager = ConnectionManager()
 async def play_whisky(player_name: str):
     match_id = get_player_match(player_name)
     receivers = get_match_players_names(match_id)
+    print("Whisky data")
+    print(player_name)
+    print(receivers)
+    
     receivers.remove(player_name)
     cards = get_player_cards_names(player_name)
-    cards.remove("Whisky")
     for p in receivers:
         msg = {
             "cards": cards,
@@ -46,7 +49,6 @@ async def execute_card(match_id: int, def_card_id: int = None):
     """
     IMPORTANTE: Borrará la información persistida de la jugada
     """
-    print("Executing card")
     card_name = get_card_name(get_played_card(match_id))
     player_name = get_turn_player(match_id)
     target_name = get_target_player(match_id)
@@ -54,11 +56,6 @@ async def execute_card(match_id: int, def_card_id: int = None):
         def_card_name = get_card_name(def_card_id)
     else:
         def_card_name = ""
-
-    #print("-----------------------------------")
-    #print("Carta a ejecutar: " + card_name)
-    #print("Carta de defensa:" + def_card_name)
-    #print("-----------------------------------")
 
     if card_name == "Lanzallamas":
         if not def_card_name == "¡Nada de barbacoas!":
@@ -166,7 +163,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
         if not requires_target(card_id):
             await execute_card(match_id=match_id)
             set_next_turn(match_id)
-            set_game_state(match_id, GAME_STATE["DRAW_CARD"])    # Cambiar a "EXCHANGE"
+            set_game_state(match_id, GAME_STATE["DRAW_CARD"])  # Cambiar a "EXCHANGE"
         else:
             assign_next_turn_to(match_id, target)
             set_game_state(match_id, GAME_STATE["WAIT_DEFENSE"])
@@ -211,6 +208,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
 
         await execute_card(match_id, card_id)
         discard_card(player_name, card_id)
+        pick_random_card(player_name)
 
         assign_next_turn_to(match_id, turn_player)
         set_next_turn(match_id)
@@ -250,7 +248,7 @@ async def skip_defense(player_name: str):
 
     assign_next_turn_to(match_id, turn_player)
     set_next_turn(match_id)
-    set_game_state(match_id, GAME_STATE["DRAW_CARD"]) # Cambiar a "EXCHANGE"
+    set_game_state(match_id, GAME_STATE["DRAW_CARD"])  # Cambiar a "EXCHANGE"
 
     if played_card_name == "Lanzallamas":
         await manager.broadcast(
