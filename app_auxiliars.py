@@ -42,14 +42,18 @@ def check_target_player(player_name: str, target_name: str = ""):
 """
 
 
-async def execute_card(match_id: int, card_id: int = None):
-    card_id = get_played_card(match_id)
+async def execute_card(match_id: int, def_card_id: int = None):
+    """
+    IMPORTANTE: Borrará la información persistida de la jugada
+    """
+    card_name = get_played_card(match_id)
     player_name = get_turn_player(match_id)
     target_name = get_target_player(match_id)
-    card_name = get_card_name(card_id)
+    if def_card_id is not None:
+        def_card_name = get_card_name(def_card_id)
 
     if card_name == "Lanzallamas":
-        if not get_card_name(card_id) == "¡Nada de barbacoas!":
+        if def_card_name == "¡Nada de barbacoas!":
             play_lanzallamas(player_name, target_name)
     elif card_name == "Whisky":
         await play_whisky(player_name)
@@ -106,6 +110,13 @@ async def persist_played_card_data(
 ):
     card_name = get_card_name(card_id)
 
+    if not has_card(player_name, card_id):
+        raise InvalidCard("No tienes esa carta en tu mano")
+    elif card_name == "La Cosa":
+        raise InvalidCard("No puedes jugar la carta La Cosa")
+    elif get_card_type(card_id) == CardType.CONTAGIO.value:
+        raise InvalidCard("No puedes jugar la carta ¡Infectado!")
+
     if get_card_name(card_id) == "Lanzallamas":  # Si la carta requiere objetivo.
         if target_name is None or target_name == "":
             raise InvalidCard("Lanzallamas requiere un objetivo")
@@ -115,13 +126,6 @@ async def persist_played_card_data(
             raise InvalidPlayer("El jugador seleccionado está muerto")
         if get_player_match(player_name) != get_player_match(target_name):
             raise InvalidPlayer("Jugador no válido")
-
-    if not has_card(player_name, card_id):
-        raise InvalidCard("No tienes esa carta en tu mano")
-    elif card_name == "La Cosa":
-        raise InvalidCard("No puedes jugar la carta La Cosa")
-    elif get_card_type(card_id) == CardType.CONTAGIO.value:
-        raise InvalidCard("No puedes jugar la carta ¡Infectado!")
 
     # agregar carta a BDD
     match_id = get_player_match(player_name)
@@ -137,11 +141,7 @@ async def persist_played_card_data(
 """
 TODO
 Lanzar excepción si se juega carta de defensa en PLAY_TURN
-Resolver omitir defensa
-Resolver enviar muerte
 """
-
-
 async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
@@ -195,10 +195,12 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
         if not get_card_name(get_played_card(match_id)) == "Lanzallamas":
             raise GameException("No puedes defenderte de esta carta")
 
+        turn_player = get_turn_player(match_id)
+
         execute_card(match_id, card_id)
         discard_card(player_name, card_id)
 
-        assign_next_turn_to(match_id, get_turn_player(match_id))
+        assign_next_turn_to(match_id, turn_player)
         set_next_turn(match_id)
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
@@ -208,7 +210,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
 
         msg = {
             "posiciones": get_match_locations(match_id),
-            "target": target,
+            "target": "",
             "turn": get_player_in_turn(match_id),
             "game_state": get_state_name(get_game_state(match_id)),
         }
@@ -230,12 +232,15 @@ async def skip_defense(player_name: str):
 
     played_card_name = get_card_name(get_played_card(match_id))
     target = get_target_player(match_id)
+    turn_player = get_turn_player(match_id)
 
     execute_card(match_id)
 
-    assign_next_turn_to(match_id, get_turn_player(match_id))
+    assign_next_turn_to(match_id, turn_player)
     set_next_turn(match_id)
     set_game_state(match_id, GAME_STATE["EXCHANGE"])
+
+
 
     if played_card_name == "Lanzallamas":
         await manager.broadcast(
