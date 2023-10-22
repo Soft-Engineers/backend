@@ -110,6 +110,10 @@ async def handle_request(request, match_id, player_name, websocket):
                 "cards", get_player_hand(player_name), player_name
             )
             await check_win(match_id)
+        elif msg_type == "omitir defensa":
+            
+            await skip_defense(player_name)
+            await check_win(match_id)
 
         elif msg_type == "leave match":
             # Llamar a la función leave_match
