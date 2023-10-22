@@ -53,7 +53,7 @@ async def execute_card(match_id: int, def_card_id: int = None):
         def_card_name = get_card_name(def_card_id)
 
     if card_name == "Lanzallamas":
-        if def_card_name == "¡Nada de barbacoas!":
+        if not def_card_name == "¡Nada de barbacoas!":
             play_lanzallamas(player_name, target_name)
     elif card_name == "Whisky":
         await play_whisky(player_name)
@@ -301,7 +301,7 @@ def play_card_msg(player_name: str, card_id: int, target: str):
 
 
 def wait_defense_card_msg(player_name: str, card_id: int, target: str):
-    alert = player_name + " se está defendiendo de " + target
+    alert = target + " se está defendiendo de " + player_name
     return alert
 
 
