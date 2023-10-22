@@ -46,11 +46,19 @@ async def execute_card(match_id: int, def_card_id: int = None):
     """
     IMPORTANTE: Borrará la información persistida de la jugada
     """
-    card_name = get_played_card(match_id)
+    print("Executing card")
+    card_name = get_card_name(get_played_card(match_id))
     player_name = get_turn_player(match_id)
     target_name = get_target_player(match_id)
     if def_card_id is not None:
         def_card_name = get_card_name(def_card_id)
+    else:
+        def_card_name = ""
+
+    #print("-----------------------------------")
+    #print("Carta a ejecutar: " + card_name)
+    #print("Carta de defensa:" + def_card_name)
+    #print("-----------------------------------")
 
     if card_name == "Lanzallamas":
         if not def_card_name == "¡Nada de barbacoas!":
