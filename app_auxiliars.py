@@ -12,7 +12,6 @@ manager = ConnectionManager()
 
 
 async def play_whisky(player_name: str):
-
     match_id = get_player_match(player_name)
     receivers = get_match_players_names(match_id)
     receivers.remove(player_name)
@@ -27,6 +26,7 @@ async def play_whisky(player_name: str):
         }
         await manager.send_personal_message("revelar cartas", msg, match_id, p)
 
+
 """
 def check_target_player(player_name: str, target_name: str = ""):
     \"""
@@ -40,6 +40,7 @@ def check_target_player(player_name: str, target_name: str = ""):
         if get_player_match(player_name) != get_player_match(target_name):
             raise InvalidPlayer("Jugador no válido")
 """
+
 
 async def execute_card(match_id: int, card_id: int = None):
     card_id = get_played_card(match_id)
@@ -56,6 +57,7 @@ async def execute_card(match_id: int, card_id: int = None):
         pass
 
     clean_played_card_data(match_id)
+
 
 """
 async def play_card_from_hand(player_name: str, card_id: int, target_name: str = ""):
@@ -77,6 +79,7 @@ async def play_card_from_hand(player_name: str, card_id: int, target_name: str =
 
     discard_card(player_name, card_id)
 """
+
 
 async def check_win(match_id: int):
     reason = ""
@@ -103,7 +106,7 @@ async def persist_played_card_data(
 ):
     card_name = get_card_name(card_id)
 
-    if get_card_name(card_id) == "Lanzallamas":     # Si la carta requiere objetivo. 
+    if get_card_name(card_id) == "Lanzallamas":  # Si la carta requiere objetivo.
         if target_name is None or target_name == "":
             raise InvalidCard("Lanzallamas requiere un objetivo")
         if not player_exists(target_name):
@@ -131,15 +134,14 @@ async def persist_played_card_data(
     discard_card(player_name, card_id)
 
 
-
-
-
 """
 TODO
 Lanzar excepción si se juega carta de defensa en PLAY_TURN
 Resolver omitir defensa
 Resolver enviar muerte
 """
+
+
 async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
@@ -195,11 +197,10 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
 
         execute_card(match_id, card_id)
         discard_card(player_name, card_id)
-        
+
         assign_next_turn_to(match_id, get_turn_player(match_id))
         set_next_turn(match_id)
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
-
 
         await manager.broadcast(
             "notificación jugada", defended_card_msg(player_name, card_id), match_id
@@ -217,11 +218,11 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
     else:
         raise GameException("No puedes jugar carta en este momento")
 
-async def skip_defense(player_name: str):
 
+async def skip_defense(player_name: str):
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
-    
+
     if not game_state == GAME_STATE["WAIT_DEFENSE"]:
         raise GameException("No puedes saltear defensa en este momento")
     if not is_player_turn(player_name):
@@ -229,24 +230,28 @@ async def skip_defense(player_name: str):
 
     played_card_name = get_card_name(get_played_card(match_id))
     target = get_target_player(match_id)
-    
+
     execute_card(match_id)
-    
+
     assign_next_turn_to(match_id, get_turn_player(match_id))
     set_next_turn(match_id)
     set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     if played_card_name == "Lanzallamas":
+        await manager.broadcast(
+            "notificación jugada", target + " no se defendió", match_id
+        )
         await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
-    
+
     msg = {
-            "posiciones": get_match_locations(match_id),
-            "target": "",
-            "turn": get_player_in_turn(match_id),
-            "game_state": get_state_name(get_game_state(match_id)),
-        }
+        "posiciones": get_match_locations(match_id),
+        "target": "",
+        "turn": get_player_in_turn(match_id),
+        "game_state": get_state_name(get_game_state(match_id)),
+    }
 
     await manager.broadcast("datos jugada", msg, match_id)
+
 
 """
 async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
@@ -279,6 +284,7 @@ async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
 
     await manager.broadcast("datos jugada", msg, match_id)
 """
+
 
 def play_card_msg(player_name: str, card_id: int, target: str):
     alert = player_name + " jugó " + get_card_name(card_id)
