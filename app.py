@@ -346,11 +346,10 @@ async def left_lobby(lobby_left: PlayerInMatch):
             + " abandono el lobby y la partida se elimino"
         }
     else:
+        left_match(lobby_left.player_name, lobby_left.match_name)
         data_msg = db_get_players(lobby_left.match_name)
         await manager.broadcast(
             "player_left", data_msg, get_match_id_or_None(lobby_left.match_name)
         )
-        left_match(lobby_left.player_name, lobby_left.match_name)
-
         response = {"players": lobby_left.player_name + " abandono el lobby"}
     return response
