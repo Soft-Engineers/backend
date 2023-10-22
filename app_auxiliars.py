@@ -93,7 +93,6 @@ async def _play_turn_card(
     await persist_played_card_data(player_name, card_id, target)
     if not requires_target(card_id):
         await execute_card(match_id=match_id)
-        set_next_turn(match_id)
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
     else:
         assign_next_turn_to(match_id, target)
@@ -134,8 +133,7 @@ async def _play_defense_card(
     pick_random_card(player_name)
 
     assign_next_turn_to(match_id, turn_player)
-    #set_next_turn(match_id)
-    set_game_state(match_id, GAME_STATE["EXCHANGE"]) 
+    set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     await manager.broadcast(
         "notificación jugada", defended_card_msg(player_name, card_id), match_id
@@ -190,7 +188,6 @@ async def skip_defense(player_name: str):
     await execute_card(match_id)
 
     assign_next_turn_to(match_id, turn_player)
-    #set_next_turn(match_id)
     set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     if played_card_name == "Lanzallamas":
@@ -248,7 +245,6 @@ async def discard_player_card(player_name: str, card_id: int):
 
     discard_card(player_name, card_id)
 
-    #set_next_turn(match_id)
     set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     await manager.broadcast(
@@ -346,6 +342,11 @@ async def check_infection(player_name: str, target: str, card: int, card2: int):
 
 @db_session
 def check_valid_exchange(card_id: int, player_name: str, target: str):
+    if card_id is None or card_id == "":
+        raise InvalidCard("Debes seleccionar una carta para intercambiar")
+    if not card_exists(card_id):
+        raise InvalidCard("No existe esa carta")
+
     card_name = get_card_name(card_id)
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")

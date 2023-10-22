@@ -826,7 +826,7 @@ def get_cards(player: Player) -> list:
                 "type": card.type,
             }
         )
-    return deck_data
+    return sorted(deck_data, key=lambda d: d["card_id"])
 
 
 @db_session
