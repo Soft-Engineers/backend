@@ -30,6 +30,7 @@ class Match(db.Entity):
     game_state = Optional(int, default=0)
     exchange_card = Optional(int, default=None, nullable=True)
     exchange_player = Optional(str, default=None, nullable=True)
+    last_infected = Optional(str, default=None, nullable=True)
 
 
 class Player(db.Entity):
@@ -531,15 +532,11 @@ def get_player_in_turn(match_id: int) -> str:
 
 
 @db_session
-def check_win_condition(match_id: int) -> bool:
-    return check_one_player_alive(match_id) or not is_la_cosa_alive(match_id)
-
-
-@db_session
-def check_one_player_alive(match_id: int) -> bool:
+def no_humans_alive(match_id: int) -> bool:
     match = _get_match(match_id)
-    alive_players = match.players.filter(lambda p: p.is_alive).count()
-    return alive_players == 1
+    for player in match.players:
+        if player.is_alive and is_human(player.player_name):
+            return False
 
 
 @db_session
@@ -550,13 +547,42 @@ def is_la_cosa_alive(match_id: int) -> bool:
 
 
 @db_session
-def get_winners(match_id: int) -> list[str]:
+def all_players_alive(match_id: int) -> bool:
     match = _get_match(match_id)
-    winners = []
     for player in match.players:
-        if player.is_alive:
-            winners.append(player.player_name)
-    return winners
+        if not player.is_alive:
+            return False
+    return True
+
+
+@db_session
+def _get_infected_players(match_id: int) -> list[Player]:
+    """Importante: Incluye a La Cosa"""
+    match = _get_match(match_id)
+    return match.players.filter(
+        lambda p: p.rol == ROL["INFECTADO"] or p.rol == ROL["LA_COSA"]
+    )
+
+
+@db_session
+def get_winners(match_id: int, reason: str) -> list[str]:
+    match = _get_match(match_id)
+    # Caso A) y especial 2
+    if reason == "La cosa ha muerto" or reason == "Declaración incorrecta":
+        winners = match.players.filter(lambda p: p.rol == ROL["HUMANO"] and p.is_alive)
+    # Caso B)
+    elif reason == "No quedan humanos vivos":
+        # Caso especial 1
+        if all_players_alive(match_id):
+            winners = match.players.filter(lambda p: p.rol == ROL["LA_COSA"])
+        else:
+            winners = _get_infected_players(match_id).filter(lambda p: p.is_alive)
+            if match.last_infected is not None:
+                last_infected = get_player_by_name(match.last_infected)
+                winners.remove(last_infected)
+    else:
+        winners = []
+    return [p.player_name for p in winners]
 
 
 @db_session
@@ -703,6 +729,7 @@ def is_lacosa(player_name: str) -> bool:
 def infect_player(player_name: str):
     player = get_player_by_name(player_name)
     player.rol = ROL["INFECTADO"]
+    player.match.last_infected = player_name
 
 
 @db_session
