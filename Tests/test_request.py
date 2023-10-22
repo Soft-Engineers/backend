@@ -6,7 +6,6 @@ from request import parse_request, RequestException
 
 
 class test_parse_request(TestCase):
-
     def test_parse_request(self):
         json = '{"message_type": "test", "message_content": "test_content"}'
 
@@ -14,7 +13,7 @@ class test_parse_request(TestCase):
 
         self.assertEqual(type, "test")
         self.assertEqual(content, "test_content")
-    
+
     def test_parse_request_invalid(self):
         json = '{"message_type": "test", "message_content": "test_content"'
 

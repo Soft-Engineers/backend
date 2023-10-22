@@ -138,6 +138,7 @@ def test_player_create_match_invalid_bounds_min():
 
     _assert_invalid(response, "Cantidad inválida de jugadores")
 
+
 def test_player_create_match_invalid_bounds_max():
     nameGame = generate_unique_testing_name()
     namePlayer = generate_unique_testing_name()
@@ -172,6 +173,7 @@ def test_player_create_match_invalid_bounds_inconsistent():
     response = client.post("/match/create", json=body)
 
     _assert_invalid(response, "Cantidad inválida de jugadores")
+
 
 class test_join_game(TestCase):
     @patch("app.db_add_player")
