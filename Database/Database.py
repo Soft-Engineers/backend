@@ -28,6 +28,9 @@ class Match(db.Entity):
     current_player = Required(int, default=0)
     deck = Set("Deck")
     game_state = Optional(int, default=0)
+    played_card = Optional(int, default=None, nullable=True)
+    turn_player = Optional(str, default=None, nullable=True)
+    target_player = Optional(str, default=None, nullable=True)
     exchange_card = Optional(int, default=None, nullable=True)
     exchange_player = Optional(str, default=None, nullable=True)
     last_infected = Optional(str, default=None, nullable=True)
@@ -73,16 +76,73 @@ GAME_STATE = {
     "FINISHED": 3,
     "EXCHANGE": 4,
     "WAIT_EXCHANGE": 5,
+    "WAIT_DEFENSE": 6,
 }
 
 
-def _get_role_name(rol: int) -> str:
-    for r in ROL:
-        if ROL[r] == rol:
-            return r
+def _get_first_ocurrence(dic: dict, value: int) -> str:
+    for key in dic:
+        if dic[key] == value:
+            return key
+
+
+def get_role_name(rol: int) -> str:
+    return _get_first_ocurrence(ROL, rol)
+
+
+def get_state_name(state: int) -> str:
+    return _get_first_ocurrence(GAME_STATE, state)
 
 
 # Game DB functions
+
+target_cards = ["Lanzallamas"]
+
+def requires_target(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in target_cards
+
+
+
+@db_session
+def set_played_card(match_id: int, card_id: int):
+    match = Match[match_id]
+    match.played_card = card_id
+
+
+@db_session
+def set_turn_player(match_id: int, player_name: str):
+    match = Match[match_id]
+    match.turn_player = player_name
+
+
+@db_session
+def set_target_player(match_id: int, player_name: str):
+    match = Match[match_id]
+    match.target_player = player_name
+
+
+@db_session
+def get_played_card(match_id: int) -> int:
+    return Match[match_id].played_card
+
+
+@db_session
+def get_turn_player(match_id: int) -> str:
+    return Match[match_id].turn_player
+
+
+@db_session
+def get_target_player(match_id: int) -> str:
+    return Match[match_id].target_player
+
+
+@db_session
+def clean_played_card_data(match_id: int):
+    match = Match[match_id]
+    match.played_card = None
+    match.turn_player = None
+    match.target_player = None
 
 
 @db_session
@@ -524,6 +584,20 @@ def set_next_turn(match_id: int):
 
 
 @db_session
+def assign_next_turn_to(match_id: int, player_name: str):
+    match = _get_match(match_id)
+    player = get_player_by_name(player_name)
+    match.current_player = player.position
+
+
+@db_session
+def assign_next_turn_to(match_id: int, player_name: str):
+    match = _get_match(match_id)
+    player = get_player_by_name(player_name)
+    match.current_player = player.position
+
+
+@db_session
 def get_player_in_turn(match_id: int) -> str:
     match = _get_match(match_id)
     for player in match.players:
@@ -604,6 +678,15 @@ def delete_match(match_name):
 
 # ------------ player functions ----------------
 
+@db_session
+def count_infection_cards(player_name: str) -> int:
+    player = get_player_by_name(player_name)
+    return player.cards.filter(lambda c: c.type == CardType.CONTAGIO.value).count()
+
+@db_session
+def get_player_role(player_name: str) -> int:
+    player = get_player_by_name(player_name)
+    return get_role_name(player.rol)
 
 @db_session
 def get_card_name(card_id: int) -> str:
@@ -682,6 +765,8 @@ def is_deck_empty(match_id: int) -> bool:
 
 @db_session
 def get_player_match(player_name: str) -> int:
+    if not player_exists(player_name):
+        raise PlayerNotFound("Jugador no encontrado")
     player = get_player_by_name(player_name)
     if not player.match:
         raise PlayerNotInMatch("El jugador no está en partida")
@@ -744,6 +829,12 @@ def is_adyacent(player: Player, player_target: Player) -> bool:
     )
     return is_next or is_previous
 
+@db_session
+def check_adyacent_by_names(player_name: str, target_name: str) -> bool:
+    player = get_player_by_name(player_name)
+    target = get_player_by_name(target_name)
+    return is_adyacent(player, target)
+
 
 @db_session
 def get_player_hand(player_name: str) -> list:
@@ -762,7 +853,7 @@ def get_cards(player: Player) -> list:
                 "type": card.type,
             }
         )
-    return deck_data
+    return sorted(deck_data, key=lambda d: d["card_id"])
 
 
 @db_session
@@ -805,7 +896,7 @@ def get_game_state_for(player_name: str) -> dict:
 
     hand = get_cards(player)
     locations = _get_match_locations(match)
-    rol = _get_role_name(player.rol)
+    rol = get_role_name(player.rol)
 
     current_turn = list(
         filter(lambda p: p["location"] == match.current_player, locations)
@@ -856,6 +947,9 @@ def get_dead_players(match_id: int) -> list:
 
 # --------------- Deck Functions -----------------
 
+@db_session
+def card_exists(card_id: int) -> bool:
+    return Card.exists(id=card_id)
 
 @db_session
 def _get_discard_deck(match_id: int) -> Deck:

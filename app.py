@@ -84,6 +84,12 @@ async def websocket_endpoint(websocket: WebSocket):
             }
             await manager.broadcast("estado partida", state, match_id)
 
+            state = {
+                "turn": get_player_in_turn(match_id),
+                "game_state": get_game_state(match_id),
+            }
+            await manager.broadcast("estado partida", state, match_id)
+
             if db_is_match_initiated(match_name):
                 await manager.broadcast("muertes", get_dead_players(match_id), match_id)
 
@@ -117,6 +123,19 @@ async def handle_request(request, match_id, player_name, websocket):
             )
             if not is_la_cosa_alive(match_id):
                 await set_win(match_id, "La cosa ha muerto")
+
+        elif msg_type == "descartar carta":
+            await discard_player_card(player_name, content["card_id"])
+            await manager.send_message_to(
+                "cards", get_player_hand(player_name), player_name
+            )
+
+        elif msg_type == "omitir defensa":
+            await skip_defense(player_name)
+            await manager.send_message_to(
+                "cards", get_player_hand(player_name), player_name
+            )
+            await check_win(match_id)
 
         elif msg_type == "leave match":
             # Llamar a la función leave_match
