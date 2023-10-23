@@ -366,16 +366,16 @@ async def left_lobby(lobby_left: PlayerInMatch):
         delete_match(lobby_left.match_name)
         response = {
             "detail": lobby_left.player_name
-            + " abandono el lobby y la partida se elimino"
+            + " abandonó la sala y la partida fue eliminada"
         }
     else:
         left_match(lobby_left.player_name, lobby_left.match_name)
         data_msg = {
-            "message": lobby_left.player_name + " abandono el lobby",
+            "message": lobby_left.player_name + " abandonó la sala",
             "players": db_get_players(lobby_left.match_name),
         }
         await manager.broadcast(
             "player_left", data_msg, get_match_id_or_None(lobby_left.match_name)
         )
-        response = {"detail": lobby_left.player_name + " abandono el lobby"}
+        response = {"detail": lobby_left.player_name + " abandonó la sala"}
     return response

@@ -447,7 +447,7 @@ def test_leave_match():
     # leave match
     response = client.put("/match/leave", json=body)
     assert response.status_code == 200
-    assert response.json() == {"detail": namePlayer_that_leaves + " abandono el lobby"}
+    assert response.json() == {"detail": namePlayer_that_leaves + " abandonó la sala"}
     # check if player can leave again
     response = client.put("/match/leave", json=body)
     assert response.status_code == 400
@@ -470,7 +470,7 @@ def test_leave_match_player_host():
     response = client.put("/match/leave", json=body_match)
     assert response.status_code == 200
     assert response.json() == {
-        "detail": namePlayer_creator + " abandono el lobby y la partida se elimino"
+        "detail": namePlayer_creator + " abandonó la sala y la partida fue eliminada"
     }
 
 
