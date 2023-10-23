@@ -611,7 +611,7 @@ def no_humans_alive(match_id: int) -> bool:
     for player in match.players:
         if player.is_alive and is_human(player.player_name):
             return False
-
+    return True
 
 @db_session
 def is_la_cosa_alive(match_id: int) -> bool:
@@ -653,7 +653,7 @@ def get_winners(match_id: int, reason: str) -> list[str]:
             winners = _get_infected_players(match_id).filter(lambda p: p.is_alive)
             if match.last_infected is not None:
                 last_infected = get_player_by_name(match.last_infected)
-                winners.remove(last_infected)
+                winners = winners.filter(lambda p: p != last_infected)
     else:
         winners = []
     return [p.player_name for p in winners]
