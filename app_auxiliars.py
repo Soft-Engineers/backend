@@ -392,7 +392,6 @@ async def set_win(match_id: int, reason: str):
         "winners": winners,
         "reason": reason,
     }
-    print(winners)
     set_game_state(match_id, GAME_STATE["FINISHED"])
     await manager.broadcast("partida finalizada", content, match_id)
     # TODO: Limpiar la base de datos de la partida
