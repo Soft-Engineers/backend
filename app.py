@@ -12,7 +12,6 @@ from fastapi import (
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 
-from Database.Database import _match_exists
 from pydantic_models import *
 from connections import WebSocket
 from request import RequestException, parse_request
@@ -316,7 +315,7 @@ async def left_lobby(lobby_left: PlayerInMatch):
     """
     Left a lobby
     """
-    if not _match_exists(lobby_left.match_name):
+    if not match_exists(lobby_left.match_name):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
         )
