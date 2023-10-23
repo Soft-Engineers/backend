@@ -1,3 +1,4 @@
+from threading import Lock
 from fastapi import WebSocket
 from collections import defaultdict
 from Database.Database import (
@@ -9,6 +10,8 @@ from request import RequestException
 
 
 class ConnectionManager:
+    lock = Lock()
+
     def __init__(self):
         self.connections: dict = defaultdict(dict)
 
@@ -24,7 +27,9 @@ class ConnectionManager:
             raise RequestException("Match not found")
         if player_name is None or not player_exists(player_name):
             raise RequestException("Player not found")
+        self.lock.acquire()
         self.connections[match_id][player_name] = websocket
+        self.lock.release()
 
     def disconnect(self, player_name: str):
         try:
@@ -68,8 +73,10 @@ class ConnectionManager:
     async def broadcast(self, message_type: str, message_content, match_id: int):
         msg = self.__gen_msg(message_type, message_content)
 
+        self.lock.acquire()
         for socket in self.connections[match_id].values():
             try:
                 await socket.send_json(msg)
             except:
                 print("Socket closed")
+        self.lock.release()
