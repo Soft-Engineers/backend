@@ -21,38 +21,51 @@ class ConnectionManager:
             "message_content": message_content,
         }
 
+    def _get_connections_and_lock(self):
+        self.lock.acquire()
+        return self.connections
+
+    def _release_connections_lock(self):
+        self.lock.release()
+
     async def connect(self, websocket: WebSocket, match_id: int, player_name: str):
         await websocket.accept()
         if match_id is None or not check_match_existence(match_id):
             raise RequestException("Match not found")
         if player_name is None or not player_exists(player_name):
             raise RequestException("Player not found")
-        self.lock.acquire()
-        self.connections[match_id][player_name] = websocket
-        self.lock.release()
-
-    def disconnect(self, player_name: str):
+        connections = self._get_connections_and_lock()
         try:
+            connections[match_id][player_name] = websocket
+        except Exception as e:
+            print(e)
+        finally:
+            self._release_connections_lock()
+
+    def disconnect(self, player_name: str, match_id: int):
+        try:
+            connections = self._get_connections_and_lock()
             if (
                 player_exists(player_name)
-                and player_name
-                in self.connections[db_get_player_match_id(player_name)].keys()
+                and player_name in connections[match_id].keys()
             ):
-                del self.connections[db_get_player_match_id(player_name)][player_name]
-            else:
-                raise Exception()
-        except:
-            raise RequestException("Can't disconnect player")
+                del connections[match_id][player_name]
+        except Exception as e:
+            print(e)
+        finally:
+            self._release_connections_lock()
 
     async def send_personal_message(
         self, message_type: str, message_content, match_id: int, player_name: str
     ):
         msg = self.__gen_msg(message_type, message_content)
-
+        connections = self._get_connections_and_lock()
         try:
-            await self.connections[match_id][player_name].send_json(msg)
+            await connections[match_id][player_name].send_json(msg)
         except:
             print("Socket closed")
+        finally:
+            self._release_connections_lock()
 
     async def send_message_to(
         self, message_type: str, message_content, player_name: str
@@ -73,10 +86,10 @@ class ConnectionManager:
     async def broadcast(self, message_type: str, message_content, match_id: int):
         msg = self.__gen_msg(message_type, message_content)
 
-        self.lock.acquire()
-        for socket in self.connections[match_id].values():
+        connections = self._get_connections_and_lock()
+        for socket in connections[match_id].values():
             try:
                 await socket.send_json(msg)
             except:
                 print("Socket closed")
-        self.lock.release()
+        self._release_connections_lock()

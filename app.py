@@ -97,7 +97,7 @@ async def websocket_endpoint(websocket: WebSocket):
             request = await websocket.receive_text()
             await handle_request(request, match_id, player_name, websocket)
     except WebSocketDisconnect:
-        manager.disconnect(player_name)
+        manager.disconnect(player_name, match_id)
     except Exception as e:
         print(str(e))
 
@@ -145,7 +145,7 @@ async def handle_request(request, match_id, player_name, websocket):
                 exchange_card(player_name, content["card_id"], target)
 
                 alert = "Esperando intercambio entre " + player_name + " y " + target
-                await manager.broadcast("notificacion espera", alert, match_id)
+                await manager.broadcast("notificación jugada", alert, match_id)
             elif get_game_state(match_id) == GAME_STATE["WAIT_EXCHANGE"]:
                 target = get_player_in_turn(match_id)
                 await wait_exchange_card(target, content["card_id"])

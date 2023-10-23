@@ -394,6 +394,4 @@ async def set_win(match_id: int, reason: str):
     }
     set_game_state(match_id, GAME_STATE["FINISHED"])
     await manager.broadcast("partida finalizada", content, match_id)
-    # TODO: Limpiar la base de datos de la partida
-    # y desvincular a los jugadores de la partida
     raise FinishedMatchException("Partida finalizada")

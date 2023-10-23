@@ -679,7 +679,9 @@ def delete_match(match_name):
     match = Match.get(name=match_name)
     for player in match.players:
         player.match = None
-        match.players.remove(player)
+        player.is_host = False
+        player.in_game = False
+        player.cards.clear()
     match.delete()
 
 

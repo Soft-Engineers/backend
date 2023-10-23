@@ -94,7 +94,6 @@ class TestPlayCardMsgFunction(TestCase):
         self.assertEqual(alert, "PlayerC jugó CardY")
 
 
-
 class test_check_target_player(TestCase):
     @patch("app_auxiliars.player_exists", return_value=True)
     @patch("app_auxiliars.is_player_alive", return_value=True)
