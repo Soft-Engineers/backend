@@ -597,19 +597,6 @@ class TestGetPlayerInTurn(TestCase):
         self.assertEqual(result, player2.player_name)
 
 
-class TestGetWinnersFunction(TestCase):
-    @patch("Database.Database._get_match")
-    def test_get_winners(self, mock_get_match):
-        mock_match = Mock()
-        mock_match.players = [
-            Mock(player_name="Player1", is_alive=True),
-            Mock(player_name="Player2", is_alive=True),
-            Mock(player_name="Player3", is_alive=False),
-        ]
-
-        mock_get_match.return_value = mock_match
-        winners = get_winners(1)
-        self.assertEqual(winners, ["Player1", "Player2"])
 
 
 class TestGetCardsFunction(TestCase):

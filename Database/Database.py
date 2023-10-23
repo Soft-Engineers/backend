@@ -98,10 +98,10 @@ def get_state_name(state: int) -> str:
 
 target_cards = ["Lanzallamas"]
 
+
 def requires_target(card_id: int) -> bool:
     card_name = get_card_name(card_id)
     return card_name in target_cards
-
 
 
 @db_session
@@ -530,6 +530,12 @@ def set_game_state(match_id: int, state: int):
 
 
 @db_session
+def get_match_name(match_id: int) -> str:
+    match = _get_match(match_id)
+    return match.name
+
+
+@db_session
 def get_match_id(match_name):
     if not match_exists(match_name):
         raise MatchNotFound("Partida no encontrada")
@@ -613,6 +619,7 @@ def no_humans_alive(match_id: int) -> bool:
             return False
     return True
 
+
 @db_session
 def is_la_cosa_alive(match_id: int) -> bool:
     match = _get_match(match_id)
@@ -678,15 +685,18 @@ def delete_match(match_name):
 
 # ------------ player functions ----------------
 
+
 @db_session
 def count_infection_cards(player_name: str) -> int:
     player = get_player_by_name(player_name)
     return player.cards.filter(lambda c: c.type == CardType.CONTAGIO.value).count()
 
+
 @db_session
 def get_player_role(player_name: str) -> int:
     player = get_player_by_name(player_name)
     return get_role_name(player.rol)
+
 
 @db_session
 def get_card_name(card_id: int) -> str:
@@ -829,6 +839,7 @@ def is_adyacent(player: Player, player_target: Player) -> bool:
     )
     return is_next or is_previous
 
+
 @db_session
 def check_adyacent_by_names(player_name: str, target_name: str) -> bool:
     player = get_player_by_name(player_name)
@@ -947,9 +958,11 @@ def get_dead_players(match_id: int) -> list:
 
 # --------------- Deck Functions -----------------
 
+
 @db_session
 def card_exists(card_id: int) -> bool:
     return Card.exists(id=card_id)
+
 
 @db_session
 def _get_discard_deck(match_id: int) -> Deck:

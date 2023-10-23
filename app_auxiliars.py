@@ -48,6 +48,8 @@ async def execute_card(match_id: int, def_card_id: int = None):
         pass
 
     clean_played_card_data(match_id)
+    if not is_la_cosa_alive(match_id):
+        await set_win(match_id, "La cosa ha muerto")
 
 
 async def persist_played_card_data(
@@ -240,7 +242,11 @@ async def discard_player_card(player_name: str, card_id: int):
         raise InvalidCard("No tienes esa carta en tu mano")
     if card_name == "La Cosa":
         raise InvalidCard("No puedes jugar la carta La Cosa")
-    if role == "INFECTADO" and count_infection_cards(player_name) == 1:
+    if (
+        role == "INFECTADO"
+        and card_name == "¡Infectado!"
+        and count_infection_cards(player_name) == 1
+    ):
         raise InvalidCard("No puedes descartar tu última carta de infectado")
 
     discard_card(player_name, card_id)
@@ -391,3 +397,4 @@ async def set_win(match_id: int, reason: str):
     await manager.broadcast("partida finalizada", content, match_id)
     # TODO: Limpiar la base de datos de la partida
     # y desvincular a los jugadores de la partida
+    raise FinishedMatchException("Partida finalizada")

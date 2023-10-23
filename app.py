@@ -121,8 +121,6 @@ async def handle_request(request, match_id, player_name, websocket):
             await manager.send_message_to(
                 "cards", get_player_hand(player_name), player_name
             )
-            if not is_la_cosa_alive(match_id):
-                await set_win(match_id, "La cosa ha muerto")
 
         elif msg_type == "descartar carta":
             await discard_player_card(player_name, content["card_id"])
@@ -160,6 +158,8 @@ async def handle_request(request, match_id, player_name, websocket):
                 await set_win(match_id, "Declaración incorrecta")
         else:
             pass
+    except FinishedMatchException as e:
+        pass
     except (RequestException, GameException, DatabaseError) as e:
         await manager.send_error_message(str(e), websocket)
 
