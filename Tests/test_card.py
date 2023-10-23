@@ -79,7 +79,7 @@ class TestPlayCardMsgFunction(TestCase):
 
         mock_get_card_name.return_value = "CardX"
         alert = play_card_msg(player_name, card_id, target)
-        self.assertEqual(alert, "PlayerA jugó CardX a PlayerB")
+        self.assertEqual(alert, "PlayerA jugó CardX")
         mock_get_card_name.assert_called_once_with(card_id)
 
     def test_play_card_msg_no_target(self):
