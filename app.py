@@ -11,6 +11,7 @@ from fastapi import (
 )
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
+
 from pydantic_models import *
 from connections import WebSocket
 from request import RequestException, parse_request
@@ -96,7 +97,7 @@ async def websocket_endpoint(websocket: WebSocket):
             request = await websocket.receive_text()
             await handle_request(request, match_id, player_name, websocket)
     except WebSocketDisconnect:
-        manager.disconnect(player_name)
+        manager.disconnect(player_name, match_id)
     except Exception as e:
         print(str(e))
 
@@ -144,7 +145,7 @@ async def handle_request(request, match_id, player_name, websocket):
                 exchange_card(player_name, content["card_id"], target)
 
                 alert = "Esperando intercambio entre " + player_name + " y " + target
-                await manager.broadcast("notificacion espera", alert, match_id)
+                await manager.broadcast("notificación jugada", alert, match_id)
             elif get_game_state(match_id) == GAME_STATE["WAIT_EXCHANGE"]:
                 target = get_player_in_turn(match_id)
                 await wait_exchange_card(target, content["card_id"])
@@ -333,8 +334,8 @@ async def start_game(match_player: PlayerInMatch):
         return {"detail": "Partida inicializada"}
 
 
-@app.delete("/match/leave", tags=["Matches"], status_code=status.HTTP_200_OK)
-async def left_lobby(lobby_left: PlayerInMatch = Depends()):
+@app.put("/match/leave", tags=["Matches"], status_code=status.HTTP_200_OK)
+async def left_lobby(lobby_left: PlayerInMatch):
     """
     Left a lobby
     """
@@ -356,9 +357,9 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
             detail="Jugador no está en la partida",
         )
     elif get_player_by_name(lobby_left.player_name).is_host:
-        data_msg = (
-            "La partida ha sido eliminada debido a que el host la ha abandonado",
-        )
+        data_msg = {
+            "message_content": "La partida ha sido eliminada debido a que el host la ha abandonado",
+        }
         await manager.broadcast(
             "match_deleted", data_msg, get_match_id(lobby_left.match_name)
         )
@@ -369,9 +370,12 @@ async def left_lobby(lobby_left: PlayerInMatch = Depends()):
         }
     else:
         left_match(lobby_left.player_name, lobby_left.match_name)
-        data_msg = (lobby_left.player_name + " ha abandonado el lobby",)
+        data_msg = {
+            "message": lobby_left.player_name + " abandono el lobby",
+            "players": db_get_players(lobby_left.match_name),
+        }
         await manager.broadcast(
-            "player_left", data_msg, get_match_id(lobby_left.match_name)
+            "player_left", data_msg, get_match_id_or_None(lobby_left.match_name)
         )
         response = {"detail": lobby_left.player_name + " abandono el lobby"}
     return response

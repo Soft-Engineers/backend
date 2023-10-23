@@ -445,11 +445,11 @@ def test_leave_match():
     assert response.status_code == 200
     assert response.json() == {"detail": "ok"}
     # leave match
-    response = client.delete("/match/leave", params=body)
+    response = client.put("/match/leave", json=body)
     assert response.status_code == 200
     assert response.json() == {"detail": namePlayer_that_leaves + " abandono el lobby"}
     # check if player can leave again
-    response = client.delete("/match/leave", params=body)
+    response = client.put("/match/leave", json=body)
     assert response.status_code == 400
     assert response.json() == {"detail": "Jugador no está en la partida"}
 
@@ -467,7 +467,7 @@ def test_leave_match_player_host():
     response = client.post("/match/create", json=body_match)
     _assert_match_created(response)
     # leave match
-    response = client.delete("/match/leave", params=body_match)
+    response = client.put("/match/leave", json=body_match)
     assert response.status_code == 200
     assert response.json() == {
         "detail": namePlayer_creator + " abandono el lobby y la partida se elimino"
@@ -488,7 +488,7 @@ def test_leave_match_not_exist():
     _assert_match_created(response)
     # leave match
     body_match["match_name"] = "not_exist"
-    response = client.delete("/match/leave", params=body_match)
+    response = client.put("/match/leave", json=body_match)
     assert response.status_code == 404
     assert response.json() == {"detail": "Partida no encontrada"}
 
@@ -507,6 +507,6 @@ def test_leave_match_player_not_exist():
     _assert_match_created(response)
     # leave match
     body_match["player_name"] = "not_exist"
-    response = client.delete("/match/leave", params=body_match)
+    response = client.put("/match/leave", json=body_match)
     assert response.status_code == 404
     assert response.json() == {"detail": "Jugador no existe"}

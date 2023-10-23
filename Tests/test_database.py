@@ -597,8 +597,6 @@ class TestGetPlayerInTurn(TestCase):
         self.assertEqual(result, player2.player_name)
 
 
-
-
 class TestGetCardsFunction(TestCase):
     @patch("Database.Database.Player")
     def test_get_cards(self, mock_player):
