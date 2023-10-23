@@ -121,7 +121,6 @@ async def handle_request(request, match_id, player_name, websocket):
             await manager.send_message_to(
                 "cards", get_player_hand(player_name), player_name
             )
-            await check_win(match_id)
 
         elif msg_type == "descartar carta":
             await discard_player_card(player_name, content["card_id"])
@@ -134,7 +133,6 @@ async def handle_request(request, match_id, player_name, websocket):
             await manager.send_message_to(
                 "cards", get_player_hand(player_name), player_name
             )
-            await check_win(match_id)
 
         elif msg_type == "leave match":
             # Llamar a la función leave_match
@@ -153,8 +151,15 @@ async def handle_request(request, match_id, player_name, websocket):
             else:
                 raise GameException("No puedes intercambiar cartas en este momento")
 
+        elif msg_type == "declaración":
+            if valid_declaration(match_id, player_name):
+                await set_win(match_id, "No quedan humanos vivos")
+            else:
+                await set_win(match_id, "Declaración incorrecta")
         else:
             pass
+    except FinishedMatchException as e:
+        pass
     except (RequestException, GameException, DatabaseError) as e:
         await manager.send_error_message(str(e), websocket)
 

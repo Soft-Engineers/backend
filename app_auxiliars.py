@@ -48,6 +48,8 @@ async def execute_card(match_id: int, def_card_id: int = None):
         pass
 
     clean_played_card_data(match_id)
+    if not is_la_cosa_alive(match_id):
+        await set_win(match_id, "La cosa ha muerto")
 
 
 async def persist_played_card_data(
@@ -240,7 +242,11 @@ async def discard_player_card(player_name: str, card_id: int):
         raise InvalidCard("No tienes esa carta en tu mano")
     if card_name == "La Cosa":
         raise InvalidCard("No puedes jugar la carta La Cosa")
-    if role == "INFECTADO" and count_infection_cards(player_name) == 1:
+    if (
+        role == "INFECTADO"
+        and card_name == "¡Infectado!"
+        and count_infection_cards(player_name) == 1
+    ):
         raise InvalidCard("No puedes descartar tu última carta de infectado")
 
     discard_card(player_name, card_id)
@@ -368,21 +374,26 @@ def check_valid_exchange(card_id: int, player_name: str, target: str):
 # ----------- Check win ------------
 
 
-async def check_win(match_id: int):
-    reason = ""
-    win = check_win_condition(match_id)
-    if not win:
+def valid_declaration(match_id: int, player_name: str) -> bool:
+    if get_game_state(match_id) != GAME_STATE["PLAY_TURN"]:
+        raise GameException("No puedes declarar en este momento")
+    if not is_player_turn(player_name):
+        raise GameException("No es tu turno")
+    if not is_lacosa(player_name):
+        raise GameException("Solo La Cosa puede declarar")
+    return no_humans_alive(match_id)
+
+
+async def set_win(match_id: int, reason: str):
+    if not reason:
         return None
-    set_game_state(match_id, GAME_STATE["FINISHED"])
-
-    if check_one_player_alive(match_id):
-        reason = "Solo queda un jugador vivo"
-    elif not is_la_cosa_alive(match_id):
-        reason = "La cosa ha muerto"
-
-    winners = get_winners(match_id)
+    winners = get_winners(match_id, reason)
     content = {
         "winners": winners,
         "reason": reason,
     }
+    set_game_state(match_id, GAME_STATE["FINISHED"])
     await manager.broadcast("partida finalizada", content, match_id)
+    # TODO: Limpiar la base de datos de la partida
+    # y desvincular a los jugadores de la partida
+    raise FinishedMatchException("Partida finalizada")
