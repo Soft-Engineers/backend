@@ -66,12 +66,13 @@ class ConnectionManager:
     ):
         msg = self.__gen_msg(message_type, message_content)
         connections = self._get_connections_and_lock(match_id)
+        copy_connections = connections.copy()
+        self._release_connections_lock()
         try:
-            await connections[player_name].send_json(msg)
+            await copy_connections[player_name].send_json(msg)
         except:
             print("Socket closed")
-        finally:
-            self._release_connections_lock()
+
 
     async def send_message_to(
         self, message_type: str, message_content, player_name: str
