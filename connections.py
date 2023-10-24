@@ -21,9 +21,15 @@ class ConnectionManager:
             "message_content": message_content,
         }
 
-    def _get_connections_and_lock(self):
+    def _get_connections_and_lock(self, match_id: int):
         self.lock.acquire()
-        return self.connections
+        try:
+            connections = self.connections[match_id]
+        except Exception as e:
+            print(e)
+            self.lock.release()
+            raise RequestException("Match not found")
+        return connections
 
     def _release_connections_lock(self):
         self.lock.release()
@@ -34,22 +40,22 @@ class ConnectionManager:
             raise RequestException("Match not found")
         if player_name is None or not player_exists(player_name):
             raise RequestException("Player not found")
-        connections = self._get_connections_and_lock()
+        connections = self._get_connections_and_lock(match_id)
         try:
-            connections[match_id][player_name] = websocket
+            connections[player_name] = websocket
         except Exception as e:
             print(e)
         finally:
             self._release_connections_lock()
 
     def disconnect(self, player_name: str, match_id: int):
+        connections = self._get_connections_and_lock(match_id)
         try:
-            connections = self._get_connections_and_lock()
             if (
                 player_exists(player_name)
-                and player_name in connections[match_id].keys()
+                and player_name in connections.keys()
             ):
-                del connections[match_id][player_name]
+                del connections[player_name]
         except Exception as e:
             print(e)
         finally:
@@ -59,9 +65,9 @@ class ConnectionManager:
         self, message_type: str, message_content, match_id: int, player_name: str
     ):
         msg = self.__gen_msg(message_type, message_content)
-        connections = self._get_connections_and_lock()
+        connections = self._get_connections_and_lock(match_id)
         try:
-            await connections[match_id][player_name].send_json(msg)
+            await connections[player_name].send_json(msg)
         except:
             print("Socket closed")
         finally:
@@ -86,10 +92,11 @@ class ConnectionManager:
     async def broadcast(self, message_type: str, message_content, match_id: int):
         msg = self.__gen_msg(message_type, message_content)
 
-        connections = self._get_connections_and_lock()
-        for socket in connections[match_id].values():
-            try:
-                await socket.send_json(msg)
-            except:
-                print("Socket closed")
+        connections = self._get_connections_and_lock(match_id)
+        copy_connections = connections.copy()
         self._release_connections_lock()
+        try:
+            for socket in copy_connections.values():
+                await socket.send_json(msg)
+        except Exception as e:
+            print(e)
