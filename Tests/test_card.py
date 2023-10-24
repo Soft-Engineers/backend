@@ -1,10 +1,10 @@
 from unittest.mock import Mock, patch
 from unittest import TestCase
 from Database.Database import *
-from app_auxiliars import *
+from Game.app_auxiliars import *
 import pytest
 from unittest.mock import AsyncMock
-
+from Game.app_auxiliars import *
 
 class _WebStub:
     def __init__(self):

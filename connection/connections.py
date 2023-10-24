@@ -1,11 +1,8 @@
 from threading import Lock
 from fastapi import WebSocket
 from collections import defaultdict
-from Database.Database import (
-    db_get_player_match_id,
-    player_exists,
-    check_match_existence,
-)
+from Database.models.Match import check_match_existence
+from Database.models.Player import player_exists, get_player_match
 from request import RequestException
 
 
@@ -77,7 +74,7 @@ class ConnectionManager:
     async def send_message_to(
         self, message_type: str, message_content, player_name: str
     ):
-        match_id = db_get_player_match_id(player_name)
+        match_id = get_player_match(player_name)
 
         await self.send_personal_message(
             message_type, message_content, match_id, player_name

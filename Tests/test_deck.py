@@ -2,10 +2,10 @@ from unittest.mock import Mock, patch
 from unittest import TestCase
 from Database.Database import *
 from Tests.auxiliar_functions import *
-from Database.Database import _create_deck, _deal_cards
-from Database.cards import card_templates
+from Database.models.Match import _create_deck, _deal_cards
+from cards.cards import card_templates
 import random
-
+from Game.app_auxiliars import *
 
 class _pset(set):
     def filter(self, f):

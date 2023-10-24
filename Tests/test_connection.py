@@ -1,8 +1,8 @@
-from app_auxiliars import *
+from Game.app_auxiliars import *
 from Tests.auxiliar_functions import *
 from request import RequestException
 import pytest
-
+from Game.app_auxiliars import *
 
 class _WebStub:
     def __init__(self):

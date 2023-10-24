@@ -2,8 +2,6 @@ from fastapi import (
     FastAPI,
     HTTPException,
     status,
-    File,
-    UploadFile,
     Depends,
     Form,
     WebSocketDisconnect,
@@ -11,12 +9,12 @@ from fastapi import (
 )
 from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
-
 from pydantic_models import *
-from connections import WebSocket
+from connection.connections import WebSocket
 from request import RequestException, parse_request
-from game_exception import GameException
-from app_auxiliars import *
+from Game.game_exception import GameException
+from Game.app_auxiliars import *
+
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -73,7 +71,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
             positions = get_players_positions(match_name)
             await manager.broadcast("posiciones", positions, match_id)
-
         while True:
             # Mandar la info de la partida a todos los jugadores
             # TODO: Sacar cuando se haga todo por sockets
@@ -233,7 +230,7 @@ async def is_host(player_in_match: PlayerInMatch = Depends()):
             status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
         )
     elif not is_in_match(
-        get_player_id(player_in_match.player_name),
+        player_in_match.player_name,
         get_match_id(player_in_match.match_name),
     ):
         raise HTTPException(
@@ -301,7 +298,7 @@ async def start_game(match_player: PlayerInMatch):
             status_code=status.HTTP_404_NOT_FOUND, detail="Jugador no encontrado"
         )
     elif not is_in_match(
-        get_player_id(match_player.player_name), get_match_id(match_player.match_name)
+        match_player.player_name, get_match_id(match_player.match_name)
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -349,7 +346,7 @@ async def left_lobby(lobby_left: PlayerInMatch):
             detail="Jugador no existe",
         )
     elif not is_in_match(
-        get_player_by_name(lobby_left.player_name).id,
+        lobby_left.player_name,
         get_match_id(lobby_left.match_name),
     ):
         raise HTTPException(

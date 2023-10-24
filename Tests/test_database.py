@@ -3,6 +3,7 @@ from unittest import TestCase
 from Database.Database import *
 from Tests.auxiliar_functions import *
 from app import MAX_LEN_ALIAS
+from Game.app_auxiliars import *
 
 # python3 -m unittest Tests.test_database
 

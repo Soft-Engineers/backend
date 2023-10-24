@@ -5,6 +5,7 @@ from app import *
 from fastapi.testclient import TestClient
 from Tests.auxiliar_functions import *
 from app import MAX_LEN_ALIAS
+from Game.app_auxiliars import *
 
 
 client = TestClient(app)

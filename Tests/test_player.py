@@ -5,6 +5,7 @@ from Database.Database import *
 from base64 import b64encode
 from Tests.auxiliar_functions import *
 from unittest.mock import ANY
+from Game.app_auxiliars import *
 
 client = TestClient(app)
 

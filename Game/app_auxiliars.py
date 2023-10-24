@@ -1,7 +1,11 @@
 from Database.Database import *
-from game_exception import *
-from connections import WebSocket, ConnectionManager
+from Game.game_exception import *
+from connection.connections import WebSocket, ConnectionManager
 from typing import Optional
+from Database.models.Card import *
+from Database.models.Player import *
+from Database.models.Match import *
+from Database.models.Deck import *
 
 manager = ConnectionManager()
 
@@ -25,6 +29,14 @@ async def play_whisky(player_name: str):
             "trigger_card": "Whisky",
         }
         await manager.send_personal_message("revelar cartas", msg, match_id, p)
+
+
+def play_lanzallamas(player_name: str, target_name: str):
+    if target_name is None:
+        raise InvalidCard("Lanzallamas requiere un objetivo")
+    if not is_adyacent(player_name, target_name):
+        raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
+    set_player_alive(target_name, False)
 
 
 async def execute_card(match_id: int, def_card_id: int = None):
@@ -73,7 +85,7 @@ async def persist_played_card_data(
             raise InvalidPlayer("El jugador seleccionado está muerto")
         if get_player_match(player_name) != get_player_match(target_name):
             raise InvalidPlayer("Jugador no válido")
-        if not check_adyacent_by_names(player_name, target_name):
+        if not is_adyacent(player_name, target_name):
             raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
 
     match_id = get_player_match(player_name)
@@ -142,7 +154,8 @@ async def _play_defense_card(
     )
 
 
-async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
+# async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
+async def play_card(player_name: str, card_id: int, target: str = ""):
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
 

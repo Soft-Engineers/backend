@@ -2,7 +2,7 @@ from unittest.mock import Mock, patch
 from unittest import TestCase
 from Database.Database import *
 from Tests.auxiliar_functions import *
-
+from Game.app_auxiliars import *
 
 class test_generate_unique_testing_name(TestCase):
     def test_generate_unique_testing_name(self):
