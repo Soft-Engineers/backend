@@ -7,6 +7,7 @@ from Database.models.Deck import *
 from Tests.auxiliar_functions import *
 from app import MAX_LEN_ALIAS
 from Game.app_auxiliars import *
+from Database.models.Match import _get_match_by_name
 
 # python3 -m unittest Tests.test_database
 
@@ -20,7 +21,7 @@ class test_db_create_match(TestCase):
 
         db_create_match(match_name, player_name, 4, 12)
 
-        match = get_match_by_name(match_name)
+        match = _get_match_by_name(match_name)
         player = get_player_by_name(player_name)
 
         self.assertEqual(match.name, match_name)

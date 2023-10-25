@@ -23,13 +23,6 @@ def _get_match_by_name(match_name: str) -> Match:
 
 
 @db_session
-def get_match_by_name(match_name: str) -> Match:
-    if not Match.exists(name=match_name):
-        raise MatchNotFound("Partida no encontrada")
-    return Match.get(name=match_name)
-
-
-@db_session
 def get_match_id(match_name):
     if not match_exists(match_name):
         raise MatchNotFound("Partida no encontrada")
