@@ -3,7 +3,10 @@ from fastapi import WebSocket
 from collections import defaultdict
 from Database.models.Match import check_match_existence
 from Database.models.Player import player_exists, get_player_match
-from request import RequestException
+
+
+class ManagerException(Exception):
+    pass
 
 
 class ConnectionManager:
@@ -25,7 +28,7 @@ class ConnectionManager:
         except Exception as e:
             print(e)
             self.lock.release()
-            raise RequestException("Match not found")
+            raise ManagerException("Match not found")
         return connections
 
     def _release_connections_lock(self):
@@ -34,9 +37,9 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket, match_id: int, player_name: str):
         await websocket.accept()
         if match_id is None or not check_match_existence(match_id):
-            raise RequestException("Match not found")
+            raise ManagerException("Match not found")
         if player_name is None or not player_exists(player_name):
-            raise RequestException("Player not found")
+            raise ManagerException("Player not found")
         connections = self._get_connections_and_lock(match_id)
         try:
             connections[player_name] = websocket
@@ -48,10 +51,7 @@ class ConnectionManager:
     def disconnect(self, player_name: str, match_id: int):
         connections = self._get_connections_and_lock(match_id)
         try:
-            if (
-                player_exists(player_name)
-                and player_name in connections.keys()
-            ):
+            if player_exists(player_name) and player_name in connections.keys():
                 del connections[player_name]
         except Exception as e:
             print(e)
@@ -69,7 +69,6 @@ class ConnectionManager:
             await copy_connections[player_name].send_json(msg)
         except:
             print("Socket closed")
-
 
     async def send_message_to(
         self, message_type: str, message_content, player_name: str

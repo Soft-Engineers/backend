@@ -7,6 +7,7 @@ from cards.cards import card_templates
 import random
 from Game.app_auxiliars import *
 
+
 class _pset(set):
     def filter(self, f):
         filtered = _pset()

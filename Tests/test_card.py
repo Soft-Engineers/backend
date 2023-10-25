@@ -6,6 +6,7 @@ import pytest
 from unittest.mock import AsyncMock
 from Game.app_auxiliars import *
 
+
 class _WebStub:
     def __init__(self):
         super().__init__()

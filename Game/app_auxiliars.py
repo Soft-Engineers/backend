@@ -14,6 +14,9 @@ manager = ConnectionManager()
 # y que no deben ir en Database.py ya que no son transacciones.
 # Ninguna función de este módulo debería requerir @db_session
 
+# Hubiera sido mejor que la lógica del juego esté separada
+# del envío de mensajes, pero es mucho trabajo cambiarlo.
+
 
 async def play_whisky(player_name: str):
     match_id = get_player_match(player_name)

@@ -11,8 +11,7 @@ from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic_models import *
 from connection.connections import WebSocket
-from request import RequestException, parse_request
-from Game.game_exception import GameException
+from request_handler import handle_request
 from Game.app_auxiliars import *
 
 
@@ -97,69 +96,6 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(player_name, match_id)
     except Exception as e:
         print(str(e))
-
-
-# Request handler
-async def handle_request(request, match_id, player_name, websocket):
-    try:
-        request = parse_request(request)
-        msg_type, content = request
-        # Los message_type se pueden cambiar por enums
-        if msg_type == "Chat":
-            pass
-
-        elif msg_type == "robar carta":
-            pickup_card(player_name)
-            await manager.send_message_to(
-                "cards", get_player_hand(player_name), player_name
-            )
-
-        elif msg_type == "jugar carta":
-            await play_card(player_name, content["card_id"], content["target"])
-            await manager.send_message_to(
-                "cards", get_player_hand(player_name), player_name
-            )
-
-        elif msg_type == "descartar carta":
-            await discard_player_card(player_name, content["card_id"])
-            await manager.send_message_to(
-                "cards", get_player_hand(player_name), player_name
-            )
-
-        elif msg_type == "omitir defensa":
-            await skip_defense(player_name)
-            await manager.send_message_to(
-                "cards", get_player_hand(player_name), player_name
-            )
-
-        elif msg_type == "leave match":
-            # Llamar a la función leave_match
-            pass
-
-        elif msg_type == "intercambiar carta":
-            if get_game_state(match_id) == GAME_STATE["EXCHANGE"]:
-                target = get_next_player(match_id)
-                exchange_card(player_name, content["card_id"], target)
-
-                alert = "Esperando intercambio entre " + player_name + " y " + target
-                await manager.broadcast("notificación jugada", alert, match_id)
-            elif get_game_state(match_id) == GAME_STATE["WAIT_EXCHANGE"]:
-                target = get_player_in_turn(match_id)
-                await wait_exchange_card(target, content["card_id"])
-            else:
-                raise GameException("No puedes intercambiar cartas en este momento")
-
-        elif msg_type == "declaración":
-            if valid_declaration(match_id, player_name):
-                await set_win(match_id, "No quedan humanos vivos")
-            else:
-                await set_win(match_id, "Declaración incorrecta")
-        else:
-            pass
-    except FinishedMatchException as e:
-        pass
-    except (RequestException, GameException, DatabaseError) as e:
-        await manager.send_error_message(str(e), websocket)
 
 
 @app.get("/match/list", tags=["Matches"], status_code=200)
