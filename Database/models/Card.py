@@ -1,7 +1,7 @@
 from pony.orm import *
 from Database.Database import Card
 from Database.exceptions import *
-from cards.cards import *
+from Game.cards.cards import *
 
 
 # --------- Card functions --------- #

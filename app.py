@@ -11,9 +11,9 @@ from Database.Database import *
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic_models import *
 from connection.connections import WebSocket
-from request_handler import handle_request
+from connection.request_handler import handle_request
 from Game.app_auxiliars import *
-
+from connection.socket_messages import *
 
 MAX_LEN_ALIAS = 16
 MIN_LEN_ALIAS = 3
@@ -59,43 +59,47 @@ async def websocket_endpoint(websocket: WebSocket):
         match_id = get_match_id_or_None(match_name)
         await manager.connect(websocket, match_id, player_name)
 
-        # Enviar estado inicial de la partida
-        # Si la partida esta iniciada
-
         if db_is_match_initiated(match_name):
-            data = get_game_state_for(player_name)
+            await _send_initial_state(match_id, player_name)
+        else:
+            await _send_lobby_players(match_id)
 
-            # Estado inicial
-            await manager.send_message_to("estado inicial", data, player_name)
-
-            positions = get_players_positions(match_name)
-            await manager.broadcast("posiciones", positions, match_id)
         while True:
-            # Mandar la info de la partida a todos los jugadores
-            # TODO: Sacar cuando se haga todo por sockets
-            data = db_get_players(match_name)
-            await manager.broadcast("jugadores lobby", data, match_id)
-            state = {
-                "turn": get_player_in_turn(match_id),
-                "game_state": get_game_state(match_id),
-            }
-            await manager.broadcast("estado partida", state, match_id)
-
-            state = {
-                "turn": get_player_in_turn(match_id),
-                "game_state": get_game_state(match_id),
-            }
-            await manager.broadcast("estado partida", state, match_id)
-
             if db_is_match_initiated(match_name):
-                await manager.broadcast("muertes", get_dead_players(match_id), match_id)
+                await _send_game_state(match_id)
 
             request = await websocket.receive_text()
             await handle_request(request, match_id, player_name, websocket)
+
     except WebSocketDisconnect:
         manager.disconnect(player_name, match_id)
     except Exception as e:
         print(str(e))
+
+
+async def _send_initial_state(match_id: int, player_name: str):
+    data = get_game_state_for(player_name)
+    await manager.send_message_to(INITIAL_STATE, data, player_name)
+
+    positions = get_players_positions(get_match_name(match_id))
+    await manager.broadcast(POSITIONS, positions, match_id)
+
+
+async def _send_lobby_players(match_id: int):
+    data = db_get_players(get_match_name(match_id))
+    await manager.broadcast(LOBBY_PLAYERS, data, match_id)
+
+
+async def _send_game_state(match_id: int):
+    state = {
+        "turn": get_player_in_turn(match_id),
+        "game_state": get_game_state(match_id),
+    }
+    await manager.broadcast(MATCH_STATE, state, match_id)
+    await manager.broadcast(DEAD_PLAYERS, get_dead_players(match_id), match_id)
+
+
+# ---------------- API REST ------------- #
 
 
 @app.get("/match/list", tags=["Matches"], status_code=200)

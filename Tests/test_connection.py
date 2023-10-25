@@ -1,6 +1,6 @@
 from Game.app_auxiliars import *
 from Tests.auxiliar_functions import *
-from request_handler import RequestException
+from connection.request_handler import RequestException
 import pytest
 from Game.app_auxiliars import *
 

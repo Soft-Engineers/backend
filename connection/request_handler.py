@@ -1,7 +1,7 @@
 import json
 from Game.app_auxiliars import *
 from connection.connections import *
-from socket_api import *
+from connection.socket_messages import *
 
 
 # Custom request exceptions
@@ -43,7 +43,7 @@ async def handle_request(request, match_id, player_name, websocket):
             raise RequestException("Petición no reconocida")
     except FinishedMatchException as e:
         pass
-    except (RequestException, GameException, DatabaseError) as e:
+    except (RequestException, GameException, DatabaseError, ManagerException) as e:
         await manager.send_error_message(str(e), websocket)
 
 

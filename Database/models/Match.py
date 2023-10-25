@@ -1,7 +1,7 @@
 from pony.orm import *
 from Database.exceptions import *
 from Database.Database import Match, GAME_STATE, Deck
-from cards.cards import *
+from Game.cards.cards import *
 from Database.models.Player import *
 from random import randrange
 

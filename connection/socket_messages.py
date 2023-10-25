@@ -1,3 +1,5 @@
+# Description: This file contains the messages that are sent through the sockets
+
 # ----- Incoming messages -----
 
 CHAT = "Chat"
@@ -19,3 +21,14 @@ ERROR = "error"
 MATCH_FINISHED = "partida finalizada"
 DEAD_NOTIFICATION = "notificación muerte"
 PLAY_DATA = "datos jugada"
+INITIAL_STATE = "estado inicial"
+POSITIONS = "posiciones"
+LOBBY_PLAYERS = "jugadores lobby"
+DEAD_PLAYERS = "muertes"
+MATCH_STATE = "estado partida"
+
+# ------ Auxiliary functions for sockets messages ------
+
+
+
+

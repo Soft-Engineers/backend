@@ -1,7 +1,7 @@
 from pony.orm import *
 from Database.Database import Player, ROL, GAME_STATE
 from Database.exceptions import *
-from cards.cards import *
+from Game.cards.cards import *
 from Database.models.Card import *
 
 
