@@ -204,53 +204,47 @@ async def join_game(join_match: JoinMatch):
     return response
 
 
+# TODO: Cambiar a socket
 @app.post("/match/start", tags=["Matches"], status_code=status.HTTP_200_OK)
 async def start_game(match_player: PlayerInMatch):
     """
     Start a match
     """
-    if not match_exists(match_player.match_name):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
-        )
-    elif not player_exists(match_player.player_name):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Jugador no encontrado"
-        )
-    elif not is_in_match(
-        match_player.player_name, get_match_id(match_player.match_name)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Jugador no está en la partida",
-        )
-    elif not get_player_by_name(match_player.player_name).is_host:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No eres el creador de la partida",
-        )
-    elif db_is_match_initiated(match_player.match_name):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Partida ya iniciada"
-        )
-    elif (
-        len(db_get_players(match_player.match_name))
-        < get_match_by_name(match_player.match_name).min_players
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cantidad insuficiente de jugadores",
-        )
-    else:
-        started_match(match_player.match_name)
-        set_game_state(get_match_id(match_player.match_name), GAME_STATE["DRAW_CARD"])
-        start_alert = ("LA PARTIDA COMIENZA!!!",)
-        await manager.broadcast(
-            "start_match", start_alert, get_match_id(match_player.match_name)
-        )
-        return {"detail": "Partida inicializada"}
+    player_name = match_player.player_name
+    match_name = match_player.match_name
+    try:
+        match_id = get_match_id(match_name)
+        if db_is_match_initiated(match_name):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Partida ya iniciada"
+            )
+        if not is_in_match(player_name, match_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Jugador no está en la partida",
+            )
+        if not is_host(player_name):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No eres el creador de la partida",
+            )
+        if len(db_get_players(match_name)) < get_match_min_players(match_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cantidad insuficiente de jugadores",
+            )
+    except DatabaseError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+    started_match(match_name)
+    set_game_state(match_id, GAME_STATE["DRAW_CARD"])
+    start_alert = ("LA PARTIDA COMIENZA!!!",)
+    await manager.broadcast(
+        "start_match", start_alert, match_id
+    )
+    return {"detail": "Partida inicializada"}
 
+#TODO: Cambiar a socket
 @app.put("/match/leave", tags=["Matches"], status_code=status.HTTP_200_OK)
 async def left_lobby(lobby_left: PlayerInMatch):
     """
