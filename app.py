@@ -239,40 +239,38 @@ async def start_game(match_player: PlayerInMatch):
     started_match(match_name)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
     start_alert = ("LA PARTIDA COMIENZA!!!",)
-    await manager.broadcast(
-        "start_match", start_alert, match_id
-    )
+    await manager.broadcast("start_match", start_alert, match_id)
     return {"detail": "Partida inicializada"}
 
-#TODO: Cambiar a socket
+
+# TODO: Cambiar a socket
 @app.put("/match/leave", tags=["Matches"], status_code=status.HTTP_200_OK)
 async def left_lobby(lobby_left: PlayerInMatch):
     """
     Left a lobby
     """
-    if not match_exists(lobby_left.match_name):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Partida no encontrada"
-        )
-    elif not player_exists(lobby_left.player_name):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Jugador no existe",
-        )
-    elif not is_in_match(
-        lobby_left.player_name,
-        get_match_id(lobby_left.match_name),
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Jugador no está en la partida",
-        )
-    elif get_player_by_name(lobby_left.player_name).is_host:
+    player_name = lobby_left.player_name
+    match_name = lobby_left.match_name
+    try:
+        match_id = get_match_id(match_name)
+        if db_is_match_initiated(match_name):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Partida ya iniciada"
+            )
+        if not is_in_match(player_name, match_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Jugador no está en la partida",
+            )
+    except DatabaseError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    if is_host(player_name):
         data_msg = {
             "message_content": "La partida ha sido eliminada debido a que el host la ha abandonado",
         }
         await manager.broadcast(
-            "match_deleted", data_msg, get_match_id(lobby_left.match_name)
+            "match_deleted", data_msg, match_id
         )
         delete_match(lobby_left.match_name)
         response = {
