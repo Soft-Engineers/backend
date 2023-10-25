@@ -5,17 +5,20 @@ from Game.cards.cards import *
 from Database.models.Card import *
 
 
-# ----- Basic player functions ----- # 
+# ----- Basic player functions ----- #
+
 
 @db_session
 def create_player(new_player_name):
     Player(player_name=new_player_name)
+
 
 @db_session
 def get_player_by_name(player_name: str) -> Player:
     if not player_exists(player_name):
         raise PlayerNotFound("Jugador no encontrado")
     return Player.get(player_name=player_name)
+
 
 @db_session
 def player_exists(player_name: str) -> bool:
@@ -38,6 +41,7 @@ def is_human(player_name: str) -> bool:
 def get_player_role(player_name: str) -> int:
     player = get_player_by_name(player_name)
     return get_role_name(player.rol)
+
 
 @db_session
 def is_player_alive(player_name: str) -> bool:
@@ -79,6 +83,7 @@ def get_player_id(player_name: str) -> int:
 def is_in_match(player_name: str, match_id: int) -> bool:
     match = get_player_match(player_name)
     return match == match_id
+
 
 @db_session
 def is_host(player_name: str) -> bool:
@@ -127,6 +132,7 @@ def get_state_name(state: int) -> str:
 
 # ---- Player functions with cards ---- #
 
+
 @db_session
 def get_cards(player: Player) -> list:
     deck_data = []
@@ -159,6 +165,7 @@ def has_card(player_name, card_id):
     card = Card.get(id=card_id)
     return card in player.cards
 
+
 @db_session
 def count_infection_cards(player_name: str) -> int:
     player = get_player_by_name(player_name)
@@ -181,4 +188,3 @@ def exchange_players_cards(player1: str, card1: int, player2: str, card2: int):
     player2.cards.add(card1)
     card1.player.add(player2)
     card2.player.add(player1)
-

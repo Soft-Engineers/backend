@@ -263,10 +263,11 @@ class TestPlayLanzallamas(TestCase):
         def set_player_alive_(player, is_alive):
             player.is_alive = is_alive
 
-        with patch("Game.app_auxiliars.set_player_alive", side_effect=set_player_alive_):
+        with patch(
+            "Game.app_auxiliars.set_player_alive", side_effect=set_player_alive_
+        ):
             play_lanzallamas(player, target)
         self.assertEqual(target.is_alive, False)
-
 
     def test_invalid_target(self):
         with self.assertRaises(InvalidCard) as context:

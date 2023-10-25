@@ -42,6 +42,7 @@ def pick_random_card(player_name: str) -> Card:
     card.deck.remove(deck)
     return card
 
+
 @db_session
 def is_deck_empty(match_id: int) -> bool:
     deck = get_deck(match_id)

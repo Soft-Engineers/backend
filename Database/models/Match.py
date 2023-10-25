@@ -7,6 +7,7 @@ from random import randrange
 
 # --------- Basic games functions --------- #
 
+
 @db_session
 def _get_match(match_id: int) -> Match:
     if not Match.exists(id=match_id):
@@ -32,13 +33,6 @@ def get_match_by_name(match_name: str) -> Match:
 def get_match_id(match_name):
     if not match_exists(match_name):
         raise MatchNotFound("Partida no encontrada")
-    return Match.get(name=match_name).id
-
-
-@db_session
-def get_match_id_or_None(match_name):
-    if not match_exists(match_name):
-        return None
     return Match.get(name=match_name).id
 
 
@@ -125,6 +119,7 @@ def db_match_has_password(match_name: str) -> bool:
     match = _get_match_by_name(match_name)
     return match.password != ""
 
+
 @db_session
 def is_correct_password(match_name: str, password: str) -> bool:
     is_correct = True
@@ -185,6 +180,7 @@ def set_turn_player(match_id: int, player_name: str):
     match = Match[match_id]
     match.turn_player = player_name
 
+
 @db_session
 def set_target_player(match_id: int, player_name: str):
     match = Match[match_id]
@@ -233,6 +229,7 @@ def delete_match(match_name):
 
 
 # ------- Complex functions ------- #
+
 
 @db_session
 def db_add_player(player_name: str, match_name: str):
@@ -332,7 +329,7 @@ def get_game_state_for(player_name: str) -> dict:
 
 
 @db_session
-def get_players_positions(match_name :str) -> list:
+def get_players_positions(match_name: str) -> list:
     match = _get_match_by_name(match_name)
     positions = []
     for player in match.players:
@@ -404,6 +401,7 @@ def get_previous_player_position(match_id: int, start: int) -> int:
         if player.is_alive:
             return current_player
 
+
 @db_session
 def set_next_turn(match_id: int):
     match = _get_match(match_id)
@@ -416,6 +414,7 @@ def get_player_in_turn(match_id: int) -> str:
     for player in match.players:
         if player.position == match.current_player:
             return player.player_name
+
 
 @db_session
 def get_match_turn(match_id: int) -> int:
@@ -493,6 +492,7 @@ def started_match(match_name):
 
     return match
 
+
 @db_session
 def _deal_cards(match: Match):
     deck = match.deck.filter(lambda d: not d.is_discard).first()
@@ -565,10 +565,8 @@ def db_create_match(
         raise NameNotAvailable("Nombre de partida ya utilizado")
 
     creator = get_player_by_name(player_name)
-
     if creator.match:
         raise PlayerAlreadyInMatch("Jugador ya está en partida")
-
     match = Match(name=match_name, min_players=min_players, max_players=max_players)
     match.players.add(creator)
     creator.match = match

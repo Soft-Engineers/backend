@@ -367,9 +367,11 @@ class test_get_game_state_for2(TestCase):
         {"player_name": "test_player4", "location": 3},
     ]
 
-    @patch("Database.models.Match.get_match_locations", return_value = locations)
+    @patch("Database.models.Match.get_match_locations", return_value=locations)
     @patch("Database.models.Match.get_player_by_name")
-    def test_get_game_state_for(self, mock_get_player_by_name, mock_get_match_locations):
+    def test_get_game_state_for(
+        self, mock_get_player_by_name, mock_get_match_locations
+    ):
         mock_player = Mock()
         mock_player.player_name = "test_player1"
         mock_player.match = Mock()
@@ -532,7 +534,6 @@ class TestGetPreviousPlayerPosition(TestCase):
 
         result = get_previous_player_position(1, 0)
         self.assertEqual(result, 3)
-
 
 
 class TestGetPlayerInTurn(TestCase):

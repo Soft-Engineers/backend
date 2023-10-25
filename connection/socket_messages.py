@@ -28,7 +28,3 @@ DEAD_PLAYERS = "muertes"
 MATCH_STATE = "estado partida"
 
 # ------ Auxiliary functions for sockets messages ------
-
-
-
-

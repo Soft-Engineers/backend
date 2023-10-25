@@ -56,7 +56,7 @@ async def websocket_endpoint(websocket: WebSocket):
     match_name = websocket.path_params["match_name"]
     player_name = websocket.path_params["player_name"]
     try:
-        match_id = get_match_id_or_None(match_name)
+        match_id = get_match_id(match_name)
         await manager.connect(websocket, match_id, player_name)
 
         if db_is_match_initiated(match_name):
@@ -271,9 +271,7 @@ async def left_lobby(lobby_left: PlayerInMatch):
         data_msg = {
             "message_content": "La partida ha sido eliminada debido a que el host la ha abandonado",
         }
-        await manager.broadcast(
-            "match_deleted", data_msg, match_id
-        )
+        await manager.broadcast("match_deleted", data_msg, match_id)
         delete_match(lobby_left.match_name)
         response = {
             "detail": lobby_left.player_name
@@ -285,8 +283,6 @@ async def left_lobby(lobby_left: PlayerInMatch):
             "message": lobby_left.player_name + " abandonó la sala",
             "players": db_get_players(lobby_left.match_name),
         }
-        await manager.broadcast(
-            "player_left", data_msg, get_match_id_or_None(lobby_left.match_name)
-        )
+        await manager.broadcast("player_left", data_msg, match_id)
         response = {"detail": lobby_left.player_name + " abandonó la sala"}
     return response

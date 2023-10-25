@@ -42,6 +42,7 @@ class Player(db.Entity):
     is_alive = Optional(bool)
     in_game = Optional(bool, default=False)
 
+
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
     number = Optional(int)
@@ -72,4 +73,3 @@ GAME_STATE = {
     "WAIT_EXCHANGE": 5,
     "WAIT_DEFENSE": 6,
 }
-
