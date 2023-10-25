@@ -1,7 +1,8 @@
-from app_auxiliars import *
+from Game.app_auxiliars import *
 from Tests.auxiliar_functions import *
-from request import RequestException
+from connection.connections import *
 import pytest
+from Game.app_auxiliars import *
 
 
 class _WebStub:
@@ -25,8 +26,8 @@ class _WebStub:
 
 @pytest.mark.asyncio
 async def test_connect(mocker):
-    mocker.patch("connections.check_match_existence", return_value=True)
-    mocker.patch("connections.player_exists", return_value=True)
+    mocker.patch("connection.connections.check_match_existence", return_value=True)
+    mocker.patch("connection.connections.player_exists", return_value=True)
 
     websocketStub = _WebStub()
     match_id = 1
@@ -43,8 +44,8 @@ async def test_connect(mocker):
 
 @pytest.mark.asyncio
 async def test_connect_match_doesnt_exist(mocker):
-    mocker.patch("connections.check_match_existence", return_value=False)
-    mocker.patch("connections.player_exists", return_value=True)
+    mocker.patch("connection.connections.check_match_existence", return_value=False)
+    mocker.patch("connection.connections.player_exists", return_value=True)
 
     websocketStub = _WebStub()
     match_id = 1
@@ -52,14 +53,14 @@ async def test_connect_match_doesnt_exist(mocker):
 
     cm = ConnectionManager()
 
-    with pytest.raises(RequestException):
+    with pytest.raises(ManagerException):
         await cm.connect(websocketStub, match_id, player_name)
 
 
 @pytest.mark.asyncio
 async def test_connect_player_doesnt_exist(mocker):
-    mocker.patch("connections.check_match_existence", return_value=True)
-    mocker.patch("connections.player_exists", return_value=False)
+    mocker.patch("connection.connections.check_match_existence", return_value=True)
+    mocker.patch("connection.connections.player_exists", return_value=False)
 
     websocketStub = _WebStub()
     match_id = 1
@@ -67,15 +68,14 @@ async def test_connect_player_doesnt_exist(mocker):
 
     cm = ConnectionManager()
 
-    with pytest.raises(RequestException):
+    with pytest.raises(ManagerException):
         await cm.connect(websocketStub, match_id, player_name)
 
 
 @pytest.mark.asyncio
 async def test_disconnect(mocker):
-    mocker.patch("connections.check_match_existence", return_value=True)
-    mocker.patch("connections.player_exists", return_value=True)
-    mocker.patch("connections.db_get_player_match_id", return_value=1)
+    mocker.patch("connection.connections.check_match_existence", return_value=True)
+    mocker.patch("connection.connections.player_exists", return_value=True)
 
     websocketStub = _WebStub()
     match_id = 1
@@ -113,8 +113,8 @@ async def test_disconnect(mocker):
 
 @pytest.mark.asyncio
 async def test_send_personal_message(mocker):
-    mocker.patch("connections.check_match_existence", return_value=True)
-    mocker.patch("connections.player_exists", return_value=True)
+    mocker.patch("connection.connections.check_match_existence", return_value=True)
+    mocker.patch("connection.connections.player_exists", return_value=True)
 
     websocket_stub = _WebStub()
     match_id = 1
@@ -136,9 +136,9 @@ async def test_send_personal_message(mocker):
 
 @pytest.mark.asyncio
 async def test_send_send_message_to(mocker):
-    mocker.patch("connections.check_match_existence", return_value=True)
-    mocker.patch("connections.player_exists", return_value=True)
-    mocker.patch("connections.db_get_player_match_id", return_value=1)
+    mocker.patch("connection.connections.check_match_existence", return_value=True)
+    mocker.patch("connection.connections.player_exists", return_value=True)
+    mocker.patch("connection.connections.get_player_match", return_value=1)
 
     websocket_stub = _WebStub()
     match_id = 1
@@ -160,8 +160,8 @@ async def test_send_send_message_to(mocker):
 
 @pytest.mark.asyncio
 async def test_send_error_message(mocker):
-    mocker.patch("connections.check_match_existence", return_value=True)
-    mocker.patch("connections.player_exists", return_value=True)
+    mocker.patch("connection.connections.check_match_existence", return_value=True)
+    mocker.patch("connection.connections.player_exists", return_value=True)
 
     websocket_stub = _WebStub()
     match_id = 1
@@ -182,8 +182,8 @@ async def test_send_error_message(mocker):
 
 @pytest.mark.asyncio
 async def test_broadcast(mocker):
-    mocker.patch("connections.check_match_existence", return_value=True)
-    mocker.patch("connections.player_exists", return_value=True)
+    mocker.patch("connection.connections.check_match_existence", return_value=True)
+    mocker.patch("connection.connections.player_exists", return_value=True)
 
     mocked_websocketp1 = _WebStub()
     match_id = 1

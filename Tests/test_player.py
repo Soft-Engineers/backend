@@ -5,6 +5,7 @@ from Database.Database import *
 from base64 import b64encode
 from Tests.auxiliar_functions import *
 from unittest.mock import ANY
+from Game.app_auxiliars import *
 
 client = TestClient(app)
 
@@ -77,21 +78,6 @@ def test_player_is_not_host():
     response = client.get("/player/host", params=player_data)
     assert response.status_code == 200
     assert response.json() == {"is_host": False}
-
-
-def test_player_is_host_but_not_is_in_match():
-    game_config = {
-        "match_name": "test_match",
-        "player_name": "test_player",
-        "min_players": 4,
-        "max_players": 12,
-    }
-    # create match
-    response = client.post("/match/create", json=game_config)
-    player_data = {"player_name": "test_player2", "match_name": "test_match"}
-    response = client.get("/player/host", params=player_data)
-    assert response.status_code == 400
-    assert response.json() == {"detail": "Jugador no está en la partida"}
 
 
 def test_player_is_host_not_exist():

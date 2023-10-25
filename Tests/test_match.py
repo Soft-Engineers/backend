@@ -5,6 +5,7 @@ from app import *
 from fastapi.testclient import TestClient
 from Tests.auxiliar_functions import *
 from app import MAX_LEN_ALIAS
+from Game.app_auxiliars import *
 
 
 client = TestClient(app)
@@ -451,7 +452,7 @@ def test_leave_match():
     # check if player can leave again
     response = client.put("/match/leave", json=body)
     assert response.status_code == 400
-    assert response.json() == {"detail": "Jugador no está en la partida"}
+    assert response.json() == {"detail": "El jugador no está en partida"}
 
 
 def test_leave_match_player_host():
@@ -509,4 +510,4 @@ def test_leave_match_player_not_exist():
     body_match["player_name"] = "not_exist"
     response = client.put("/match/leave", json=body_match)
     assert response.status_code == 404
-    assert response.json() == {"detail": "Jugador no existe"}
+    assert response.json() == {"detail": "Jugador no encontrado"}

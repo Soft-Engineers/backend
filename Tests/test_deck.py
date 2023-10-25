@@ -2,9 +2,9 @@ from unittest.mock import Mock, patch
 from unittest import TestCase
 from Database.Database import *
 from Tests.auxiliar_functions import *
-from Database.Database import _create_deck, _deal_cards
-from Database.cards import card_templates
+from Database.models.Match import _create_deck, _deal_cards
 import random
+from Game.app_auxiliars import *
 
 
 class _pset(set):
@@ -60,8 +60,8 @@ class test_init_game_aux(TestCase):
                     self.id = self.id + 1
         return cards
 
-    @patch("Database.Database.Deck")
-    @patch("Database.Database.Card")
+    @patch("Database.models.Match.Deck", side_effect=__side_effect)
+    @patch("Database.models.Match.Card")
     def test_create_deck(self, mock_Card, mock_Deck):
         n_players = 4
 
@@ -69,8 +69,6 @@ class test_init_game_aux(TestCase):
         match.players = Mock()
         match.players.count.return_value = n_players
         match.deck = set()
-
-        mock_Deck.side_effect = self.__side_effect
         mock_Card.select.return_value = self.__gen_mocked_cards()
 
         _create_deck(match)

@@ -2,7 +2,8 @@ from unittest.mock import Mock, patch
 from unittest import TestCase
 from Database.Database import *
 from Tests.auxiliar_functions import *
-from request import parse_request, RequestException
+from connection.request_handler import parse_request, RequestException
+from Game.app_auxiliars import *
 
 
 class test_parse_request(TestCase):
