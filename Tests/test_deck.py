@@ -3,7 +3,6 @@ from unittest import TestCase
 from Database.Database import *
 from Tests.auxiliar_functions import *
 from Database.models.Match import _create_deck, _deal_cards
-from cards.cards import card_templates
 import random
 from Game.app_auxiliars import *
 

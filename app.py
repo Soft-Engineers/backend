@@ -234,7 +234,7 @@ async def start_game(match_player: PlayerInMatch):
                 detail="Cantidad insuficiente de jugadores",
             )
     except DatabaseError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
     started_match(match_name)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
@@ -260,8 +260,10 @@ async def left_lobby(lobby_left: PlayerInMatch):
         if not is_in_match(player_name, match_id):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Jugador no está en la partida",
+                detail="El jugador no está en partida",
             )
+    except PlayerNotInMatch as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 

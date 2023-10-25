@@ -1,7 +1,6 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, create_autospec
 from unittest import TestCase
 from Database.Database import *
-from Game.app_auxiliars import *
 import pytest
 from unittest.mock import AsyncMock
 from Game.app_auxiliars import *
@@ -32,10 +31,10 @@ class _WebStub:
 class TestPickupCard(TestCase):
     def setUp(self):
         self.patch_get_player_match = patch(
-            "app_auxiliars.get_player_match", return_value=1
+            "Game.app_auxiliars.get_player_match", return_value=1
         )
         self.patch_set_game_state = patch(
-            "app_auxiliars.set_game_state", return_value=None
+            "Game.app_auxiliars.set_game_state", return_value=None
         )
 
         self.patch_get_player_match.start()
@@ -45,9 +44,9 @@ class TestPickupCard(TestCase):
         self.patch_get_player_match.stop()
         self.patch_set_game_state.stop()
 
-    @patch("app_auxiliars.is_player_turn", return_value=True)
-    @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["DRAW_CARD"])
-    @patch("app_auxiliars.pick_random_card")
+    @patch("Game.app_auxiliars.is_player_turn", return_value=True)
+    @patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["DRAW_CARD"])
+    @patch("Game.app_auxiliars.pick_random_card")
     def test_pickup_card(self, mock_pick_card, *args):
         mock_card = Mock()
         mock_card.id = 1
@@ -57,14 +56,14 @@ class TestPickupCard(TestCase):
 
         pickup_card("test_player")
 
-    @patch("app_auxiliars.is_player_turn", return_value=False)
+    @patch("Game.app_auxiliars.is_player_turn", return_value=False)
     def test_pickup_card_not_player_turn(self, *args):
         with self.assertRaises(GameException) as e:
             pickup_card("test_player")
         self.assertEqual(str(e.exception), "No es tu turno")
 
-    @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["PLAY_TURN"])
-    @patch("app_auxiliars.is_player_turn", return_value=True)
+    @patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["PLAY_TURN"])
+    @patch("Game.app_auxiliars.is_player_turn", return_value=True)
     def test_pickup_card_not_draw_card_state(self, *args):
         with self.assertRaises(GameException) as e:
             pickup_card("test_player")
@@ -72,7 +71,7 @@ class TestPickupCard(TestCase):
 
 
 class TestPlayCardMsgFunction(TestCase):
-    @patch("app_auxiliars.get_card_name")
+    @patch("Game.app_auxiliars.get_card_name")
     def test_play_card_msg(self, mock_get_card_name):
         player_name = "PlayerA"
         card_id = 1
@@ -88,7 +87,7 @@ class TestPlayCardMsgFunction(TestCase):
         card_id = 2
         target = None
 
-        with patch("app_auxiliars.get_card_name") as mock_get_card_name:
+        with patch("Game.app_auxiliars.get_card_name") as mock_get_card_name:
             mock_get_card_name.return_value = "CardY"
             alert = play_card_msg(player_name, card_id, target)
 
@@ -96,28 +95,28 @@ class TestPlayCardMsgFunction(TestCase):
 
 
 class test_check_target_player(TestCase):
-    @patch("app_auxiliars.player_exists", return_value=True)
-    @patch("app_auxiliars.is_player_alive", return_value=True)
-    @patch("app_auxiliars.get_player_match", side_effect=[1, 1])
+    @patch("Game.app_auxiliars.player_exists", return_value=True)
+    @patch("Game.app_auxiliars.is_player_alive", return_value=True)
+    @patch("Game.app_auxiliars.get_player_match", side_effect=[1, 1])
     def test_check_target_player(self, *args):
         check_target_player("PlayerA", "PlayerB")
 
     def test_check_target_player_no_player(self, *args):
-        with patch("app_auxiliars.player_exists", return_value=False):
+        with patch("Game.app_auxiliars.player_exists", return_value=False):
             with self.assertRaises(InvalidPlayer) as e:
                 check_target_player("PlayerA", "PlayerB")
             self.assertEqual(str(e.exception), "Jugador no válido")
 
-    @patch("app_auxiliars.player_exists", return_value=True)
-    @patch("app_auxiliars.is_player_alive", return_value=False)
+    @patch("Game.app_auxiliars.player_exists", return_value=True)
+    @patch("Game.app_auxiliars.is_player_alive", return_value=False)
     def test_check_target_player_no_target(self, *args):
         with self.assertRaises(InvalidPlayer) as e:
             check_target_player("PlayerA", "PlayerB")
         self.assertEqual(str(e.exception), "El jugador seleccionado está muerto")
 
-    @patch("app_auxiliars.player_exists", return_value=True)
-    @patch("app_auxiliars.is_player_alive", return_value=True)
-    @patch("app_auxiliars.get_player_match", side_effect=[1, 2])
+    @patch("Game.app_auxiliars.player_exists", return_value=True)
+    @patch("Game.app_auxiliars.is_player_alive", return_value=True)
+    @patch("Game.app_auxiliars.get_player_match", side_effect=[1, 2])
     def test_check_target_player_invalid_match(self, *args):
         with self.assertRaises(InvalidPlayer) as e:
             check_target_player("PlayerA", "PlayerB")
@@ -126,11 +125,11 @@ class test_check_target_player(TestCase):
 
 class test_exchange_card(TestCase):
     def setUp(self):
-        self.patch_get_player_match = patch("app_auxiliars.get_player_match")
-        self.patch_set_game_state = patch("app_auxiliars.set_game_state")
-        self.patch_save_exchange = patch("app_auxiliars.save_exchange")
-        self.patch_exchange_card = patch("app_auxiliars.exchange_card")
-        self.patch_set_match_turn = patch("app_auxiliars.set_match_turn")
+        self.patch_get_player_match = patch("Game.app_auxiliars.get_player_match")
+        self.patch_set_game_state = patch("Game.app_auxiliars.set_game_state")
+        self.patch_save_exchange = patch("Game.app_auxiliars.save_exchange")
+        self.patch_exchange_card = patch("Game.app_auxiliars.exchange_card")
+        self.patch_set_match_turn = patch("Game.app_auxiliars.set_match_turn")
         self.patch_get_player_match.return_value = 1
         self.patch_set_game_state.return_value = None
         self.patch_save_exchange.return_value = None
@@ -150,22 +149,22 @@ class test_exchange_card(TestCase):
         self.patch_exchange_card.stop()
         self.patch_set_match_turn.stop()
 
-    @patch("app_auxiliars.is_player_turn", return_value=True)
-    @patch("app_auxiliars.check_valid_exchange", return_value=None)
-    @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"])
+    @patch("Game.app_auxiliars.is_player_turn", return_value=True)
+    @patch("Game.app_auxiliars.check_valid_exchange", return_value=None)
+    @patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"])
     def test_exchange_card(self, *args):
         exchange_card("test_player", 1, "test_target")
 
-    @patch("app_auxiliars.is_player_turn", return_value=False)
-    @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"])
+    @patch("Game.app_auxiliars.is_player_turn", return_value=False)
+    @patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"])
     def test_exchange_card_not_player_turn(self, *args):
         with self.assertRaises(GameException) as e:
             exchange_card("test_player", 1, "test_target")
         self.assertEqual(str(e.exception), "No es tu turno")
 
-    @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["PLAY_TURN"])
-    @patch("app_auxiliars.is_player_turn", return_value=True)
-    @patch("app_auxiliars.check_valid_exchange", return_value=None)
+    @patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["PLAY_TURN"])
+    @patch("Game.app_auxiliars.is_player_turn", return_value=True)
+    @patch("Game.app_auxiliars.check_valid_exchange", return_value=None)
     def test_exchange_card_not_exchange_state(self, *args):
         with self.assertRaises(GameException) as e:
             exchange_card("test_player", 1, "test_target")
@@ -173,22 +172,22 @@ class test_exchange_card(TestCase):
             str(e.exception), "No puedes intercambiar cartas en este momento"
         )
 
-    @patch("app_auxiliars.is_player_turn", return_value=True)
-    @patch("app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"])
-    @patch("app_auxiliars.check_valid_exchange", side_effect=InvalidCard("test"))
+    @patch("Game.app_auxiliars.is_player_turn", return_value=True)
+    @patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"])
+    @patch("Game.app_auxiliars.check_valid_exchange", side_effect=InvalidCard("test"))
     def test_exchange_card_invalid_exchange(self, *args):
         with self.assertRaises(InvalidCard) as e:
             exchange_card("test_player", 1, "test_target")
 
 
 class TestCheckValidExchange(TestCase):
-    @patch("app_auxiliars.get_card_name", return_value="SomeCard")
-    @patch("app_auxiliars.has_card", return_value=True)
-    @patch("app_auxiliars.is_contagio", return_value=True)
-    @patch("app_auxiliars.is_human", return_value=False)
-    @patch("app_auxiliars.is_infected", return_value=True)
-    @patch("app_auxiliars.is_lacosa", return_value=True)
-    @patch("app_auxiliars.count_infection_cards", return_value=2)
+    @patch("Game.app_auxiliars.get_card_name", return_value="SomeCard")
+    @patch("Game.app_auxiliars.has_card", return_value=True)
+    @patch("Game.app_auxiliars.is_contagio", return_value=True)
+    @patch("Game.app_auxiliars.is_human", return_value=False)
+    @patch("Game.app_auxiliars.is_infected", return_value=True)
+    @patch("Game.app_auxiliars.is_lacosa", return_value=True)
+    @patch("Game.app_auxiliars.count_infection_cards", return_value=2)
     def test_check_valid_exchange(
         self,
         mock_count_infection_cards,
@@ -252,3 +251,62 @@ class TestCheckValidExchange(TestCase):
         self.assertEqual(
             str(e.exception), "Debes tener al menos una carta de ¡Infectado! en tu mano"
         )
+
+
+class TestPlayLanzallamas(TestCase):
+    @patch("Game.app_auxiliars.is_adyacent", return_value=True)
+    def test_successful_lanzallamas_play(self, mock_is_adyacent):
+        player = Mock()
+        target = Mock()
+        target.is_alive = True
+
+        def set_player_alive_(player, is_alive):
+            player.is_alive = is_alive
+
+        with patch("Game.app_auxiliars.set_player_alive", side_effect=set_player_alive_):
+            play_lanzallamas(player, target)
+        self.assertEqual(target.is_alive, False)
+
+
+    def test_invalid_target(self):
+        with self.assertRaises(InvalidCard) as context:
+            play_lanzallamas("Player1", None)
+
+        self.assertEqual(str(context.exception), "Lanzallamas requiere un objetivo")
+
+    def test_non_adjacent_players(self):
+        player = Mock()
+        target = Mock()
+
+        with patch("Game.app_auxiliars.get_player_by_name") as mock_get_player_by_name:
+            with patch("Game.app_auxiliars.is_adyacent", return_value=False):
+                mock_get_player_by_name.side_effect = [player, target]
+                with self.assertRaises(InvalidCard) as context:
+                    play_lanzallamas("Player1", "Player2")
+        self.assertEqual(
+            str(context.exception), "No puedes jugar Lanzallamas a ese jugador"
+        )
+
+
+class TestDiscardCard(TestCase):
+    @patch("Database.models.Deck.get_player_by_name")
+    @patch("Database.models.Deck.get_card_by_id")
+    @patch("Database.models.Deck.get_discard_deck")
+    def test_discard_card(
+        self, mock_get_discard_deck, mock_get_card_by_id, mock_get_player_by_name
+    ):
+        player = Mock()
+        card = Mock()
+        player.cards = set({card})
+        card.player = set({player})
+        discard_deck = Mock()
+        discard_deck.cards = set({})
+
+        mock_get_player_by_name.return_value = player
+        mock_get_card_by_id.return_value = card
+        mock_get_discard_deck.return_value = discard_deck
+
+        discard_card("Player1", 20)
+
+        assert card not in player.cards
+        assert card in discard_deck.cards
