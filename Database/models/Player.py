@@ -77,8 +77,13 @@ def get_player_id(player_name: str) -> int:
 
 @db_session
 def is_in_match(player_name: str, match_id: int) -> bool:
+    match = get_player_match(player_name)
+    return match == match_id
+
+@db_session
+def is_host(player_name: str) -> bool:
     player = get_player_by_name(player_name)
-    return player.match.id == match_id
+    return player.is_host
 
 
 @db_session

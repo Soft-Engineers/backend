@@ -125,6 +125,13 @@ def db_match_has_password(match_name: str) -> bool:
     match = _get_match_by_name(match_name)
     return match.password != ""
 
+@db_session
+def is_correct_password(match_name: str, password: str) -> bool:
+    is_correct = True
+    if db_match_has_password(match_name):
+        is_correct = db_get_match_password(match_name) == password
+    return is_correct
+
 
 @db_session
 def db_is_match_initiated(match_name: str) -> bool:

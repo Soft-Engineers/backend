@@ -153,32 +153,20 @@ async def player_creator(name_player: str = Form()):
         )
     else:
         create_player(name_player)
-        return {"player_id": get_player_by_name(name_player).id}
+        return {"player_id": get_player_id(name_player)}
 
 
 @app.get("/player/host", tags=["Player"], status_code=200)
-async def is_host(player_in_match: PlayerInMatch = Depends()):
+async def player_is_host(player_in_match: PlayerInMatch = Depends()):
     """
-    get true if player is host
+    Return true if player is host
     """
-    if not player_exists(player_in_match.player_name):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Jugador no encontrado"
-        )
-    elif not match_exists(player_in_match.match_name):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Partida no encontrada"
-        )
-    elif not is_in_match(
-        player_in_match.player_name,
-        get_match_id(player_in_match.match_name),
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Jugador no está en la partida",
-        )
-    else:
-        return {"is_host": get_player_by_name(player_in_match.player_name).is_host}
+    try:
+        match_id = get_match_id(player_in_match.match_name)
+        if is_in_match(player_in_match.player_name, match_id):
+            return {"is_host": is_host(player_in_match.player_name)}
+    except DatabaseError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @app.get("/match/players", tags=["Matches"], status_code=status.HTTP_200_OK)
@@ -192,13 +180,6 @@ async def get_players(match_name: str):
     except MatchNotFound:
         raise HTTPException(status_code=404, detail="Partida no encontrada")
     return response
-
-
-def is_correct_password(match_name: str, password: str) -> bool:
-    is_correct = True
-    if db_match_has_password(match_name):
-        is_correct = db_get_match_password(match_name) == password
-    return is_correct
 
 
 @app.post("/match/join", tags=["Matches"], status_code=status.HTTP_200_OK)
@@ -220,7 +201,6 @@ async def join_game(join_match: JoinMatch):
             response = {"detail": "ok"}
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
     return response
 
 
