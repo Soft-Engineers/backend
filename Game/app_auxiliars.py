@@ -164,14 +164,9 @@ async def persist_played_card_data(
     if requires_target(card_id):
         if target_name is None or target_name == "":
             raise InvalidCard("Esta carta requiere un objetivo")
-        if not player_exists(target_name):
-            raise InvalidPlayer("Jugador no válido")
-        if not is_player_alive(target_name):
-            raise InvalidPlayer("El jugador seleccionado está muerto")
-        if get_player_match(player_name) != get_player_match(target_name):
-            raise InvalidPlayer("Jugador no válido")
-        if not is_adyacent(player_name, target_name):
-            raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
+        check_target_player(player_name, target_name)
+        if only_to_adjacent(card_id) and not is_adyacent(player_name, target_name):
+            raise InvalidCard(f"Solo puedes jugar {card_name} a un jugador adyacente")
 
     match_id = get_player_match(player_name)
 
@@ -197,9 +192,11 @@ async def execute_card(match_id: int, def_card_id: int = None):
 
     if card_name == "Lanzallamas":
         if not def_card_name == "¡Nada de barbacoas!":
-            play_lanzallamas(player_name, target_name)
+            play_lanzallamas(target_name)
     elif card_name == "Whisky":
         await play_whisky(player_name)
+    elif card_name == "Sospecha":
+        await play_sospecha(player_name, target_name)
     else:
         pass
 
@@ -227,12 +224,12 @@ async def play_whisky(player_name: str):
         await manager.send_personal_message("revelar cartas", msg, match_id, p)
 
 
-def play_lanzallamas(player_name: str, target_name: str):
-    if target_name is None:
-        raise InvalidCard("Lanzallamas requiere un objetivo")
-    if not is_adyacent(player_name, target_name):
-        raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
+def play_lanzallamas(target_name: str):
     set_player_alive(target_name, False)
+
+
+async def play_sospecha(player_name: str, target_name: str):
+    pass
 
 
 # --------- Defense logic --------
@@ -387,16 +384,12 @@ def check_valid_exchange(card_id: int, player_name: str, target: str):
 
 
 def check_target_player(player_name: str, target_name: str = ""):
-    """
-    Checks whether target player is valid
-    """
-    if not target_name == "" and not target_name is None:
-        if not player_exists(target_name):
-            raise InvalidPlayer("Jugador no válido")
-        if not is_player_alive(target_name):
-            raise InvalidPlayer("El jugador seleccionado está muerto")
-        if get_player_match(player_name) != get_player_match(target_name):
-            raise InvalidPlayer("Jugador no válido")
+    if not player_exists(target_name):
+        raise InvalidPlayer("Jugador no válido")
+    if not is_player_alive(target_name):
+        raise InvalidPlayer("El jugador seleccionado está muerto")
+    if get_player_match(player_name) != get_player_match(target_name):
+        raise InvalidPlayer("Jugador no válido")
 
 
 def valid_declaration(match_id: int, player_name: str) -> bool:

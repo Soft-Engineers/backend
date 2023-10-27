@@ -7,7 +7,12 @@ from Game.cards.cards import *
 # --------- Card functions --------- #
 
 TARGET_CARDS = ["Lanzallamas"]
-
+ONLY_TO_ADJACENT = [
+    "Lanzallamas", 
+    "Sospecha", 
+    "Análisis",
+    "¡Cambio de lugar!"
+]
 
 @db_session
 def get_card_by_id(card_id: int) -> Card:
@@ -53,6 +58,10 @@ def requires_target(card_id: int) -> bool:
     card_name = get_card_name(card_id)
     return card_name in TARGET_CARDS
 
+@db_session
+def only_to_adjacent(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in ONLY_TO_ADJACENT
 
 # ----- Register Cards ----- #
 
