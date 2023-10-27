@@ -7,6 +7,17 @@ from Game.cards.cards import *
 # --------- Card functions --------- #
 
 TARGET_CARDS = ["Lanzallamas", "Seducción"]
+ONLY_TO_ADJACENT = [
+    "Lanzallamas", 
+    "Sospecha", 
+    "Análisis",
+    "¡Cambio de lugar!"
+]
+TARGET_NOT_QUARANTINED = [
+    "Seducción",
+    "¡Más vale que corras!",
+    "¡Cambio de lugar!",
+]
 
 
 @db_session
@@ -47,6 +58,18 @@ def get_card_type(card_id: int) -> int:
 def requires_target(card_id: int) -> bool:
     card_name = get_card_name(card_id)
     return card_name in TARGET_CARDS
+
+
+@db_session
+def only_to_adjacent(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in ONLY_TO_ADJACENT
+
+
+@db_session
+def requires_target_not_quarantined(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in TARGET_NOT_QUARANTINED
 
 
 # ----- Register Cards ----- #

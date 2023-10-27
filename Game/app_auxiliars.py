@@ -165,14 +165,11 @@ async def persist_played_card_data(
     if requires_target(card_id):
         if target_name is None or target_name == "":
             raise InvalidCard("Esta carta requiere un objetivo")
-        if not player_exists(target_name):
-            raise InvalidPlayer("Jugador no válido")
-        if not is_player_alive(target_name):
-            raise InvalidPlayer("El jugador seleccionado está muerto")
-        if get_player_match(player_name) != get_player_match(target_name):
-            raise InvalidPlayer("Jugador no válido")
-        if not is_adyacent(player_name, target_name) and card_name == "Lanzallamas":
-            raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
+        check_target_player(player_name, target_name)
+        if only_to_adjacent(card_id) and not is_adyacent(player_name, target_name):
+            raise InvalidCard(f"Solo puedes jugar {card_name} a un jugador adyacente")
+        if requires_target_not_quarantined(card_id) and is_in_quarantine(target_name):
+            raise InvalidCard(f"No puedes jugar {card_name} a un jugador en cuarentena")
 
     match_id = get_player_match(player_name)
 
@@ -204,7 +201,6 @@ async def execute_card(match_id: int, def_card_id: int = None):
     else:
         pass
 
-    #clean_played_card_data(match_id)
     if not is_la_cosa_alive(match_id):
         await set_win(match_id, "La cosa ha muerto")
 
@@ -229,12 +225,7 @@ async def play_whisky(player_name: str):
 
 
 def play_lanzallamas(player_name: str, target_name: str):
-    if target_name is None:
-        raise InvalidCard("Lanzallamas requiere un objetivo")
-    if not is_adyacent(player_name, target_name):
-        raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
     set_player_alive(target_name, False)
-
 
 
 # --------- Defense logic --------
@@ -401,9 +392,6 @@ def check_valid_exchange(card_id: int, player_name: str, target: str):
 
 
 def check_target_player(player_name: str, target_name: str = ""):
-    """
-    Checks whether target player is valid
-    """
     if not target_name == "" and not target_name is None:
         if not player_exists(target_name):
             raise InvalidPlayer("Jugador no válido")
