@@ -313,9 +313,10 @@ async def exchange_handler(player: str, card: int):
     match_id = get_player_match(player)
     game_state = get_game_state(match_id)
     last_card = last_played_card(match_id)
+    turn_player = get_turn_player(match_id)
 
     if game_state == GAME_STATE["EXCHANGE"]:
-        if last_card == "Seducción":
+        if turn_player == player and last_card == "Seducción":
             target = get_target_player(match_id)
         else:
             target = get_next_player(match_id)
