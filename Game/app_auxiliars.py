@@ -192,7 +192,7 @@ async def execute_card(match_id: int, def_card_id: int = None):
 
     if card_name == "Lanzallamas":
         if not def_card_name == "¡Nada de barbacoas!":
-            play_lanzallamas(player_name, target_name)
+            play_lanzallamas(target_name)
     elif card_name == "Whisky":
         await play_whisky(player_name)
     elif card_name == "Seducción":
@@ -224,7 +224,7 @@ async def play_whisky(player_name: str):
         await manager.send_personal_message("revelar cartas", msg, match_id, p)
 
 
-def play_lanzallamas(player_name: str, target_name: str):
+def play_lanzallamas(target_name: str):
     set_player_alive(target_name, False)
 
 
