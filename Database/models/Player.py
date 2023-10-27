@@ -108,6 +108,23 @@ def is_lacosa(player_name: str) -> bool:
     player = get_player_by_name(player_name)
     return player.rol == ROL["LA_COSA"]
 
+@db_session
+def is_in_quarantine(player_name: str) -> bool:
+    player = get_player_by_name(player_name)
+    return player.in_quarantine
+
+
+@db_session
+def has_global_exchange(player_name: str) -> bool:
+    player = get_player_by_name(player_name)
+    return player.global_exchange
+
+
+@db_session
+def set_global_exchange(player_name: str, value: bool):
+    player = get_player_by_name(player_name)
+    player.global_exchange = value
+
 
 @db_session
 def infect_player(player_name: str):
@@ -188,3 +205,4 @@ def exchange_players_cards(player1: str, card1: int, player2: str, card2: int):
     player2.cards.add(card1)
     card1.player.add(player2)
     card2.player.add(player1)
+

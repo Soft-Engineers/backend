@@ -39,11 +39,6 @@ def is_contagio(card_id: int) -> bool:
 
 
 @db_session
-def get_card_name(card_id: int) -> str:
-    return get_card_by_id(card_id).card_name
-
-
-@db_session
 def get_card_type(card_id: int) -> int:
     return get_card_by_id(card_id).type
 
