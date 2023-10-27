@@ -79,8 +79,7 @@ async def leave_match_handler(content, match_id, player_name):
 
 
 async def exchange_card_handler(content, match_id, player_name):
-    target = content["target"]
-    await exchange_handler(player_name, content["card_id"], target)
+    await exchange_handler(player_name, content["card_id"])
 
 
 async def declaration_handler(content, match_id, player_name):

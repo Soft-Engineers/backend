@@ -115,18 +115,6 @@ def is_in_quarantine(player_name: str) -> bool:
 
 
 @db_session
-def has_global_exchange(player_name: str) -> bool:
-    player = get_player_by_name(player_name)
-    return player.global_exchange
-
-
-@db_session
-def set_global_exchange(player_name: str, value: bool):
-    player = get_player_by_name(player_name)
-    player.global_exchange = value
-
-
-@db_session
 def infect_player(player_name: str):
     player = get_player_by_name(player_name)
     player.rol = ROL["INFECTADO"]

@@ -6,7 +6,7 @@ from Game.cards.cards import *
 
 # --------- Card functions --------- #
 
-TARGET_CARDS = ["Lanzallamas"]
+TARGET_CARDS = ["Lanzallamas", "Seducción"]
 
 
 @db_session

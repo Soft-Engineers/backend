@@ -184,6 +184,13 @@ def set_target_player(match_id: int, player_name: str):
 def get_played_card(match_id: int) -> int:
     return Match[match_id].played_card
 
+@db_session
+def last_played_card(match_id: int) -> str:
+    match = _get_match(match_id)
+    if match.played_card is None:
+        return ""
+    return get_card_name(match.played_card)
+
 
 @db_session
 def get_turn_player(match_id: int) -> str:

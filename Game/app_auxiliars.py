@@ -171,7 +171,7 @@ async def persist_played_card_data(
             raise InvalidPlayer("El jugador seleccionado está muerto")
         if get_player_match(player_name) != get_player_match(target_name):
             raise InvalidPlayer("Jugador no válido")
-        if not is_adyacent(player_name, target_name):
+        if not is_adyacent(player_name, target_name) and card_name == "Lanzallamas":
             raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
 
     match_id = get_player_match(player_name)
@@ -185,9 +185,6 @@ async def persist_played_card_data(
 
 
 async def execute_card(match_id: int, def_card_id: int = None):
-    """
-    IMPORTANTE: Borrará la información persistida de la jugada
-    """
     card_name = get_card_name(get_played_card(match_id))
     player_name = get_turn_player(match_id)
     target_name = get_target_player(match_id)
@@ -202,11 +199,12 @@ async def execute_card(match_id: int, def_card_id: int = None):
     elif card_name == "Whisky":
         await play_whisky(player_name)
     elif card_name == "Seducción":
-        await play_seduccion(player_name)
+        # No necesita implementación
+        pass
     else:
         pass
 
-    clean_played_card_data(match_id)
+    #clean_played_card_data(match_id)
     if not is_la_cosa_alive(match_id):
         await set_win(match_id, "La cosa ha muerto")
 
@@ -237,10 +235,6 @@ def play_lanzallamas(player_name: str, target_name: str):
         raise InvalidCard("No puedes jugar Lanzallamas a ese jugador")
     set_player_alive(target_name, False)
 
-
-async def play_seduccion(player_name: str):
-    set_global_exchange(player_name, True)
-    await manager.send_message_to(GLOBAL_EXCHANGE, 1, player_name)
 
 
 # --------- Defense logic --------
@@ -311,11 +305,15 @@ async def skip_defense(player_name: str):
 # ----------- Card exchange logic ------------
 
 
-async def exchange_handler(player: str, card: int, target: str = ""):
+async def exchange_handler(player: str, card: int):
     match_id = get_player_match(player)
     game_state = get_game_state(match_id)
+    last_card = last_played_card(match_id)
+
     if game_state == GAME_STATE["EXCHANGE"]:
-        if not target:
+        if last_card == "Seducción":
+            target = get_target_player(match_id)
+        else:
             target = get_next_player(match_id)
         await _initiate_exchange(player, card, target)
     elif game_state == GAME_STATE["WAIT_EXCHANGE"]:
@@ -327,11 +325,8 @@ async def exchange_handler(player: str, card: int, target: str = ""):
 
 async def _initiate_exchange(player: str, card: int, target: str):
     match_id = get_player_match(player)
-    next_player = get_next_player(match_id)
     if not is_player_turn(player):
         raise GameException("No es tu turno")
-    if not has_global_exchange(player) and not target == next_player:
-        raise GameException("No puedes intercambiar cartas con ese jugador")
 
     check_valid_exchange(card, player, target)
     # Guardar p1, c1 en la base de datos
@@ -341,9 +336,6 @@ async def _initiate_exchange(player: str, card: int, target: str):
     # cambiar estado a Wait_exchange
     set_game_state(match_id, GAME_STATE["WAIT_EXCHANGE"])
 
-    if has_global_exchange(player):
-        set_global_exchange(player, False)
-        await manager.send_message_to(GLOBAL_EXCHANGE, 0, player)
     alert = "Esperando intercambio entre " + player + " y " + target
     await manager.broadcast(PLAY_NOTIFICATION, alert, match_id)
 
@@ -406,9 +398,6 @@ def check_valid_exchange(card_id: int, player_name: str, target: str):
             raise InvalidCard(
                 "Debes tener al menos una carta de ¡Infectado! en tu mano"
             )
-    # Ver si cambiar después
-    elif has_global_exchange(player_name) and is_in_quarantine(target):
-        raise InvalidCard("No puedes intercambiar cartas con un jugador en cuarentena")
 
 
 def check_target_player(player_name: str, target_name: str = ""):
