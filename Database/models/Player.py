@@ -157,6 +157,12 @@ def get_player_hand(player_name: str) -> list:
     player = get_player_by_name(player_name)
     return get_cards(player)
 
+@db_session
+def get_random_card_from(player_name: str) -> str:
+    player = get_player_by_name(player_name)
+    card = list(player.cards.random(1))[0]
+    return card.card_name
+
 
 @db_session
 def get_player_cards_names(player_name: str) -> list:

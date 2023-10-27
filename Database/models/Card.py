@@ -6,7 +6,7 @@ from Game.cards.cards import *
 
 # --------- Card functions --------- #
 
-TARGET_CARDS = ["Lanzallamas", "Seducción"]
+TARGET_CARDS = ["Lanzallamas", "Seducción", "Sospecha"]
 ONLY_TO_ADJACENT = [
     "Lanzallamas", 
     "Sospecha", 

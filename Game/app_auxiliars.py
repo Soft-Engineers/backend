@@ -231,7 +231,14 @@ def play_lanzallamas(target_name: str):
 
 
 async def play_sospecha(player_name: str, target_name: str):
-    pass
+    msg = {
+        "cards": [get_random_card_from(target_name)],
+        "cards_owner": target_name,
+        "trigger_player": player_name,
+        "trigger_card": "Sospecha",
+    }
+    await manager.send_message_to(REVEALED_CARDS, msg, player_name)
+
 
 
 # --------- Defense logic --------
