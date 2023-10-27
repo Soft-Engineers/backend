@@ -108,6 +108,7 @@ def is_lacosa(player_name: str) -> bool:
     player = get_player_by_name(player_name)
     return player.rol == ROL["LA_COSA"]
 
+
 @db_session
 def is_in_quarantine(player_name: str) -> bool:
     player = get_player_by_name(player_name)
@@ -156,6 +157,7 @@ def get_cards(player: Player) -> list:
 def get_player_hand(player_name: str) -> list:
     player = get_player_by_name(player_name)
     return get_cards(player)
+
 
 @db_session
 def get_random_card_from(player_name: str) -> str:

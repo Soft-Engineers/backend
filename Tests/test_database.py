@@ -592,3 +592,64 @@ class TestGetDeadPlayersFunction(TestCase):
     def test_get_dead_players_match_not_started(self):
         with self.assertRaises(MatchNotStarted):
             get_dead_players(1)
+
+
+class test_get_random_card_from(TestCase):
+    @patch("Database.models.Player.get_player_by_name")
+    def test_get_random_card_from(self, mock_get_player_by_name):
+        mock_player = Mock()
+        mock_card = Mock()
+        mock_player.cards.random.return_value = [mock_card]
+        mock_get_player_by_name.return_value = mock_player
+
+        card = get_random_card_from("test_player")
+
+        self.assertEqual(card, mock_card.card_name)
+        mock_get_player_by_name.assert_called_once_with("test_player")
+        mock_player.cards.random.assert_called_once_with(1)
+
+class test_is_in_quarantine(TestCase):
+    @patch("Database.models.Player.get_player_by_name")
+    def test_is_in_quarantine(self, mock_get_player_by_name):
+        mock_player = Mock()
+        mock_player.in_quarantine = True
+        mock_get_player_by_name.return_value = mock_player
+
+        result = is_in_quarantine("test_player")
+
+        self.assertEqual(result, True)
+        mock_get_player_by_name.assert_called_once_with("test_player")
+
+
+class test_requires_target(TestCase):
+    @patch("Database.models.Card.get_card_name", return_value = "Lanzallamas")
+    def test_requires_target(self, mock_get_card_name):
+        result = requires_target(1)
+        self.assertEqual(result, True)
+    
+    @patch("Database.models.Card.get_card_name", return_value = "Determinación")
+    def test_requires_target_false(self, mock_get_card_name):
+        result = requires_target(20)
+        self.assertEqual(result, False)
+
+class test_only_to_adjacent(TestCase):
+    @patch("Database.models.Card.get_card_name", return_value = "Lanzallamas")
+    def test_only_to_adjacent(self, mock_get_card_name):
+        result = only_to_adjacent(1)
+        self.assertEqual(result, True)
+    
+    @patch("Database.models.Card.get_card_name", return_value = "Seducción")
+    def test_only_to_adjacent_false(self, mock_get_card_name):
+        result = only_to_adjacent(20)
+        self.assertEqual(result, False)
+
+class test_requires_target_not_quarantined(TestCase):
+    @patch("Database.models.Card.get_card_name", return_value = "Seducción")
+    def test_requires_target_not_quarantined(self, mock_get_card_name):
+        result = requires_target_not_quarantined(1)
+        self.assertEqual(result, True)
+
+    @patch("Database.models.Card.get_card_name", return_value = "Lanzallamas")
+    def test_requires_target_not_quarantined_false(self, mock_get_card_name):
+        result = requires_target_not_quarantined(20)
+        self.assertEqual(result, False)
