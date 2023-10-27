@@ -43,6 +43,8 @@ async def handle_request(request, match_id, player_name, websocket):
             raise RequestException("Petición no reconocida")
     except FinishedMatchException as e:
         pass
+    except KeyError as e:
+        await manager.send_error_message("Invalid request", websocket)
     except (RequestException, GameException, DatabaseError, ManagerException) as e:
         await manager.send_error_message(str(e), websocket)
 
@@ -77,17 +79,7 @@ async def leave_match_handler(content, match_id, player_name):
 
 
 async def exchange_card_handler(content, match_id, player_name):
-    if get_game_state(match_id) == GAME_STATE["EXCHANGE"]:
-        target = get_next_player(match_id)
-        exchange_card(player_name, content["card_id"], target)
-
-        alert = "Esperando intercambio entre " + player_name + " y " + target
-        await manager.broadcast(PLAY_NOTIFICATION, alert, match_id)
-    elif get_game_state(match_id) == GAME_STATE["WAIT_EXCHANGE"]:
-        target = get_player_in_turn(match_id)
-        await wait_exchange_card(target, content["card_id"])
-    else:
-        raise GameException("No puedes intercambiar cartas en este momento")
+    await exchange_handler(player_name, content["card_id"])
 
 
 async def declaration_handler(content, match_id, player_name):
