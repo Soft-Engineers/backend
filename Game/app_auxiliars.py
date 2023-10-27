@@ -345,6 +345,7 @@ async def _execute_exchange(target: str, card2: int):
     exchange_players_cards(player1, card1, target, card2)
     await check_infection(player1, target, card1, card2)
     clear_exchange(match_id)
+    clean_played_card_data(match_id)
     # Volver el turno a p1
     set_match_turn(match_id, player1)
     set_next_turn(match_id)
