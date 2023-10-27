@@ -327,9 +327,10 @@ async def exchange_handler(player: str, card: int, target: str = ""):
 
 async def _initiate_exchange(player: str, card: int, target: str):
     match_id = get_player_match(player)
+    next_player = get_next_player(match_id)
     if not is_player_turn(player):
         raise GameException("No es tu turno")
-    if not has_global_exchange(player) and not is_adyacent(player, target):
+    if not has_global_exchange(player) and not target == next_player:
         raise GameException("No puedes intercambiar cartas con ese jugador")
 
     check_valid_exchange(card, player, target)
