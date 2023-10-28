@@ -171,9 +171,9 @@ async def persist_played_card_data(
 
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
-    elif get_card_type(card_id) == is_defensa(card_id):
+    elif is_defensa(card_id):
         raise InvalidCard("No puedes jugar una carta de defensa ahora")
-    elif get_card_type(card_id) == is_contagio(card_id):
+    elif is_contagio(card_id):
         raise InvalidCard("No puedes jugar una carta " + card_name)
 
     if requires_target(card_id):
