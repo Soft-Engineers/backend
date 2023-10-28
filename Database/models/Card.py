@@ -24,7 +24,16 @@ TARGET_NOT_QUARANTINED = [
     "¡Cambio de lugar!",
     "¿No podemos ser amigos?",
 ]
-
+DEFENSIBLE_CARD = [
+    "Lanzallamas",
+    "¡Cambio de lugar!",
+    "¡Más vale que corras!",
+]
+DEFEND_EXCHANGE = [
+    "Aterrador",
+    "¡No, gracias!",
+    "¡Fallaste!",
+]
 
 @db_session
 def get_card_by_id(card_id: int) -> Card:
@@ -59,6 +68,18 @@ def is_panic(card_id: int) -> bool:
 def is_contagio(card_id: int) -> bool:
     card = get_card_by_id(card_id)
     return card.type == CardType.CONTAGIO.value
+
+
+@db_session
+def has_defense(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in DEFENSIBLE_CARD
+
+
+@db_session
+def defend_exchange(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in DEFEND_EXCHANGE
 
 
 @db_session

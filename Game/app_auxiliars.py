@@ -143,7 +143,7 @@ async def _play_turn_card(
         raise GameException("Debes jugar la carta de Pánico")
 
     await persist_played_card_data(player_name, card_id, target)
-    if not requires_target(card_id):
+    if not has_defense(card_id):
         await execute_card(match_id=match_id)
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
     else:
@@ -156,7 +156,7 @@ async def _play_turn_card(
         "notificación jugada", play_card_msg(player_name, card_id, target), match_id
     )
 
-    if requires_target(card_id):
+    if has_defense(card_id):
         await manager.broadcast(
             "notificación jugada",
             wait_defense_card_msg(player_name, card_id, target),
