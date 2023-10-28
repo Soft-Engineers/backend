@@ -12,7 +12,7 @@ TARGET_CARDS = [
     "Sospecha",
     "¿No podemos ser amigos?"
 ]
-ONLY_TO_ADJACENT = [
+TARGET_ADJACENT = [
     "Lanzallamas", 
     "Sospecha", 
     "Análisis",
@@ -73,15 +73,9 @@ def requires_target(card_id: int) -> bool:
 
 
 @db_session
-def only_to_adjacent(card_id: int) -> bool:
+def requires_adjacent_target(card_id: int) -> bool:
     card_name = get_card_name(card_id)
-    return card_name in ONLY_TO_ADJACENT
-
-
-@db_session
-def only_to_adjacent(card_id: int) -> bool:
-    card_name = get_card_name(card_id)
-    return card_name in ONLY_TO_ADJACENT
+    return card_name in TARGET_ADJACENT
 
 
 @db_session

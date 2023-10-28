@@ -180,7 +180,7 @@ async def persist_played_card_data(
         if target_name is None or target_name == "":
             raise InvalidCard("Esta carta requiere un objetivo")
         check_target_player(player_name, target_name)
-        if only_to_adjacent(card_id) and not is_adyacent(player_name, target_name):
+        if requires_adjacent_target(card_id) and not is_adyacent(player_name, target_name):
             raise InvalidCard(f"Solo puedes jugar {card_name} a un jugador adyacente")
         if requires_target_not_quarantined(card_id) and is_in_quarantine(target_name):
             raise InvalidCard(f"No puedes jugar {card_name} a un jugador en cuarentena")
