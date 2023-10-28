@@ -22,6 +22,7 @@ TARGET_NOT_QUARANTINED = [
     "Seducción",
     "¡Más vale que corras!",
     "¡Cambio de lugar!",
+    "¿No podemos ser amigos?",
 ]
 
 
