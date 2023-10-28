@@ -41,7 +41,7 @@ async def handle_request(request, match_id, player_name, websocket):
             await handler(content, match_id, player_name)
         else:
             raise RequestException("Petición no reconocida")
-    except FinishedMatchException as e:
+    except MatchNotFound:
         pass
     except (RequestException, GameException, DatabaseError, ManagerException) as e:
         await manager.send_error_message(str(e), websocket)

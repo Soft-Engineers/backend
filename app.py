@@ -65,13 +65,16 @@ async def websocket_endpoint(websocket: WebSocket):
             await _send_lobby_players(match_id)
 
         while True:
-            if db_is_match_initiated(match_name):
+            if match_exists(match_name) and db_is_match_initiated(match_name):
                 await _send_game_state(match_id)
-
             request = await websocket.receive_text()
-            await handle_request(request, match_id, player_name, websocket)
-
+            if match_exists(match_name):
+                await handle_request(request, match_id, player_name, websocket)
     except WebSocketDisconnect:
+        manager.disconnect(player_name, match_id)
+    except FinishedMatchException:
+        await _send_game_state(match_id)
+        delete_match(match_name)
         manager.disconnect(player_name, match_id)
     except Exception as e:
         print(str(e))
