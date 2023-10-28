@@ -264,7 +264,7 @@ async def _play_defense_card(
         raise GameException("No puedes defenderte ahora")
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
-    if not get_card_type(card_id) == is_defensa(card_id):
+    if not is_defensa(card_id):
         raise GameException("Esta carta no es de defensa")
     if not get_card_name(card_id) == "¡Nada de barbacoas!":
         raise GameException("No puedes jugar una carta de defensa de intercambio ahora")
