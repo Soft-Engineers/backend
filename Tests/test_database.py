@@ -179,16 +179,17 @@ class test_pick_random_card(TestCase):
         mock_get_deck.return_value = mock_deck
 
         mock_card = Mock()
+        mock_card.id = 2
         mock_deck.cards.random.return_value = [mock_card]
 
-        card = pick_random_card("test_player")
+        card_id = pick_random_card("test_player")
 
         mock_get_player.assert_called_once_with("test_player")
         mock_get_deck.assert_called_once_with(mock_player.match.id)
         mock_deck.cards.random.assert_called_once_with(1)
         mock_deck.cards.remove.assert_called_once_with(mock_card)
         assert mock_card in mock_player.cards
-        self.assertEqual(card, mock_card)
+        self.assertEqual(card_id, mock_card.id)
 
 
 class test_new_deck_from_discard(TestCase):

@@ -50,10 +50,18 @@ def pickup_card(player_name: str):
         raise GameException("No puedes robar carta en este momento")
 
     card = pick_random_card(player_name)
-    if is_panic(card.id):
+    if is_panic(card):
         set_game_state(match_id, GAME_STATE["PANIC"])
     else:
         set_game_state(match_id, GAME_STATE["PLAY_TURN"])
+
+
+def pick_not_panic_card(player_name: str) -> int:
+    card = pick_random_card(player_name)
+    while is_panic(card):
+        discard_card(player_name, card)
+        card = pick_random_card(player_name)
+    return card
 
 
 # ------- Discard Card logic --------
@@ -267,7 +275,7 @@ async def _play_defense_card(
 
     await execute_card(match_id, card_id)
     discard_card(player_name, card_id)
-    pick_random_card(player_name)
+    pick_not_panic_card(player_name)
 
     assign_next_turn_to(match_id, turn_player)
     set_game_state(match_id, GAME_STATE["EXCHANGE"])

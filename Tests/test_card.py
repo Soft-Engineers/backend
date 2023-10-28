@@ -46,15 +46,11 @@ class TestPickupCard(TestCase):
 
     @patch("Game.app_auxiliars.is_player_turn", return_value=True)
     @patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["DRAW_CARD"])
-    @patch("Game.app_auxiliars.pick_random_card")
+    @patch("Game.app_auxiliars.pick_random_card", return_value=1)
     def test_pickup_card(self, mock_pick_card, *args):
-        mock_card = Mock()
-        mock_card.id = 1
-        mock_card.card_name = "test_card"
-        mock_card.type = "test_type"
-        mock_pick_card.return_value = mock_card
-
         pickup_card("test_player")
+        mock_pick_card.assert_called_once_with("test_player")
+        
 
     @patch("Game.app_auxiliars.is_player_turn", return_value=False)
     def test_pickup_card_not_player_turn(self, *args):
