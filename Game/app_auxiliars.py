@@ -49,8 +49,11 @@ def pickup_card(player_name: str):
     elif get_game_state(match_id) != GAME_STATE["DRAW_CARD"]:
         raise GameException("No puedes robar carta en este momento")
 
-    pick_random_card(player_name)
-    set_game_state(match_id, GAME_STATE["PLAY_TURN"])
+    card = pick_random_card(player_name)
+    if is_panic(card.id):
+        set_game_state(match_id, GAME_STATE["PANIC"])
+    else:
+        set_game_state(match_id, GAME_STATE["PLAY_TURN"])
 
 
 # ------- Discard Card logic --------
@@ -67,6 +70,8 @@ async def discard_player_card(player_name: str, card_id: int):
     card_name = get_card_name(card_id)
     role = get_player_role(player_name)
 
+    if game_state == GAME_STATE["PANIC"]:
+        raise GameException("Debes jugar la carta de Pánico")
     if not game_state == GAME_STATE["PLAY_TURN"]:
         raise GameException("No puedes descartar carta en este momento")
     if not has_card(player_name, card_id):
@@ -94,9 +99,8 @@ async def play_card(player_name: str, card_id: int, target: str = ""):
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
 
-    if game_state == GAME_STATE["PLAY_TURN"]:
+    if game_state in [GAME_STATE["PLAY_TURN"], GAME_STATE["PANIC"]]:
         await _play_turn_card(match_id, player_name, card_id, target)
-
         msg = {
             "posiciones": get_match_locations(match_id),
             "target": target,
@@ -127,6 +131,8 @@ async def _play_turn_card(
 ):
     if not is_player_turn(player_name):
         raise GameException("No es tu turno")
+    if get_game_state(match_id) == GAME_STATE["PANIC"] and not is_panic(card_id):
+        raise GameException("Debes jugar la carta de Pánico")
 
     await persist_played_card_data(player_name, card_id, target)
     if not requires_target(card_id):
@@ -197,8 +203,8 @@ async def execute_card(match_id: int, def_card_id: int = None):
         await play_whisky(player_name)
     elif card_name == "Sospecha":
         await play_sospecha(player_name, target_name)
-    elif card_name == "Seducción":
-        # No necesita implementación
+    elif card_name in ["Seducción", "¿No podemos ser amigos?"]:
+        # No necesitan implementación
         pass
     else:
         pass
@@ -238,7 +244,6 @@ async def play_sospecha(player_name: str, target_name: str):
         "trigger_card": "Sospecha",
     }
     await manager.send_message_to(REVEALED_CARDS, msg, player_name)
-
 
 
 # --------- Defense logic --------
@@ -314,9 +319,10 @@ async def exchange_handler(player: str, card: int):
     game_state = get_game_state(match_id)
     last_card = last_played_card(match_id)
     turn_player = get_turn_player(match_id)
+    global_exchange_cards = ["Seducción", "¿No podemos ser amigos?"]
 
     if game_state == GAME_STATE["EXCHANGE"]:
-        if turn_player == player and last_card == "Seducción":
+        if turn_player == player and last_card in global_exchange_cards:
             target = get_target_player(match_id)
         else:
             target = get_next_player(match_id)

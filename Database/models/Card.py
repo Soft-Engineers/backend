@@ -6,7 +6,12 @@ from Game.cards.cards import *
 
 # --------- Card functions --------- #
 
-TARGET_CARDS = ["Lanzallamas", "Seducción", "Sospecha"]
+TARGET_CARDS = [
+    "Lanzallamas",
+    "Seducción",
+    "Sospecha",
+    "¿No podemos ser amigos?"
+]
 ONLY_TO_ADJACENT = [
     "Lanzallamas", 
     "Sospecha", 
@@ -41,6 +46,12 @@ def get_card_name(card_id: int) -> str:
 def is_defensa(card_id: int) -> bool:
     card = get_card_by_id(card_id)
     return card.type == CardType.DEFENSA.value
+
+
+@db_session
+def is_panic(card_id: int) -> bool:
+    card = get_card_by_id(card_id)
+    return card.type == CardType.PANICO.value
 
 
 @db_session
