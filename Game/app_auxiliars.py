@@ -71,7 +71,7 @@ async def discard_player_card(player_name: str, card_id: int):
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
     if card_name == "La Cosa":
-        raise InvalidCard("No puedes jugar la carta La Cosa")
+        raise InvalidCard("No puedes descartar la carta La Cosa")
     if (
         role == "INFECTADO"
         and card_name == "¡Infectado!"
@@ -156,9 +156,9 @@ async def persist_played_card_data(
 
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
-    elif get_card_type(card_id) == is_defensa(card_id):
+    elif is_defensa(card_id):
         raise InvalidCard("No puedes jugar una carta de defensa ahora")
-    elif get_card_type(card_id) == is_contagio(card_id):
+    elif is_contagio(card_id):
         raise InvalidCard("No puedes jugar una carta " + card_name)
 
     if requires_target(card_id):
@@ -245,7 +245,7 @@ async def _play_defense_card(
         raise GameException("No puedes defenderte ahora")
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
-    if not get_card_type(card_id) == is_defensa(card_id):
+    if not is_defensa(card_id):
         raise GameException("Esta carta no es de defensa")
     if not get_card_name(card_id) == "¡Nada de barbacoas!":
         raise GameException("No puedes jugar una carta de defensa de intercambio ahora")
