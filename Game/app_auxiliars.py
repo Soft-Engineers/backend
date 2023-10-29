@@ -327,10 +327,9 @@ async def exchange_handler(player: str, card: int):
     game_state = get_game_state(match_id)
     last_card = last_played_card(match_id)
     turn_player = get_turn_player(match_id)
-    global_exchange_cards = ["Seducción", "¿No podemos ser amigos?"]
 
     if game_state == GAME_STATE["EXCHANGE"]:
-        if turn_player == player and last_card in global_exchange_cards:
+        if turn_player == player and allows_global_exchange(last_card):
             target = get_target_player(match_id)
         else:
             target = get_next_player(match_id)

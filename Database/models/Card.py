@@ -47,6 +47,10 @@ DEFEND_EXCHANGE = [
     "¡No, gracias!",
     "¡Fallaste!",
 ]
+GLOBAL_EXCHANGE = [
+    "Seducción",
+    "¿No podemos ser amigos?"
+]
 
 @db_session
 def get_card_by_id(card_id: int) -> Card:
@@ -116,6 +120,11 @@ def requires_adjacent_target(card_id: int) -> bool:
 def requires_target_not_quarantined(card_id: int) -> bool:
     card_name = get_card_name(card_id)
     return card_name in TARGET_NOT_QUARANTINED
+
+@db_session
+def allows_global_exchange(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in GLOBAL_EXCHANGE
 
 
 # ----- Register Cards ----- #
