@@ -451,23 +451,25 @@ async def check_infection(player_name: str, target: str, card: int, card2: int):
 
 
 @db_session
-def check_valid_exchange(card_id: int, player_name: str, target: str):
+def check_valid_exchange(card_id: int, player: str, target: str):
     if card_id is None or card_id == "":
         raise InvalidCard("Debes seleccionar una carta para intercambiar")
+    if player == target:
+        raise InvalidPlayer("Seleccione otro jugador para intercambiar")
 
     card_name = get_card_name(card_id)
-    if not has_card(player_name, card_id):
+    if not has_card(player, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
     elif card_name == "La Cosa":
         raise InvalidCard("No puedes intercambiar la carta La Cosa")
     elif is_contagio(card_id):
-        if is_human(player_name):
+        if is_human(player):
             raise InvalidCard("Los humanos no pueden intercambiar la carta ¡Infectado!")
-        if is_infected(player_name) and not is_lacosa(target):
+        if is_infected(player) and not is_lacosa(target):
             raise InvalidCard(
                 "Solo puedes intercambiar la carta ¡Infectado! con La Cosa"
             )
-        if is_infected(player_name) and count_infection_cards(player_name) == 1:
+        if is_infected(player) and count_infection_cards(player) == 1:
             raise InvalidCard(
                 "Debes tener al menos una carta de ¡Infectado! en tu mano"
             )
@@ -480,6 +482,8 @@ def check_target_player(player_name: str, target_name: str = ""):
         raise InvalidPlayer("El jugador seleccionado está muerto")
     if get_player_match(player_name) != get_player_match(target_name):
         raise InvalidPlayer("Jugador no válido")
+    if player_name == target_name:
+        raise InvalidPlayer("Selecciona a otro jugador como objetivo")
 
 
 def check_valid_defense(player: str, defense_card: int):
