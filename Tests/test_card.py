@@ -36,13 +36,18 @@ class TestPickupCard(TestCase):
         self.patch_set_game_state = patch(
             "Game.app_auxiliars.set_game_state", return_value=None
         )
+        self.patch_set_turn_player = patch(
+            "Game.app_auxiliars.set_turn_player", return_value=None
+        )
 
         self.patch_get_player_match.start()
         self.patch_set_game_state.start()
+        self.patch_set_turn_player.start()
 
     def tearDown(self):
         self.patch_get_player_match.stop()
         self.patch_set_game_state.stop()
+        self.patch_set_turn_player.stop()
 
     @patch("Game.app_auxiliars.is_player_turn", return_value=True)
     @patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["DRAW_CARD"])
