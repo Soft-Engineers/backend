@@ -8,25 +8,38 @@ from Game.cards.cards import *
 
 TARGET_CARDS = [
     "Lanzallamas",
-    "Seducción",
+    "Análisis",
     "Sospecha",
-    "¿No podemos ser amigos?"
+    "Seducción",
+    "¡Cambio de Lugar!",
+    "¿No podemos ser amigos?",
+    "Cuarentena",
+    "Puerta atrancada",
+    "Hacha",
+    "¡Más vale que corras!",
+    "Que quede entre nosotros...",
+    "¡Sal de aquí!",
 ]
 TARGET_ADJACENT = [
-    "Lanzallamas", 
-    "Sospecha", 
+    "Lanzallamas",
     "Análisis",
-    "¡Cambio de lugar!"
+    "Sospecha",
+    "Hacha",
+    "¡Cambio de Lugar!",
+    "Cuarentena",
+    "Puerta atrancada",
+    "Que quede entre nosotros...",
+
 ]
 TARGET_NOT_QUARANTINED = [
     "Seducción",
     "¡Más vale que corras!",
-    "¡Cambio de lugar!",
+    "¡Cambio de Lugar!",
     "¿No podemos ser amigos?",
 ]
 DEFENSIBLE_CARD = [
     "Lanzallamas",
-    "¡Cambio de lugar!",
+    "¡Cambio de Lugar!",
     "¡Más vale que corras!",
 ]
 DEFEND_EXCHANGE = [
