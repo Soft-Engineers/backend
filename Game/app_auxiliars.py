@@ -129,7 +129,7 @@ async def play_card(player_name: str, card_id: int, target: str = ""):
         await manager.broadcast("datos jugada", msg, match_id)
 
     elif game_state == GAME_STATE["WAIT_EXCHANGE"]:
-        raise GameException("Defensa de intercambio no implementada")
+        await _play_exchange_defense_card(match_id, player_name, card_id)
     else:
         raise GameException("No puedes jugar carta en este momento")
 
@@ -180,7 +180,9 @@ async def persist_played_card_data(
         if target_name is None or target_name == "":
             raise InvalidCard("Esta carta requiere un objetivo")
         check_target_player(player_name, target_name)
-        if requires_adjacent_target(card_id) and not is_adyacent(player_name, target_name):
+        if requires_adjacent_target(card_id) and not is_adyacent(
+            player_name, target_name
+        ):
             raise InvalidCard(f"Solo puedes jugar {card_name} a un jugador adyacente")
         if requires_target_not_quarantined(card_id) and is_in_quarantine(target_name):
             raise InvalidCard(f"No puedes jugar {card_name} a un jugador en cuarentena")
@@ -254,23 +256,23 @@ async def play_sospecha(player_name: str, target_name: str):
     await manager.send_message_to(REVEALED_CARDS, msg, player_name)
 
 
+async def play_aterrador(match_id: int):
+    pass
+
+
 # --------- Defense logic --------
 
 
 async def _play_defense_card(
     match_id: int, player_name: str, card_id: int, target: str = ""
 ):
-    if not is_player_turn(player_name):
-        raise GameException("No puedes defenderte ahora")
-    if not has_card(player_name, card_id):
-        raise InvalidCard("No tienes esa carta en tu mano")
-    if not is_defensa(card_id):
-        raise GameException("Esta carta no es de defensa")
-    if not get_card_name(card_id) == "¡Nada de barbacoas!":
-        raise GameException("No puedes jugar una carta de defensa de intercambio ahora")
-    if not get_card_name(get_played_card(match_id)) == "Lanzallamas":
-        raise GameException("No puedes defenderte de esta carta")
-
+    check_valid_defense(player_name, card_id)
+    defense_card = card_id
+    action_card = get_played_card(match_id)
+    if not can_defend(defense_card, action_card):
+        raise GameException(
+            f"No puedes defender {get_card_name(action_card)} con {get_card_name(defense_card)}"
+        )
     turn_player = get_turn_player(match_id)
 
     await execute_card(match_id, card_id)
@@ -319,13 +321,42 @@ async def skip_defense(player_name: str):
     await manager.broadcast("datos jugada", msg, match_id)
 
 
+# Ver si se puede unir con _play_defense_card
+async def _play_exchange_defense_card(match_id, player_name, card_id):
+    check_valid_defense(player_name, card_id)
+    defense_card = get_card_name(card_id)
+
+    if not defend_exchange(card_id):
+        raise GameException(f"No puedes defender este intercambio con {defense_card}")
+
+    if defense_card == "Aterrador":
+        await play_aterrador(match_id)
+    elif defense_card == "¡No, gracias!":
+        pass
+    elif defense_card == "¡Fallaste!":
+        pass
+    else:
+        pass
+
+    discard_card(player_name, card_id)
+    pick_not_panic_card(player_name)
+    clean_played_card_data(match_id)
+    clear_exchange(match_id)
+    set_game_state(match_id, GAME_STATE["DRAW_CARD"])
+    set_next_turn(match_id)
+
+    await manager.broadcast(
+        "notificación jugada", defended_card_msg(player_name, card_id), match_id
+    )
+
+
 # ----------- Card exchange logic ------------
 
 
 async def exchange_handler(player: str, card: int):
     match_id = get_player_match(player)
     game_state = get_game_state(match_id)
-    last_card = last_played_card(match_id)
+    last_card = get_played_card(match_id)
     turn_player = get_turn_player(match_id)
 
     if game_state == GAME_STATE["EXCHANGE"]:
@@ -426,6 +457,15 @@ def check_target_player(player_name: str, target_name: str = ""):
         raise InvalidPlayer("El jugador seleccionado está muerto")
     if get_player_match(player_name) != get_player_match(target_name):
         raise InvalidPlayer("Jugador no válido")
+
+
+def check_valid_defense(player: str, defense_card: int):
+    if not is_player_turn(player):
+        raise GameException("No puedes defenderte ahora")
+    if not has_card(player, defense_card):
+        raise InvalidCard("No tienes esa carta en tu mano")
+    if not is_defensa(defense_card):
+        raise GameException("Esta carta no es de defensa")
 
 
 def valid_declaration(match_id: int, player_name: str) -> bool:

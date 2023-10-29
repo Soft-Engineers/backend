@@ -37,11 +37,12 @@ TARGET_NOT_QUARANTINED = [
     "¡Cambio de Lugar!",
     "¿No podemos ser amigos?",
 ]
-DEFENSIBLE_CARD = [
-    "Lanzallamas",
-    "¡Cambio de Lugar!",
-    "¡Más vale que corras!",
-]
+# Carta de acción y su defensa
+DEFENSIBLE_CARD = {
+    "Lanzallamas": "¡Nada de barbacoas!",
+    "¡Cambio de Lugar!": "Aquí estoy bien",
+    "¡Más vale que corras!": "Aquí estoy bien",
+}
 DEFEND_EXCHANGE = [
     "Aterrador",
     "¡No, gracias!",
@@ -90,7 +91,13 @@ def is_contagio(card_id: int) -> bool:
 @db_session
 def has_defense(card_id: int) -> bool:
     card_name = get_card_name(card_id)
-    return card_name in DEFENSIBLE_CARD
+    return card_name in DEFENSIBLE_CARD.keys()
+
+@db_session
+def can_defend(defense_card: int, action_card: int) -> bool:
+    defense_card_name = get_card_name(defense_card)
+    action_card_name = get_card_name(action_card)
+    return DEFENSIBLE_CARD[action_card_name] == defense_card_name
 
 
 @db_session
