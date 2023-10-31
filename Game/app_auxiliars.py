@@ -82,7 +82,6 @@ async def discard_player_card(player_name: str, card_id: int):
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
     card_name = get_card_name(card_id)
-    role = get_player_role(player_name)
 
     if game_state == GAME_STATE["PANIC"]:
         raise GameException("Debes jugar la carta de Pánico")
@@ -93,8 +92,8 @@ async def discard_player_card(player_name: str, card_id: int):
     if card_name == "La Cosa":
         raise InvalidCard("No puedes descartar la carta La Cosa")
     if (
-        role == "INFECTADO"
-        and card_name == "¡Infectado!"
+        is_infected(player_name)
+        and is_contagio(card_id)
         and count_infection_cards(player_name) == 1
     ):
         raise InvalidCard("No puedes descartar tu última carta de infectado")
@@ -354,7 +353,7 @@ async def _play_exchange_defense_card(match_id, player_name, card_id):
         pass
     discard_card(player_name, card_id)
     pick_not_panic_card(player_name)
-    
+
     await manager.broadcast(
         "notificación jugada", defended_exchange_msg(player_name, card_id), match_id
     )
@@ -366,7 +365,6 @@ async def _play_exchange_defense_card(match_id, player_name, card_id):
     set_next_turn(match_id)
     clean_played_card_data(match_id)
     clear_exchange(match_id)
-
 
 
 # ----------- Card exchange logic ------------

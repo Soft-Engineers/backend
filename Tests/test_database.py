@@ -609,6 +609,7 @@ class test_get_random_card_from(TestCase):
         mock_get_player_by_name.assert_called_once_with("test_player")
         mock_player.cards.random.assert_called_once_with(1)
 
+
 class test_is_in_quarantine(TestCase):
     @patch("Database.models.Player.get_player_by_name")
     def test_is_in_quarantine(self, mock_get_player_by_name):
@@ -623,60 +624,64 @@ class test_is_in_quarantine(TestCase):
 
 
 class test_requires_target(TestCase):
-    @patch("Database.models.Card.get_card_name", return_value = "Lanzallamas")
+    @patch("Database.models.Card.get_card_name", return_value="Lanzallamas")
     def test_requires_target(self, mock_get_card_name):
         result = requires_target(1)
         self.assertEqual(result, True)
-    
-    @patch("Database.models.Card.get_card_name", return_value = "Determinación")
+
+    @patch("Database.models.Card.get_card_name", return_value="Determinación")
     def test_requires_target_false(self, mock_get_card_name):
         result = requires_target(20)
         self.assertEqual(result, False)
 
+
 class test_requires_adjacent_target(TestCase):
-    @patch("Database.models.Card.get_card_name", return_value = "Lanzallamas")
+    @patch("Database.models.Card.get_card_name", return_value="Lanzallamas")
     def test_requires_adjacent_target(self, mock_get_card_name):
         result = requires_adjacent_target(1)
         self.assertEqual(result, True)
-    
-    @patch("Database.models.Card.get_card_name", return_value = "Seducción")
+
+    @patch("Database.models.Card.get_card_name", return_value="Seducción")
     def requires_adjacent_target_false(self, mock_get_card_name):
         result = requires_adjacent_target(20)
         self.assertEqual(result, False)
 
+
 class test_requires_target_not_quarantined(TestCase):
-    @patch("Database.models.Card.get_card_name", return_value = "Seducción")
+    @patch("Database.models.Card.get_card_name", return_value="Seducción")
     def test_requires_target_not_quarantined(self, mock_get_card_name):
         result = requires_target_not_quarantined(1)
         self.assertEqual(result, True)
 
-    @patch("Database.models.Card.get_card_name", return_value = "Lanzallamas")
+    @patch("Database.models.Card.get_card_name", return_value="Lanzallamas")
     def test_requires_target_not_quarantined_false(self, mock_get_card_name):
         result = requires_target_not_quarantined(20)
         self.assertEqual(result, False)
 
+
 class test_has_defense(TestCase):
-    @patch("Database.models.Card.get_card_name", return_value = "Lanzallamas")
+    @patch("Database.models.Card.get_card_name", return_value="Lanzallamas")
     def test_has_defense(self, mock_get_card_name):
         result = has_defense(1)
         self.assertEqual(result, True)
-    
-    @patch("Database.models.Card.get_card_name", return_value = "Hacha")
+
+    @patch("Database.models.Card.get_card_name", return_value="Hacha")
     def test_has_defense_false(self, mock_get_card_name):
         result = has_defense(20)
         self.assertEqual(result, False)
-    
+
 
 class test_defend_exchange(TestCase):
-    @patch("Database.models.Card.get_card_name", return_value = "¡Fallaste!")
+    @patch("Database.models.Card.get_card_name", return_value="¡Fallaste!")
     def test_defend_exchange(self, mock_get_card_name):
         result = defend_exchange(1)
         self.assertEqual(result, True)
-    
-    @patch("Database.models.Card.get_card_name", return_value = "Lanzallamas")
+
+    @patch("Database.models.Card.get_card_name", return_value="Lanzallamas")
     def test_defend_exchange_false(self, mock_get_card_name):
         result = defend_exchange(20)
         self.assertEqual(result, False)
+
 
 class tests_is_defensa(TestCase):
     @patch("Database.models.Card.get_card_by_id")
@@ -686,7 +691,7 @@ class tests_is_defensa(TestCase):
         mock_get_card_by_id.return_value = mock_card
         result = is_defensa(1)
         self.assertEqual(result, True)
-    
+
     @patch("Database.models.Card.get_card_by_id")
     def test_is_defense_false(self, mock_get_card_by_id):
         mock_card = Mock()
@@ -704,7 +709,7 @@ class test_is_panic(TestCase):
         mock_get_card_by_id.return_value = mock_card
         result = is_panic(1)
         self.assertEqual(result, True)
-    
+
     @patch("Database.models.Card.get_card_by_id")
     def test_is_panic_false(self, mock_get_card_by_id):
         mock_card = Mock()
@@ -722,7 +727,7 @@ class test_is_is_contagio(TestCase):
         mock_get_card_by_id.return_value = mock_card
         result = is_contagio(1)
         self.assertEqual(result, True)
-    
+
     @patch("Database.models.Card.get_card_by_id")
     def test_is_contagio_false(self, mock_get_card_by_id):
         mock_card = Mock()

@@ -38,12 +38,6 @@ def is_human(player_name: str) -> bool:
 
 
 @db_session
-def get_player_role(player_name: str) -> int:
-    player = get_player_by_name(player_name)
-    return get_role_name(player.rol)
-
-
-@db_session
 def is_player_alive(player_name: str) -> bool:
     player = get_player_by_name(player_name)
     return player.is_alive
@@ -201,4 +195,3 @@ def exchange_players_cards(player1: str, card1: int, player2: str, card2: int):
     player2.cards.add(card1)
     card1.player.add(player2)
     card2.player.add(player1)
-

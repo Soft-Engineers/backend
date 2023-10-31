@@ -55,7 +55,6 @@ class TestPickupCard(TestCase):
     def test_pickup_card(self, mock_pick_card, *args):
         pickup_card("test_player")
         mock_pick_card.assert_called_once_with("test_player")
-        
 
     @patch("Game.app_auxiliars.is_player_turn", return_value=False)
     def test_pickup_card_not_player_turn(self, *args):
@@ -123,6 +122,7 @@ class test_check_target_player(TestCase):
             check_target_player("PlayerA", "PlayerB")
         self.assertEqual(str(e.exception), "Jugador no válido")
 
+
 """
 class test_exchange_card(TestCase):
     def setUp(self):
@@ -180,6 +180,7 @@ class test_exchange_card(TestCase):
         with self.assertRaises(InvalidCard) as e:
             exchange_card("test_player", 1, "test_target")
 """
+
 
 class TestCheckValidExchange(TestCase):
     @patch("Game.app_auxiliars.get_card_name", return_value="SomeCard")
@@ -258,6 +259,7 @@ class TestPlayLanzallamas(TestCase):
     def test_successful_lanzallamas_play(self):
         target = Mock()
         target.is_alive = True
+
         def set_player_alive_(player, is_alive):
             player.is_alive = is_alive
 

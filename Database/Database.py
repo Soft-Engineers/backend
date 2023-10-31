@@ -43,6 +43,7 @@ class Player(db.Entity):
     in_game = Optional(bool, default=False)
     in_quarantine = Optional(bool, default=False)
 
+
 class Card(db.Entity):
     id = PrimaryKey(int, auto=True)
     number = Optional(int)
