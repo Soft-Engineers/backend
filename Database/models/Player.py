@@ -106,7 +106,7 @@ def is_lacosa(player_name: str) -> bool:
 @db_session
 def is_in_quarantine(player_name: str) -> bool:
     player = get_player_by_name(player_name)
-    return player.in_quarantine
+    return player.in_quarantine > 0
 
 
 @db_session

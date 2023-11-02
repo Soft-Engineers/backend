@@ -41,7 +41,7 @@ class Player(db.Entity):
     rol = Optional(int)  # 0: default, 1: human, 2: la cosa, 3: infected
     is_alive = Optional(bool)
     in_game = Optional(bool, default=False)
-    in_quarantine = Optional(bool, default=False)
+    in_quarantine = Optional(int, default=0)
 
 
 class Card(db.Entity):

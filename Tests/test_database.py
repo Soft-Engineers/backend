@@ -614,7 +614,7 @@ class test_is_in_quarantine(TestCase):
     @patch("Database.models.Player.get_player_by_name")
     def test_is_in_quarantine(self, mock_get_player_by_name):
         mock_player = Mock()
-        mock_player.in_quarantine = True
+        mock_player.in_quarantine = 1
         mock_get_player_by_name.return_value = mock_player
 
         result = is_in_quarantine("test_player")
