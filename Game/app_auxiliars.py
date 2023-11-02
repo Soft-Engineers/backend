@@ -248,7 +248,7 @@ async def play_whisky(player_name: str):
 
 
 def play_lanzallamas(target_name: str):
-    set_player_alive(target_name, False)
+    kill_player(target_name)
 
 
 async def play_sospecha(player_name: str, target_name: str):

@@ -91,11 +91,6 @@ def set_player_alive(player_name: str, alive: bool):
     player.is_alive = alive
 
 
-@db_session
-def get_player_alive(player_id: int) -> bool:
-    player = get_player_by_id(player_id)
-    return player.is_alive
-
 
 @db_session
 def is_lacosa(player_name: str) -> bool:

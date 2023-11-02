@@ -260,11 +260,11 @@ class TestPlayLanzallamas(TestCase):
         target = Mock()
         target.is_alive = True
 
-        def set_player_alive_(player, is_alive):
-            player.is_alive = is_alive
+        def _kill_player(player):
+            player.is_alive = False
 
         with patch(
-            "Game.app_auxiliars.set_player_alive", side_effect=set_player_alive_
+            "Game.app_auxiliars.kill_player", side_effect=_kill_player
         ):
             play_lanzallamas(target)
         self.assertEqual(target.is_alive, False)
