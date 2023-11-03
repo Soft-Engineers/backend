@@ -41,6 +41,18 @@ def defended_exchange_msg(player: str, card: int):
     return alert
 
 
+# ------- Auxiliar functions for game logic --------
+
+
+def end_player_turn(player_name: str):
+    """Clean turn data and set next turn"""
+    match_id = get_player_match(player_name)
+    set_next_turn(match_id)
+    clean_played_card_data(match_id)
+    clear_exchange(match_id)
+    set_game_state(match_id, GAME_STATE["DRAW_CARD"])
+
+
 # ------- Pick Card logic --------
 
 
@@ -99,13 +111,17 @@ async def discard_player_card(player_name: str, card_id: int):
         raise InvalidCard("No puedes descartar tu última carta de infectado")
 
     discard_card(player_name, card_id)
-    set_game_state(match_id, GAME_STATE["EXCHANGE"])
+    if not exist_obstacle_between(player_name, get_next_player(match_id)):
+        set_game_state(match_id, GAME_STATE["EXCHANGE"])
+    else:
+        end_player_turn(player_name)
     await manager.broadcast(
         "notificación jugada", player_name + " ha descartado una carta", match_id
     )
 
 
 # --------- Play Card logic ----------
+
 
 async def play_card(player_name: str, card_id: int, target: str = ""):
     match_id = get_player_match(player_name)
@@ -149,7 +165,10 @@ async def _play_turn_card(
     await persist_played_card_data(player_name, card_id, target)
     if not has_defense(card_id):
         await execute_card(match_id=match_id)
-        set_game_state(match_id, GAME_STATE["EXCHANGE"])
+        if not exist_obstacle_between(player_name, get_next_player(match_id)) and get_card_name(card_id) != "Seducción":
+            set_game_state(match_id, GAME_STATE["EXCHANGE"])
+        else:
+            end_player_turn(player_name)
     else:
         assign_next_turn_to(match_id, target)
         set_game_state(match_id, GAME_STATE["WAIT_DEFENSE"])
@@ -184,10 +203,17 @@ async def persist_played_card_data(
         if target_name is None or target_name == "":
             raise InvalidCard("Esta carta requiere un objetivo")
         check_target_player(player_name, target_name)
-        if requires_adjacent_target(card_id) and not is_adyacent(
-            player_name, target_name
-        ):
-            raise InvalidCard(f"Solo puedes jugar {card_name} a un jugador adyacente")
+        if requires_adjacent_target(card_id):
+            if not is_adyacent(player_name, target_name):
+                raise InvalidCard(
+                    f"Solo puedes jugar {card_name} a un jugador adyacente"
+                )
+            if card_name != "Hacha" and exist_obstacle_between(
+                player_name, target_name
+            ):
+                raise InvalidCard(
+                    f"No puedes jugar {card_name} a un jugador con un obstáculo en el medio"
+                )
         if requires_target_not_quarantined(card_id) and is_in_quarantine(target_name):
             raise InvalidCard(f"No puedes jugar {card_name} a un jugador en cuarentena")
 
@@ -219,6 +245,9 @@ async def execute_card(match_id: int, def_card_id: int = None):
         await play_sospecha(player_name, target_name)
     elif card_name in ["Seducción", "¿No podemos ser amigos?"]:
         # No necesitan implementación
+        pass
+    elif card_name == "Puerta atrancada":
+        play_puerta_atrancada(player_name, target_name)
         pass
     else:
         pass
@@ -272,6 +301,10 @@ async def play_aterrador(match: int, player: str):
     await manager.send_message_to(REVEALED_CARDS, msg, player)
 
 
+def play_puerta_atrancada(player: str, target: str):
+    set_obstacle_between(player, target)
+
+
 # --------- Defense logic --------
 
 
@@ -292,7 +325,10 @@ async def _play_defense_card(
     pick_not_panic_card(player_name)
 
     assign_next_turn_to(match_id, turn_player)
-    set_game_state(match_id, GAME_STATE["EXCHANGE"])
+    if exist_obstacle_between(turn_player, get_next_player(match_id)):
+        end_player_turn(turn_player)
+    else:
+        set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     await manager.broadcast(
         "notificación jugada", defended_card_msg(player_name, card_id), match_id
@@ -315,7 +351,11 @@ async def skip_defense(player_name: str):
     await execute_card(match_id)
 
     assign_next_turn_to(match_id, turn_player)
-    set_game_state(match_id, GAME_STATE["EXCHANGE"])
+
+    if exist_obstacle_between(turn_player, get_next_player(match_id)):
+        end_player_turn(turn_player)
+    else:
+        set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     if played_card_name == "Lanzallamas":
         await manager.broadcast(
@@ -359,11 +399,8 @@ async def _play_exchange_defense_card(match_id, player_name, card_id):
     if False:
         # Aca irían ¡Fallaste! y ¿No podemos ser amigos?
         return
-    set_game_state(match_id, GAME_STATE["DRAW_CARD"])
     set_match_turn(match_id, turn_player)
-    set_next_turn(match_id)
-    clean_played_card_data(match_id)
-    clear_exchange(match_id)
+    end_player_turn(player_name)
 
 
 # ----------- Card exchange logic ------------
@@ -422,13 +459,9 @@ async def _execute_exchange(target: str, card2: int):
     # Intercambiar cartas
     exchange_players_cards(player1, card1, target, card2)
     await check_infection(player1, target, card1, card2)
-    clear_exchange(match_id)
-    clean_played_card_data(match_id)
-    # Volver el turno a p1
     set_match_turn(match_id, player1)
-    set_next_turn(match_id)
-    # Cambiar estado a DRAW_CARD
-    set_game_state(match_id, GAME_STATE["DRAW_CARD"])
+    end_player_turn(player1)
+
     alert = player1 + " intercambió una carta con " + target
     await manager.broadcast("notificación jugada", alert, match_id)
     await manager.send_message_to("cards", get_player_hand(player1), player1)

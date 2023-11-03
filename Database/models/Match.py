@@ -486,6 +486,7 @@ def started_match(match_name):
         player.is_alive = True
         player.position = position + 1
         position += 1
+        match.obstacles.append(False)
         if player.cards.select(lambda c: c.card_name == "La Cosa").first():
             player.rol = 2  # La Cosa
         else:
@@ -576,7 +577,7 @@ def db_create_match(
 
 @db_session
 def kill_player(player_name: str):
-    """ Kills a player and discards all his cards """
+    """Kills a player and discards all his cards"""
     player = get_player_by_name(player_name)
     discard = get_discard_deck(get_player_match(player_name))
     for card in player.cards:
@@ -585,3 +586,43 @@ def kill_player(player_name: str):
         discard.cards.add(card)
         card.deck.add(discard)
     player.is_alive = False
+
+
+@db_session
+def set_obstacle_between(player: str, target: str):
+    """Pre: Player and target are adyacent"""
+    match_id = get_player_match(player)
+    match = _get_match(match_id)
+    player_len = len(match.players)
+    player_position = get_player_position(player)
+    target_position = get_player_position(target)
+    if player_position == target_position:
+        return
+    # Casos borde
+    if target_position == 0 and player_position + 1 == player_len:
+        match.obstacles[-1] = True
+        return
+    if player_position == 0 and target_position + 1 == player_len:
+        match.obstacles[-1] = True
+        return
+
+    match.obstacles[min(player_position, target_position)] = True
+
+
+@db_session
+def exist_obstacle_between(player: str, target: str) -> bool:
+    """Pre: Player and target are adyacent"""
+    match_id = get_player_match(player)
+    match = _get_match(match_id)
+    player_len = len(match.players)
+    player_position = get_player_position(player)
+    target_position = get_player_position(target)
+    if player_position == target_position:
+        return False
+    # Casos borde
+    if target_position == 0 and player_position + 1 == player_len:
+        return match.obstacles[-1]
+    if player_position == 0 and target_position + 1 == player_len:
+        return match.obstacles[-1]
+
+    return match.obstacles[min(player_position, target_position)]

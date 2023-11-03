@@ -29,7 +29,7 @@ class Match(db.Entity):
     exchange_card = Optional(int, default=None, nullable=True)
     exchange_player = Optional(str, default=None, nullable=True)
     last_infected = Optional(str, default=None, nullable=True)
-
+    obstacles = Optional(IntArray, default=[])
 
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
