@@ -167,7 +167,7 @@ async def _play_turn_card(
         await execute_card(match_id=match_id)
         if not exist_obstacle_between(
             player_name, get_next_player(match_id)
-        ) or get_card_name(card_id) in ["Seducción", "¿No podemos ser amigos?"]:
+        ) or allows_global_exchange(card_id):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
             end_player_turn(player_name)
