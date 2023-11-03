@@ -70,7 +70,7 @@ card_templates = [
         "¡Más vale que corras!", [T(4, 2), T(7, 1), T(9, 1), T(11, 1)], CardType.ACCION
     ),
     CardTemplate("Aquí estoy bien", [T(4, 1), T(6, 1), T(11, 1)], CardType.DEFENSA),
-    CardTemplate("Aterrador", [T(5, 1), T(6, 1), T(8, 1), T(11, 1)], CardType.ACCION),
+    CardTemplate("Aterrador", [T(5, 1), T(6, 1), T(8, 1), T(11, 1)], CardType.DEFENSA),
     CardTemplate(
         "¡No, gracias!", [T(4, 1), T(6, 1), T(8, 1), T(11, 1)], CardType.DEFENSA
     ),

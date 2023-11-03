@@ -38,12 +38,6 @@ def is_human(player_name: str) -> bool:
 
 
 @db_session
-def get_player_role(player_name: str) -> int:
-    player = get_player_by_name(player_name)
-    return get_role_name(player.rol)
-
-
-@db_session
 def is_player_alive(player_name: str) -> bool:
     player = get_player_by_name(player_name)
     return player.is_alive
@@ -97,16 +91,17 @@ def set_player_alive(player_name: str, alive: bool):
     player.is_alive = alive
 
 
-@db_session
-def get_player_alive(player_id: int) -> bool:
-    player = get_player_by_id(player_id)
-    return player.is_alive
-
 
 @db_session
 def is_lacosa(player_name: str) -> bool:
     player = get_player_by_name(player_name)
     return player.rol == ROL["LA_COSA"]
+
+
+@db_session
+def is_in_quarantine(player_name: str) -> bool:
+    player = get_player_by_name(player_name)
+    return player.in_quarantine > 0
 
 
 @db_session
@@ -151,6 +146,13 @@ def get_cards(player: Player) -> list:
 def get_player_hand(player_name: str) -> list:
     player = get_player_by_name(player_name)
     return get_cards(player)
+
+
+@db_session
+def get_random_card_from(player_name: str) -> str:
+    player = get_player_by_name(player_name)
+    card = list(player.cards.random(1))[0]
+    return card.card_name
 
 
 @db_session

@@ -186,6 +186,14 @@ def get_played_card(match_id: int) -> int:
 
 
 @db_session
+def last_played_card(match_id: int) -> str:
+    match = _get_match(match_id)
+    if match.played_card is None:
+        return ""
+    return get_card_name(match.played_card)
+
+
+@db_session
 def get_turn_player(match_id: int) -> str:
     return Match[match_id].turn_player
 
@@ -564,3 +572,16 @@ def db_create_match(
     match.players.add(creator)
     creator.match = match
     creator.is_host = True
+
+
+@db_session
+def kill_player(player_name: str):
+    """ Kills a player and discards all his cards """
+    player = get_player_by_name(player_name)
+    discard = get_discard_deck(get_player_match(player_name))
+    for card in player.cards:
+        player.cards.remove(card)
+        card.player.remove(player)
+        discard.cards.add(card)
+        card.deck.add(discard)
+    player.is_alive = False

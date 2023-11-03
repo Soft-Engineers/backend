@@ -41,6 +41,7 @@ class Player(db.Entity):
     rol = Optional(int)  # 0: default, 1: human, 2: la cosa, 3: infected
     is_alive = Optional(bool)
     in_game = Optional(bool, default=False)
+    in_quarantine = Optional(int, default=0)
 
 
 class Card(db.Entity):
@@ -72,4 +73,5 @@ GAME_STATE = {
     "EXCHANGE": 4,
     "WAIT_EXCHANGE": 5,
     "WAIT_DEFENSE": 6,
+    "PANIC": 7,
 }
