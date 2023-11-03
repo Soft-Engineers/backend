@@ -165,10 +165,9 @@ async def _play_turn_card(
     await persist_played_card_data(player_name, card_id, target)
     if not has_defense(card_id):
         await execute_card(match_id=match_id)
-        if (
-            not exist_obstacle_between(player_name, get_next_player(match_id))
-            or get_card_name(card_id) == "Seducción"
-        ):
+        if not exist_obstacle_between(
+            player_name, get_next_player(match_id)
+        ) or get_card_name(card_id) in ["Seducción", "¿No podemos ser amigos?"]:
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
             end_player_turn(player_name)
@@ -205,20 +204,7 @@ async def persist_played_card_data(
     if requires_target(card_id):
         if target_name is None or target_name == "":
             raise InvalidCard("Esta carta requiere un objetivo")
-        check_target_player(player_name, target_name)
-        if requires_adjacent_target(card_id):
-            if not is_adyacent(player_name, target_name):
-                raise InvalidCard(
-                    f"Solo puedes jugar {card_name} a un jugador adyacente"
-                )
-            if card_name != "Hacha" and exist_obstacle_between(
-                player_name, target_name
-            ):
-                raise InvalidCard(
-                    f"No puedes jugar {card_name} a un jugador con un obstáculo en el medio"
-                )
-        if requires_target_not_quarantined(card_id) and is_in_quarantine(target_name):
-            raise InvalidCard(f"No puedes jugar {card_name} a un jugador en cuarentena")
+        check_target_player(player_name, target_name, card_id)
 
     match_id = get_player_match(player_name)
 
@@ -508,15 +494,23 @@ def check_valid_exchange(card_id: int, player: str, target: str):
             )
 
 
-def check_target_player(player_name: str, target_name: str = ""):
-    if not player_exists(target_name):
-        raise InvalidPlayer("Jugador no válido")
-    if not is_player_alive(target_name):
+def check_target_player(player: str, target: str, card_id: int):
+    card = get_card_name(card_id)
+    if not is_player_alive(target):
         raise InvalidPlayer("El jugador seleccionado está muerto")
-    if get_player_match(player_name) != get_player_match(target_name):
+    if get_player_match(player) != get_player_match(target):
         raise InvalidPlayer("Jugador no válido")
-    if player_name == target_name:
+    if player == target:
         raise InvalidPlayer("Selecciona a otro jugador como objetivo")
+    if requires_adjacent_target(card_id):
+        if not is_adyacent(player, target):
+            raise InvalidCard(f"Solo puedes jugar {card} a un jugador adyacente")
+        if card != "Hacha" and exist_obstacle_between(player, target):
+            raise InvalidCard(
+                f"No puedes jugar {card} a un jugador con un obstáculo en el medio"
+            )
+        if requires_target_not_quarantined(card_id) and is_in_quarantine(target):
+            raise InvalidCard(f"No puedes jugar {card} a un jugador en cuarentena")
 
 
 def check_valid_defense(player: str, defense_card: int):
