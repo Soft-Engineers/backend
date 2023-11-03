@@ -36,25 +36,25 @@ class TestPickupCard(TestCase):
         self.patch_set_game_state = patch(
             "Game.app_auxiliars.set_game_state", return_value=None
         )
+        self.patch_set_turn_player = patch(
+            "Game.app_auxiliars.set_turn_player", return_value=None
+        )
 
         self.patch_get_player_match.start()
         self.patch_set_game_state.start()
+        self.patch_set_turn_player.start()
 
     def tearDown(self):
         self.patch_get_player_match.stop()
         self.patch_set_game_state.stop()
+        self.patch_set_turn_player.stop()
 
     @patch("Game.app_auxiliars.is_player_turn", return_value=True)
     @patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["DRAW_CARD"])
-    @patch("Game.app_auxiliars.pick_random_card")
+    @patch("Game.app_auxiliars.pick_random_card", return_value=1)
     def test_pickup_card(self, mock_pick_card, *args):
-        mock_card = Mock()
-        mock_card.id = 1
-        mock_card.card_name = "test_card"
-        mock_card.type = "test_type"
-        mock_pick_card.return_value = mock_card
-
         pickup_card("test_player")
+        mock_pick_card.assert_called_once_with("test_player")
 
     @patch("Game.app_auxiliars.is_player_turn", return_value=False)
     def test_pickup_card_not_player_turn(self, *args):
@@ -122,6 +122,7 @@ class test_check_target_player(TestCase):
             check_target_player("PlayerA", "PlayerB")
         self.assertEqual(str(e.exception), "Jugador no válido")
 
+
 """
 class test_exchange_card(TestCase):
     def setUp(self):
@@ -179,6 +180,7 @@ class test_exchange_card(TestCase):
         with self.assertRaises(InvalidCard) as e:
             exchange_card("test_player", 1, "test_target")
 """
+
 
 class TestCheckValidExchange(TestCase):
     @patch("Game.app_auxiliars.get_card_name", return_value="SomeCard")
@@ -257,11 +259,12 @@ class TestPlayLanzallamas(TestCase):
     def test_successful_lanzallamas_play(self):
         target = Mock()
         target.is_alive = True
-        def set_player_alive_(player, is_alive):
-            player.is_alive = is_alive
+
+        def _kill_player(player):
+            player.is_alive = False
 
         with patch(
-            "Game.app_auxiliars.set_player_alive", side_effect=set_player_alive_
+            "Game.app_auxiliars.kill_player", side_effect=_kill_player
         ):
             play_lanzallamas(target)
         self.assertEqual(target.is_alive, False)

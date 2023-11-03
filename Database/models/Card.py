@@ -8,21 +8,46 @@ from Game.cards.cards import *
 
 TARGET_CARDS = [
     "Lanzallamas",
-    "Seducción",
-    "Sospecha",
-    "¿No podemos ser amigos?"
-]
-ONLY_TO_ADJACENT = [
-    "Lanzallamas", 
-    "Sospecha", 
     "Análisis",
-    "¡Cambio de lugar!"
+    "Sospecha",
+    "Seducción",
+    "¡Cambio de Lugar!",
+    "¿No podemos ser amigos?",
+    "Cuarentena",
+    "Puerta atrancada",
+    "Hacha",
+    "¡Más vale que corras!",
+    "Que quede entre nosotros...",
+    "¡Sal de aquí!",
+]
+TARGET_ADJACENT = [
+    "Lanzallamas",
+    "Análisis",
+    "Sospecha",
+    "Hacha",
+    "¡Cambio de Lugar!",
+    "Cuarentena",
+    "Puerta atrancada",
+    "Que quede entre nosotros...",
 ]
 TARGET_NOT_QUARANTINED = [
     "Seducción",
     "¡Más vale que corras!",
-    "¡Cambio de lugar!",
+    "¡Cambio de Lugar!",
+    "¿No podemos ser amigos?",
 ]
+# Carta de acción y su defensa
+DEFENSIBLE_CARD = {
+    "Lanzallamas": "¡Nada de barbacoas!",
+    "¡Cambio de Lugar!": "Aquí estoy bien",
+    "¡Más vale que corras!": "Aquí estoy bien",
+}
+DEFEND_EXCHANGE = [
+    "Aterrador",
+    "¡No, gracias!",
+    "¡Fallaste!",
+]
+GLOBAL_EXCHANGE = ["Seducción", "¿No podemos ser amigos?"]
 
 
 @db_session
@@ -61,8 +86,22 @@ def is_contagio(card_id: int) -> bool:
 
 
 @db_session
-def get_card_type(card_id: int) -> int:
-    return get_card_by_id(card_id).type
+def has_defense(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in DEFENSIBLE_CARD.keys()
+
+
+@db_session
+def can_defend(defense_card: int, action_card: int) -> bool:
+    defense_card_name = get_card_name(defense_card)
+    action_card_name = get_card_name(action_card)
+    return DEFENSIBLE_CARD[action_card_name] == defense_card_name
+
+
+@db_session
+def defend_exchange(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in DEFEND_EXCHANGE
 
 
 @db_session
@@ -72,21 +111,21 @@ def requires_target(card_id: int) -> bool:
 
 
 @db_session
-def only_to_adjacent(card_id: int) -> bool:
+def requires_adjacent_target(card_id: int) -> bool:
     card_name = get_card_name(card_id)
-    return card_name in ONLY_TO_ADJACENT
-
-
-@db_session
-def only_to_adjacent(card_id: int) -> bool:
-    card_name = get_card_name(card_id)
-    return card_name in ONLY_TO_ADJACENT
+    return card_name in TARGET_ADJACENT
 
 
 @db_session
 def requires_target_not_quarantined(card_id: int) -> bool:
     card_name = get_card_name(card_id)
     return card_name in TARGET_NOT_QUARANTINED
+
+
+@db_session
+def allows_global_exchange(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in GLOBAL_EXCHANGE
 
 
 # ----- Register Cards ----- #
