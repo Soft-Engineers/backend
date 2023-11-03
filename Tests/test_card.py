@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 from Game.app_auxiliars import *
 import random
 
+
 class _WebStub:
     def __init__(self):
         super().__init__()
@@ -95,32 +96,95 @@ class TestPlayCardMsgFunction(TestCase):
 
 
 class test_check_target_player(TestCase):
-    @patch("Game.app_auxiliars.player_exists", return_value=True)
-    @patch("Game.app_auxiliars.is_player_alive", return_value=True)
-    @patch("Game.app_auxiliars.get_player_match", side_effect=[1, 1])
-    def test_check_target_player(self, *args):
-        check_target_player("PlayerA", "PlayerB")
+    def setUp(self):
+        self.card_name = patch(
+            "Game.app_auxiliars.get_card_name", return_value="SomeCard"
+        )
+        self.player_alive = patch(
+            "Game.app_auxiliars.is_player_alive", return_value=True
+        )
+        self.player_match = patch(
+            "Game.app_auxiliars.get_player_match", side_effect=[1, 1]
+        )
+        self.adjacent_target = patch(
+            "Game.app_auxiliars.requires_adjacent_target", return_value=True
+        )
+        self.is_adyacent = patch("Game.app_auxiliars.is_adyacent", return_value=True)
+        self.obstacle_between = patch(
+            "Game.app_auxiliars.exist_obstacle_between", return_value=False
+        )
+        self.target_not_quarantine = patch(
+            "Game.app_auxiliars.requires_target_not_quarantined", return_value=False
+        )
+        self.is_in_quarantine = patch(
+            "Game.app_auxiliars.is_in_quarantine", return_value=False
+        )
 
-    def test_check_target_player_no_player(self, *args):
-        with patch("Game.app_auxiliars.player_exists", return_value=False):
-            with self.assertRaises(InvalidPlayer) as e:
-                check_target_player("PlayerA", "PlayerB")
-            self.assertEqual(str(e.exception), "Jugador no válido")
+        self.card_name.start()
+        self.player_alive.start()
+        self.player_match.start()
+        self.adjacent_target.start()
+        self.is_adyacent.start()
+        self.obstacle_between.start()
+        self.target_not_quarantine.start()
+        self.is_in_quarantine.start()
 
-    @patch("Game.app_auxiliars.player_exists", return_value=True)
+    def tearDown(self):
+        self.card_name.stop()
+        self.player_alive.stop()
+        self.player_match.stop()
+        self.adjacent_target.stop()
+        self.is_adyacent.stop()
+        self.obstacle_between.stop()
+        self.target_not_quarantine.stop()
+        self.is_in_quarantine.stop()
+
+    def test_check_target_player(self):
+        check_target_player("test_player", "test_target", 1)
+
     @patch("Game.app_auxiliars.is_player_alive", return_value=False)
-    def test_check_target_player_no_target(self, *args):
+    def test_check_target_player_not_alive(self, is_player_alive):
         with self.assertRaises(InvalidPlayer) as e:
-            check_target_player("PlayerA", "PlayerB")
+            check_target_player("test_player", "test_target", 1)
         self.assertEqual(str(e.exception), "El jugador seleccionado está muerto")
 
-    @patch("Game.app_auxiliars.player_exists", return_value=True)
-    @patch("Game.app_auxiliars.is_player_alive", return_value=True)
     @patch("Game.app_auxiliars.get_player_match", side_effect=[1, 2])
-    def test_check_target_player_invalid_match(self, *args):
+    def test_check_target_player_not_adjacent(self, get_player_match):
         with self.assertRaises(InvalidPlayer) as e:
-            check_target_player("PlayerA", "PlayerB")
+            check_target_player("test_player", "test_target", 1)
         self.assertEqual(str(e.exception), "Jugador no válido")
+
+    def test_equal_players(self):
+        with self.assertRaises(InvalidPlayer) as e:
+            check_target_player("test_player", "test_player", 1)
+        self.assertEqual(str(e.exception), "Selecciona a otro jugador como objetivo")
+
+    @patch("Game.app_auxiliars.is_adyacent", return_value=False)
+    def test_check_target_player_not_adyacent(self, is_adyacent):
+        card = "SomeCard"
+        with self.assertRaises(InvalidCard) as e:
+            check_target_player("test_player", "test_target", 1)
+        self.assertEqual(
+            str(e.exception), f"Solo puedes jugar {card} a un jugador adyacente"
+        )
+
+    @patch("Game.app_auxiliars.exist_obstacle_between", return_value=True)
+    def test_check_target_player_obstacle_between(self, exist_obstacle_between):
+        with self.assertRaises(InvalidCard) as e:
+            check_target_player("test_player", "test_target", 1)
+        self.assertEqual(
+            str(e.exception),
+            f"No puedes jugar SomeCard a un jugador con un obstáculo en el medio",
+        )
+
+    @patch("Game.app_auxiliars.requires_target_not_quarantined", return_value=True)
+    @patch("Game.app_auxiliars.is_in_quarantine", return_value=True)
+    def test_check_target_player_quarantine(self, *args):
+        with self.assertRaises(InvalidCard) as e:
+            check_target_player("test_player", "test_target", 1)
+        self.assertEqual(
+            str(e.exception), f"No puedes jugar SomeCard a un jugador en cuarentena"
+        )
 
 
 """
@@ -263,9 +327,7 @@ class TestPlayLanzallamas(TestCase):
         def _kill_player(player):
             player.is_alive = False
 
-        with patch(
-            "Game.app_auxiliars.kill_player", side_effect=_kill_player
-        ):
+        with patch("Game.app_auxiliars.kill_player", side_effect=_kill_player):
             play_lanzallamas(target)
         self.assertEqual(target.is_alive, False)
 
@@ -302,26 +364,30 @@ async def test_play_sospecha(mocker):
     target.name = "test_target"
     player.name = "test_player"
     card_list = []
-    for i in range(0,4):
+    for i in range(0, 4):
         card = Mock()
-        card.name = "card"+str(i)
+        card.name = "card" + str(i)
         target.cards.add(card)
         card_list.append(card)
-        
+
     def _send_message_to(msg_type, msg, player_name):
         websocketStub.messages.append(msg)
-    
+
     mocker.patch("Game.app_auxiliars.get_turn_player", return_value=target.name)
-    mocker.patch("Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to)
+    mocker.patch(
+        "Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to
+    )
     random_card = random.choice(card_list)
-    mocker.patch("Game.app_auxiliars.get_random_card_from", return_value=random_card.name)
+    mocker.patch(
+        "Game.app_auxiliars.get_random_card_from", return_value=random_card.name
+    )
 
     await play_sospecha(player.name, target.name)
 
     expected_msg = {
-            "cards": [random_card.name],
-            "cards_owner": target.name,
-            "trigger_player": player.name,
-            "trigger_card": "Sospecha",
+        "cards": [random_card.name],
+        "cards_owner": target.name,
+        "trigger_player": player.name,
+        "trigger_card": "Sospecha",
     }
     assert expected_msg == websocketStub.messages[0]

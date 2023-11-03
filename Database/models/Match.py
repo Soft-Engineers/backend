@@ -588,41 +588,41 @@ def kill_player(player_name: str):
     player.is_alive = False
 
 
+
+def _are_border_cases(position1: int, position2: int, length: int) -> bool:
+    """Check if the positions represent border cases."""
+    return (position1 == 0 and position2 + 1 == length) or (position2 == 0 and position1 + 1 == length)
+
+
 @db_session
-def set_obstacle_between(player: str, target: str):
-    """Pre: Player and target are adyacent"""
+def set_obstacle_between(player: str, target: str) -> None:
+    """Set an obstacle between two adjacent players."""
     match_id = get_player_match(player)
     match = _get_match(match_id)
     player_len = len(match.players)
     player_position = get_player_position(player)
     target_position = get_player_position(target)
+
     if player_position == target_position:
         return
-    # Casos borde
-    if target_position == 0 and player_position + 1 == player_len:
+    if _are_border_cases(player_position, target_position, player_len):
         match.obstacles[-1] = True
-        return
-    if player_position == 0 and target_position + 1 == player_len:
-        match.obstacles[-1] = True
-        return
-
-    match.obstacles[min(player_position, target_position)] = True
-
+    else:
+        match.obstacles[min(player_position, target_position)] = True
 
 @db_session
 def exist_obstacle_between(player: str, target: str) -> bool:
-    """Pre: Player and target are adyacent"""
+    """Check if there's an obstacle between two adjacent players."""
     match_id = get_player_match(player)
     match = _get_match(match_id)
     player_len = len(match.players)
     player_position = get_player_position(player)
     target_position = get_player_position(target)
+
     if player_position == target_position:
         return False
-    # Casos borde
-    if target_position == 0 and player_position + 1 == player_len:
+    if _are_border_cases(player_position, target_position, player_len):
         return match.obstacles[-1]
-    if player_position == 0 and target_position + 1 == player_len:
-        return match.obstacles[-1]
-
     return match.obstacles[min(player_position, target_position)]
+
+
