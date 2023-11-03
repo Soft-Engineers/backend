@@ -107,7 +107,6 @@ async def discard_player_card(player_name: str, card_id: int):
 
 # --------- Play Card logic ----------
 
-# async def play_card(player_name: str, card_id: int, target: Optional[str] = ""):
 async def play_card(player_name: str, card_id: int, target: str = ""):
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
