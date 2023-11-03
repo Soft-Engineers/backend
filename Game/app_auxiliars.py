@@ -165,7 +165,10 @@ async def _play_turn_card(
     await persist_played_card_data(player_name, card_id, target)
     if not has_defense(card_id):
         await execute_card(match_id=match_id)
-        if not exist_obstacle_between(player_name, get_next_player(match_id)) and get_card_name(card_id) != "Seducción":
+        if (
+            not exist_obstacle_between(player_name, get_next_player(match_id))
+            or get_card_name(card_id) == "Seducción"
+        ):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
             end_player_turn(player_name)
