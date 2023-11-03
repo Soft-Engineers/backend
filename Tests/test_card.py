@@ -4,7 +4,7 @@ from Database.Database import *
 import pytest
 from unittest.mock import AsyncMock
 from Game.app_auxiliars import *
-
+import random
 
 class _WebStub:
     def __init__(self):
@@ -292,3 +292,36 @@ class TestDiscardCard(TestCase):
 
         assert card not in player.cards
         assert card in discard_deck.cards
+
+
+@pytest.mark.asyncio
+async def test_play_sospecha(mocker):
+    websocketStub = _WebStub()
+    target = Mock()
+    player = Mock()
+    target.name = "test_target"
+    player.name = "test_player"
+    card_list = []
+    for i in range(0,4):
+        card = Mock()
+        card.name = "card"+str(i)
+        target.cards.add(card)
+        card_list.append(card)
+        
+    def _send_message_to(msg_type, msg, player_name):
+        websocketStub.messages.append(msg)
+    
+    mocker.patch("Game.app_auxiliars.get_turn_player", return_value=target.name)
+    mocker.patch("Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to)
+    random_card = random.choice(card_list)
+    mocker.patch("Game.app_auxiliars.get_random_card_from", return_value=random_card.name)
+
+    await play_sospecha(player.name, target.name)
+
+    expected_msg = {
+            "cards": [random_card.name],
+            "cards_owner": target.name,
+            "trigger_player": player.name,
+            "trigger_card": "Sospecha",
+    }
+    assert expected_msg == websocketStub.messages[0]
