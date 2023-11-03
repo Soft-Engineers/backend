@@ -5,5 +5,5 @@ class GameException(Exception):
     pass
 
 
-class FinishedMatchException(GameException):
+class FinishedMatchException(Exception):
     pass
