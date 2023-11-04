@@ -51,12 +51,12 @@ def end_player_turn(player_name: str):
     clean_played_card_data(match_id)
     clear_exchange(match_id)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
-
+    # Falta restarle a cuarentena
 
 # ------- Pick Card logic --------
 
 
-def pickup_card(player_name: str):
+async def pickup_card(player_name: str):
     """
     The player get a random card from the deck and add it to his hand
     """
@@ -72,6 +72,8 @@ def pickup_card(player_name: str):
         set_game_state(match_id, GAME_STATE["PANIC"])
     else:
         set_game_state(match_id, GAME_STATE["PLAY_TURN"])
+    if is_in_quarantine(player_name):
+        await _show_cards([get_card_name(card)], player_name, player_name, "Cuarentena")
 
 
 def pick_not_panic_card(player_name: str) -> int:
@@ -118,6 +120,8 @@ async def discard_player_card(player_name: str, card_id: int):
     await manager.broadcast(
         "notificación jugada", player_name + " ha descartado una carta", match_id
     )
+    if is_in_quarantine(player_name):
+        await _show_cards([card_name], player_name, player_name, "Cuarentena")
 
 
 # --------- Play Card logic ----------
@@ -237,7 +241,8 @@ async def execute_card(match_id: int, def_card_id: int = None):
         pass
     elif card_name == "Puerta atrancada":
         play_puerta_atrancada(player_name, target_name)
-        pass
+    elif card_name == "Cuarentena":
+        play_cuarentena(target_name)
     else:
         pass
 
@@ -248,20 +253,38 @@ async def execute_card(match_id: int, def_card_id: int = None):
 # --------- Card effects logic --------
 
 
-async def play_whisky(player_name: str):
-    match_id = get_player_match(player_name)
+async def _show_cards(cards: list[str], owner: str, trigger_player, trigger_card: str):
+    match_id = get_player_match(owner)
     receivers = get_match_players_names(match_id)
-
-    receivers.remove(player_name)
-    cards = get_player_cards_names(player_name)
+    receivers.remove(owner)
     for p in receivers:
         msg = {
             "cards": cards,
-            "cards_owner": player_name,
-            "trigger_player": player_name,
-            "trigger_card": "Whisky",
+            "cards_owner": owner,
+            "trigger_player": trigger_player,
+            "trigger_card": trigger_card,
         }
-        await manager.send_personal_message("revelar cartas", msg, match_id, p)
+        await manager.send_personal_message(REVEALED_CARDS, msg, match_id, p)
+
+
+async def play_whisky(player_name: str):
+    cards = get_player_cards_names(player_name)
+    await _show_cards(cards, player_name, player_name, "Whisky")
+
+
+#    match_id = get_player_match(player_name)
+#    receivers = get_match_players_names(match_id)
+#
+#    receivers.remove(player_name)
+#    cards = get_player_cards_names(player_name)
+#    for p in receivers:
+#        msg = {
+#            "cards": cards,
+#            "cards_owner": player_name,
+#            "trigger_player": player_name,
+#            "trigger_card": "Whisky",
+#        }
+#        await manager.send_personal_message("revelar cartas", msg, match_id, p)
 
 
 def play_lanzallamas(target_name: str):
@@ -292,6 +315,10 @@ async def play_aterrador(match: int, player: str):
 
 def play_puerta_atrancada(player: str, target: str):
     set_obstacle_between(player, target)
+
+
+def play_cuarentena(target: str):
+    set_quarantine(target)
 
 
 # --------- Defense logic --------
@@ -455,6 +482,10 @@ async def _execute_exchange(target: str, card2: int):
     await manager.broadcast("notificación jugada", alert, match_id)
     await manager.send_message_to("cards", get_player_hand(player1), player1)
     await manager.send_message_to("cards", get_player_hand(target), target)
+    if is_in_quarantine(player1):
+        await _show_cards([get_card_name(card1)], player1, player1, "Cuarentena")
+    if is_in_quarantine(target):
+        await _show_cards([get_card_name(card2)], target, target, "Cuarentena")
 
 
 async def check_infection(player_name: str, target: str, card: int, card2: int):
@@ -511,6 +542,8 @@ def check_target_player(player: str, target: str, card_id: int):
             )
         if requires_target_not_quarantined(card_id) and is_in_quarantine(target):
             raise InvalidCard(f"No puedes jugar {card} a un jugador en cuarentena")
+    if is_in_quarantine(player) and card == "Lanzallamas":
+        raise InvalidCard("No puedes jugar Lanzallamas mientras estás en cuarentena")
 
 
 def check_valid_defense(player: str, defense_card: int):
