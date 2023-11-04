@@ -19,10 +19,23 @@ manager = ConnectionManager()
 # ------- Auxiliar functions for messages --------
 
 
+def pick_card_msg(player_name: str, card_id: int):
+    alert = "Cuarentena: " + player_name + " ha robado " + get_card_name(card_id)
+    return alert
+
+
 def play_card_msg(player_name: str, card_id: int, target: str):
     alert = player_name + " jugó " + get_card_name(card_id)
     if requires_target(card_id):
         alert += " a " + target
+    return alert
+
+
+def discard_card_msg(player_name: str, card_name: str):
+    if is_in_quarantine(player_name):
+        alert = "Cuarentena: " + player_name + " descartó " + card_name
+    else:
+        alert = player_name + " ha descartado una carta"
     return alert
 
 
@@ -41,6 +54,19 @@ def defended_exchange_msg(player: str, card: int):
     return alert
 
 
+async def _send_exchange_notification(player1, target, card1, card2):
+    match = get_player_match(player1)
+    card1 = get_card_name(card1) if is_in_quarantine(player1) else " una carta"
+    card2 =  " por " + get_card_name(card2) if is_in_quarantine(target) else ""
+
+    alert = f"{player1} intercambió {card1} con {target} {card2}"
+    if is_in_quarantine(player1) or is_in_quarantine(target):
+        alert = "Cuarentena: " + alert
+    await manager.broadcast("notificación jugada", alert, match)
+    await manager.send_message_to("cards", get_player_hand(player1), player1)
+    await manager.send_message_to("cards", get_player_hand(target), target)
+
+
 # ------- Auxiliar functions for game logic --------
 
 
@@ -52,6 +78,7 @@ def end_player_turn(player_name: str):
     clear_exchange(match_id)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
     # Falta restarle a cuarentena
+
 
 # ------- Pick Card logic --------
 
@@ -73,7 +100,7 @@ async def pickup_card(player_name: str):
     else:
         set_game_state(match_id, GAME_STATE["PLAY_TURN"])
     if is_in_quarantine(player_name):
-        await _show_cards([get_card_name(card)], player_name, player_name, "Cuarentena")
+        await manager.broadcast(PLAY_NOTIFICATION, pick_card_msg(player_name, card), match_id)
 
 
 def pick_not_panic_card(player_name: str) -> int:
@@ -113,15 +140,14 @@ async def discard_player_card(player_name: str, card_id: int):
         raise InvalidCard("No puedes descartar tu última carta de infectado")
 
     discard_card(player_name, card_id)
+    await manager.broadcast(
+        PLAY_NOTIFICATION, discard_card_msg(player_name, card_name), match_id
+    )
+
     if not exist_obstacle_between(player_name, get_next_player(match_id)):
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
     else:
         end_player_turn(player_name)
-    await manager.broadcast(
-        "notificación jugada", player_name + " ha descartado una carta", match_id
-    )
-    if is_in_quarantine(player_name):
-        await _show_cards([card_name], player_name, player_name, "Cuarentena")
 
 
 # --------- Play Card logic ----------
@@ -182,12 +208,12 @@ async def _play_turn_card(
     discard_card(player_name, card_id)
 
     await manager.broadcast(
-        "notificación jugada", play_card_msg(player_name, card_id, target), match_id
+        PLAY_NOTIFICATION, play_card_msg(player_name, card_id, target), match_id
     )
 
     if has_defense(card_id):
         await manager.broadcast(
-            "notificación jugada",
+            PLAY_NOTIFICATION,
             wait_defense_card_msg(player_name, card_id, target),
             match_id,
         )
@@ -476,16 +502,14 @@ async def _execute_exchange(target: str, card2: int):
     exchange_players_cards(player1, card1, target, card2)
     await check_infection(player1, target, card1, card2)
     set_match_turn(match_id, player1)
+    
+    await _send_exchange_notification(player1, target, card1, card2)
     end_player_turn(player1)
 
-    alert = player1 + " intercambió una carta con " + target
-    await manager.broadcast("notificación jugada", alert, match_id)
-    await manager.send_message_to("cards", get_player_hand(player1), player1)
-    await manager.send_message_to("cards", get_player_hand(target), target)
-    if is_in_quarantine(player1):
-        await _show_cards([get_card_name(card1)], player1, player1, "Cuarentena")
-    if is_in_quarantine(target):
-        await _show_cards([get_card_name(card2)], target, target, "Cuarentena")
+    #alert = player1 + " intercambió una carta con " + target
+    #await manager.broadcast("notificación jugada", alert, match_id)
+    #await manager.send_message_to("cards", get_player_hand(player1), player1)
+    #await manager.send_message_to("cards", get_player_hand(target), target)
 
 
 async def check_infection(player_name: str, target: str, card: int, card2: int):
