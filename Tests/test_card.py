@@ -29,46 +29,63 @@ class _WebStub:
         return self.messages[index]
 
 
-class TestPickupCard(TestCase):
-    def setUp(self):
-        self.patch_get_player_match = patch(
-            "Game.app_auxiliars.get_player_match", return_value=1
-        )
-        self.patch_set_game_state = patch(
-            "Game.app_auxiliars.set_game_state", return_value=None
-        )
-        self.patch_set_turn_player = patch(
-            "Game.app_auxiliars.set_turn_player", return_value=None
-        )
+@pytest.mark.asyncio
+async def test_pickup_card(mocker):
+    websocketStub = _WebStub()
+    player = Mock()
+    player.name = "test_player"
+    match = Mock()
+    match.game_state = GAME_STATE["DRAW_CARD"]
+    card = Mock()
+    card.name = "test_card"
 
-        self.patch_get_player_match.start()
-        self.patch_set_game_state.start()
-        self.patch_set_turn_player.start()
+    def _send_message_to(msg_type, msg, player_name):
+        websocketStub.messages.append(msg)
 
-    def tearDown(self):
-        self.patch_get_player_match.stop()
-        self.patch_set_game_state.stop()
-        self.patch_set_turn_player.stop()
+    def _set_game_state(match_id, state):
+        match.game_state = state
 
-    @patch("Game.app_auxiliars.is_player_turn", return_value=True)
-    @patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["DRAW_CARD"])
-    @patch("Game.app_auxiliars.pick_random_card", return_value=1)
-    def test_pickup_card(self, mock_pick_card, *args):
-        pickup_card("test_player")
-        mock_pick_card.assert_called_once_with("test_player")
+    def _get_game_state(match_id):
+        return match.game_state
 
-    @patch("Game.app_auxiliars.is_player_turn", return_value=False)
-    def test_pickup_card_not_player_turn(self, *args):
-        with self.assertRaises(GameException) as e:
-            pickup_card("test_player")
-        self.assertEqual(str(e.exception), "No es tu turno")
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
+    is_turn = mocker.patch("Game.app_auxiliars.is_player_turn", return_value=False)
+    mocker.patch("Game.app_auxiliars.set_game_state", side_effect=_set_game_state)
+    mocker.patch("Game.app_auxiliars.get_game_state", side_effect=_get_game_state)
+    mocker.patch("Game.app_auxiliars.set_turn_player")
+    is_panic = mocker.patch("Game.app_auxiliars.is_panic", return_value=True)
+    mocker.patch("Game.app_auxiliars.pick_random_card", return_value=card)
+    quarantine = mocker.patch("Game.app_auxiliars.is_in_quarantine", return_value=False)
 
-    @patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["PLAY_TURN"])
-    @patch("Game.app_auxiliars.is_player_turn", return_value=True)
-    def test_pickup_card_not_draw_card_state(self, *args):
-        with self.assertRaises(GameException) as e:
-            pickup_card("test_player")
-        self.assertEqual(str(e.exception), "No puedes robar carta en este momento")
+    match.game_state = GAME_STATE["DRAW_CARD"]
+    with pytest.raises(GameException) as e:
+        await pickup_card(player.name)
+        assert str(e.value) == "No es tu turno"
+
+    is_turn.return_value = True
+    await pickup_card(player.name)
+    assert match.game_state == GAME_STATE["PANIC"]
+    assert websocketStub.buff_size() == 0
+
+    match.game_state = GAME_STATE["PLAY_TURN"]
+    with pytest.raises(GameException) as e:
+        await pickup_card(player.name)
+        assert str(e.value) == "No puedes robar carta en este momento"
+
+    match.game_state = GAME_STATE["DRAW_CARD"]
+    is_panic.return_value = False
+    await pickup_card(player.name)
+    assert match.game_state == GAME_STATE["PLAY_TURN"]
+
+    quarantine.return_value = True
+    match.game_state = GAME_STATE["DRAW_CARD"]
+    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_send_message_to)
+    mocker.patch("Game.app_auxiliars.get_card_name", return_value=card.name)
+    await pickup_card(player.name)
+    assert websocketStub.buff_size() == 1
+    assert (
+        websocketStub.get(0) == "Cuarentena: " + player.name + " ha robado " + card.name
+    )
 
 
 class TestPlayCardMsgFunction(TestCase):
