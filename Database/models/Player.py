@@ -105,6 +105,13 @@ def set_quarantine(player_name: str):
 
 
 @db_session
+def decrease_quarantine(player_name: str):
+    player = get_player_by_name(player_name)
+    if player.in_quarantine > 0:
+        player.in_quarantine -= 1
+
+
+@db_session
 def is_in_quarantine(player_name: str) -> bool:
     player = get_player_by_name(player_name)
     return player.in_quarantine > 0

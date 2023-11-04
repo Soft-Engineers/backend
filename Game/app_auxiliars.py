@@ -57,7 +57,7 @@ def defended_exchange_msg(player: str, card: int):
 async def _send_exchange_notification(player1, target, card1, card2):
     match = get_player_match(player1)
     card1 = get_card_name(card1) if is_in_quarantine(player1) else " una carta"
-    card2 =  " por " + get_card_name(card2) if is_in_quarantine(target) else ""
+    card2 = " por " + get_card_name(card2) if is_in_quarantine(target) else ""
 
     alert = f"{player1} intercambió {card1} con {target} {card2}"
     if is_in_quarantine(player1) or is_in_quarantine(target):
@@ -77,7 +77,8 @@ def end_player_turn(player_name: str):
     clean_played_card_data(match_id)
     clear_exchange(match_id)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
-    # Falta restarle a cuarentena
+    if is_in_quarantine(player_name):
+        decrease_quarantine(player_name)
 
 
 # ------- Pick Card logic --------
@@ -100,7 +101,9 @@ async def pickup_card(player_name: str):
     else:
         set_game_state(match_id, GAME_STATE["PLAY_TURN"])
     if is_in_quarantine(player_name):
-        await manager.broadcast(PLAY_NOTIFICATION, pick_card_msg(player_name, card), match_id)
+        await manager.broadcast(
+            PLAY_NOTIFICATION, pick_card_msg(player_name, card), match_id
+        )
 
 
 def pick_not_panic_card(player_name: str) -> int:
@@ -279,38 +282,21 @@ async def execute_card(match_id: int, def_card_id: int = None):
 # --------- Card effects logic --------
 
 
-async def _show_cards(cards: list[str], owner: str, trigger_player, trigger_card: str):
-    match_id = get_player_match(owner)
+
+async def play_whisky(player_name: str):
+    match_id = get_player_match(player_name)
     receivers = get_match_players_names(match_id)
-    receivers.remove(owner)
+
+    receivers.remove(player_name)
+    cards = get_player_cards_names(player_name)
     for p in receivers:
         msg = {
             "cards": cards,
-            "cards_owner": owner,
-            "trigger_player": trigger_player,
-            "trigger_card": trigger_card,
+            "cards_owner": player_name,
+            "trigger_player": player_name,
+            "trigger_card": "Whisky",
         }
-        await manager.send_personal_message(REVEALED_CARDS, msg, match_id, p)
-
-
-async def play_whisky(player_name: str):
-    cards = get_player_cards_names(player_name)
-    await _show_cards(cards, player_name, player_name, "Whisky")
-
-
-#    match_id = get_player_match(player_name)
-#    receivers = get_match_players_names(match_id)
-#
-#    receivers.remove(player_name)
-#    cards = get_player_cards_names(player_name)
-#    for p in receivers:
-#        msg = {
-#            "cards": cards,
-#            "cards_owner": player_name,
-#            "trigger_player": player_name,
-#            "trigger_card": "Whisky",
-#        }
-#        await manager.send_personal_message("revelar cartas", msg, match_id, p)
+        await manager.send_personal_message("revelar cartas", msg, match_id, p)
 
 
 def play_lanzallamas(target_name: str):
@@ -502,14 +488,10 @@ async def _execute_exchange(target: str, card2: int):
     exchange_players_cards(player1, card1, target, card2)
     await check_infection(player1, target, card1, card2)
     set_match_turn(match_id, player1)
-    
+
     await _send_exchange_notification(player1, target, card1, card2)
     end_player_turn(player1)
 
-    #alert = player1 + " intercambió una carta con " + target
-    #await manager.broadcast("notificación jugada", alert, match_id)
-    #await manager.send_message_to("cards", get_player_hand(player1), player1)
-    #await manager.send_message_to("cards", get_player_hand(target), target)
 
 
 async def check_infection(player_name: str, target: str, card: int, card2: int):
