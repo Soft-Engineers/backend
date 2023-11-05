@@ -86,6 +86,7 @@ async def _send_initial_state(match_id: int, player_name: str):
 
     positions = get_players_positions(get_match_name(match_id))
     await manager.broadcast(POSITIONS, positions, match_id)
+    await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
 
 
 async def _send_lobby_players(match_id: int):
