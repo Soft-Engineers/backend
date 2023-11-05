@@ -55,7 +55,7 @@ async def chat_handler(content, match_id, player_name):
 
 
 async def pickup_card_handler(content, match_id, player_name):
-    pickup_card(player_name)
+    await pickup_card(player_name)
     await manager.send_message_to(CARDS, get_player_hand(player_name), player_name)
 
 

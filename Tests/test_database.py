@@ -735,3 +735,84 @@ class test_is_is_contagio(TestCase):
         mock_get_card_by_id.return_value = mock_card
         result = is_contagio(20)
         self.assertEqual(result, False)
+
+
+class test_exist_obstacle(TestCase):
+    @patch("Database.models.Match.get_player_match", return_value=1)
+    @patch("Database.models.Match.len", return_value=4)
+    @patch("Database.models.Match.get_player_position", side_effect=[0, 1])
+    @patch("Database.models.Match._get_match")
+    def test_exist_obstacle_between(self, mock_match, *args):
+        match = Mock()
+        match.obstacles = [False, False, False, False]
+        mock_match.return_value = match
+        exist = exist_obstacle_between("player1", "player2")
+        self.assertEqual(exist, False)
+
+    @patch("Database.models.Match.get_player_match", return_value=1)
+    @patch("Database.models.Match.len", return_value=4)
+    @patch("Database.models.Match.get_player_position", side_effect=[2, 3])
+    @patch("Database.models.Match._get_match")
+    def test_exist_obstacle_between(self, mock_match, *args):
+        match = Mock()
+        match.obstacles = [False, False, True, False]
+        mock_match.return_value = match
+        exist = exist_obstacle_between("player1", "player2")
+        self.assertEqual(exist, True)
+
+    @patch("Database.models.Match.get_player_match", return_value=1)
+    @patch("Database.models.Match.len", return_value=4)
+    @patch("Database.models.Match.get_player_position", side_effect=[0, 3])
+    @patch("Database.models.Match._get_match")
+    def test_exist_obstacle_between(self, mock_match, *args):
+        match = Mock()
+        match.obstacles = [False, False, False, True]
+        mock_match.return_value = match
+        exist = exist_obstacle_between("player1", "player2")
+        self.assertEqual(exist, True)
+
+    @patch("Database.models.Match.get_player_match", return_value=1)
+    @patch("Database.models.Match.len", return_value=4)
+    @patch("Database.models.Match.get_player_position", side_effect=[3, 0])
+    @patch("Database.models.Match._get_match")
+    def test_exist_obstacle_between(self, mock_match, *args):
+        match = Mock()
+        match.obstacles = [False, False, False, True]
+        mock_match.return_value = match
+        exist = exist_obstacle_between("player1", "player2")
+        self.assertEqual(exist, True)
+
+
+class test_set_obstacle_between(TestCase):
+    @patch("Database.models.Match.get_player_match", return_value=1)
+    @patch("Database.models.Match.len", return_value=4)
+    @patch("Database.models.Match.get_player_position", side_effect=[0, 1])
+    @patch("Database.models.Match._get_match")
+    def test_set_obstacle_between(self, mock_match, *args):
+        match = Mock()
+        match.obstacles = [False, False, False, False]
+        mock_match.return_value = match
+        set_obstacle_between("player1", "player2")
+        self.assertEqual(match.obstacles, [True, False, False, False])
+
+    @patch("Database.models.Match.get_player_match", return_value=1)
+    @patch("Database.models.Match.len", return_value=4)
+    @patch("Database.models.Match.get_player_position", side_effect=[0, 3])
+    @patch("Database.models.Match._get_match")
+    def test_set_obstacle_between(self, mock_match, *args):
+        match = Mock()
+        match.obstacles = [False, False, False, False]
+        mock_match.return_value = match
+        set_obstacle_between("player1", "player2")
+        self.assertEqual(match.obstacles, [False, False, False, True])
+
+    @patch("Database.models.Match.get_player_match", return_value=1)
+    @patch("Database.models.Match.len", return_value=4)
+    @patch("Database.models.Match.get_player_position", side_effect=[3, 0])
+    @patch("Database.models.Match._get_match")
+    def test_set_obstacle_between(self, mock_match, *args):
+        match = Mock()
+        match.obstacles = [False, False, False, False]
+        mock_match.return_value = match
+        set_obstacle_between("player1", "player2")
+        self.assertEqual(match.obstacles, [False, False, False, True])
