@@ -485,6 +485,7 @@ def started_match(match_name):
         player.in_game = True
         player.is_alive = True
         player.position = position + 1
+        player.in_quarantine = 0
         position += 1
         match.obstacles.append(False)
         if player.cards.select(lambda c: c.card_name == "La Cosa").first():
