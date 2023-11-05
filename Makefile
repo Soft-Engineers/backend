@@ -1,11 +1,12 @@
-all:
-	@echo "Building..."
+.PHONY: clean start clean-start
 
-	@echo "Building complete."
-
-.PHONY: clean
+start: 
+	uvicorn app:app --reload
 
 clean:
 	@echo "Cleaning up..."
 	@rm -f Database/lacosa.sqlite
 	@echo "Cleanup complete."
+
+clean-start: clean start
+
