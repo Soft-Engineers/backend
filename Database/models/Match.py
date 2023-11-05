@@ -533,6 +533,15 @@ def get_match_locations(match_id: int) -> list:
 
 
 @db_session
+def get_quarantined_players(match_id: int) -> list:
+    match = _get_match(match_id)
+    players = {}
+    for player in match.players:
+        players[player.player_name] = player.in_quarantine
+    return players
+
+
+@db_session
 def get_dead_players(match_id: int) -> list:
     match = _get_match(match_id)
     if not match.initiated:
@@ -626,3 +635,7 @@ def exist_obstacle_between(player: str, target: str) -> bool:
     return match.obstacles[min(player_position, target_position)]
 
 
+@db_session
+def get_obstacles(match_id: int) -> list:
+    match = _get_match(match_id)
+    return match.obstacles

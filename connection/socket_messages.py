@@ -26,5 +26,7 @@ POSITIONS = "posiciones"
 LOBBY_PLAYERS = "jugadores lobby"
 DEAD_PLAYERS = "muertes"
 MATCH_STATE = "estado partida"
+OBSTACLES = "obstáculos"
+QUARANTINE = "cuarentena"
 
 # ------ Auxiliary functions for sockets messages ------
