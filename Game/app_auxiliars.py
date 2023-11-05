@@ -429,7 +429,7 @@ async def _play_exchange_defense_card(match_id, player_name, card_id):
         # Aca irían ¡Fallaste! y ¿No podemos ser amigos?
         return
     set_match_turn(match_id, turn_player)
-    end_player_turn(player_name)
+    end_player_turn(turn_player)
 
 
 # ----------- Card exchange logic ------------

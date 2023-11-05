@@ -87,6 +87,7 @@ async def _send_initial_state(match_id: int, player_name: str):
     positions = get_players_positions(get_match_name(match_id))
     await manager.broadcast(POSITIONS, positions, match_id)
     await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
+    await manager.broadcast(QUARANTINE, get_quarantined_players(match_id), match_id)
 
 
 async def _send_lobby_players(match_id: int):
@@ -101,6 +102,7 @@ async def _send_game_state(match_id: int):
     }
     await manager.broadcast(MATCH_STATE, state, match_id)
     await manager.broadcast(DEAD_PLAYERS, get_dead_players(match_id), match_id)
+    await manager.broadcast(QUARANTINE, get_quarantined_players(match_id), match_id)
 
 
 # ---------------- API REST ------------- #

@@ -533,6 +533,15 @@ def get_match_locations(match_id: int) -> list:
 
 
 @db_session
+def get_quarantined_players(match_id: int) -> list:
+    match = _get_match(match_id)
+    players = {}
+    for player in match.players:
+        players[player.player_name] = player.in_quarantine
+    return players
+
+
+@db_session
 def get_dead_players(match_id: int) -> list:
     match = _get_match(match_id)
     if not match.initiated:
