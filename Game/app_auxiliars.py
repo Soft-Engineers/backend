@@ -265,6 +265,8 @@ async def execute_card(match_id: int, def_card_id: int = None):
         await play_whisky(player_name)
     elif card_name == "Sospecha":
         await play_sospecha(player_name, target_name)
+    elif card_name == "Análisis":
+        await play_analisis(player_name, target_name)
     elif card_name in ["Seducción", "¿No podemos ser amigos?"]:
         # No necesitan implementación
         pass
@@ -295,11 +297,21 @@ async def play_whisky(player_name: str):
             "trigger_player": player_name,
             "trigger_card": "Whisky",
         }
-        await manager.send_personal_message("revelar cartas", msg, match_id, p)
+        await manager.send_personal_message(REVEALED_CARDS, msg, match_id, p)
 
 
 def play_lanzallamas(target_name: str):
     kill_player(target_name)
+
+
+async def play_analisis(player_name: str, target_name: str):
+    msg = {
+        "cards": get_player_cards_names(target_name),
+        "cards_owner": target_name,
+        "trigger_player": player_name,
+        "trigger_card": "Análisis",
+    }
+    await manager.send_message_to(REVEALED_CARDS, msg, player_name)
 
 
 async def play_sospecha(player_name: str, target_name: str):
