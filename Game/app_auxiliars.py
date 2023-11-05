@@ -265,6 +265,8 @@ async def execute_card(match_id: int, def_card_id: int = None):
         await play_whisky(player_name)
     elif card_name == "Sospecha":
         await play_sospecha(player_name, target_name)
+    elif card_name == "Análisis":
+        await play_analisis(player_name, target_name)
     elif card_name in ["Seducción", "¿No podemos ser amigos?"]:
         # No necesitan implementación
         pass
@@ -282,7 +284,6 @@ async def execute_card(match_id: int, def_card_id: int = None):
 # --------- Card effects logic --------
 
 
-
 async def play_whisky(player_name: str):
     match_id = get_player_match(player_name)
     receivers = get_match_players_names(match_id)
@@ -296,11 +297,21 @@ async def play_whisky(player_name: str):
             "trigger_player": player_name,
             "trigger_card": "Whisky",
         }
-        await manager.send_personal_message("revelar cartas", msg, match_id, p)
+        await manager.send_personal_message(REVEALED_CARDS, msg, match_id, p)
 
 
 def play_lanzallamas(target_name: str):
     kill_player(target_name)
+
+
+async def play_analisis(player_name: str, target_name: str):
+    msg = {
+        "cards": get_player_cards_names(target_name),
+        "cards_owner": target_name,
+        "trigger_player": player_name,
+        "trigger_card": "Análisis",
+    }
+    await manager.send_message_to(REVEALED_CARDS, msg, player_name)
 
 
 async def play_sospecha(player_name: str, target_name: str):
@@ -491,7 +502,6 @@ async def _execute_exchange(target: str, card2: int):
 
     await _send_exchange_notification(player1, target, card1, card2)
     end_player_turn(player1)
-
 
 
 async def check_infection(player_name: str, target: str, card: int, card2: int):

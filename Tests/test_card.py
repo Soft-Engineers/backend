@@ -374,6 +374,39 @@ class TestDiscardCard(TestCase):
 
 
 @pytest.mark.asyncio
+async def test_play_analisis(mocker):
+    websocketStub = _WebStub()
+
+    target = Mock()
+    target.name = "test_target"
+    target.cards = []
+
+    player = Mock()
+    player.name = "test_player"
+
+    for i in range(0, 4):
+        target.cards.append("card" + str(i))
+
+    def _send_message_to(msg_type, msg, player_name):
+        websocketStub.messages.append(msg)
+
+    mocker.patch("Game.app_auxiliars.get_player_cards_names", return_value=target.cards)
+    mocker.patch(
+        "Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to
+    )
+
+    await play_analisis(player.name, target.name)
+
+    expected_msg = {
+        "cards": target.cards,
+        "cards_owner": target.name,
+        "trigger_player": player.name,
+        "trigger_card": "Análisis",
+    }
+    assert expected_msg == websocketStub.messages[0]
+
+
+@pytest.mark.asyncio
 async def test_play_sospecha(mocker):
     websocketStub = _WebStub()
     target = Mock()
