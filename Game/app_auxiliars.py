@@ -269,7 +269,7 @@ async def execute_card(match_id: int, def_card_id: int = None):
         # No necesitan implementación
         pass
     elif card_name == "Puerta atrancada":
-        play_puerta_atrancada(player_name, target_name)
+        await play_puerta_atrancada(player_name, target_name)
     elif card_name == "Cuarentena":
         play_cuarentena(target_name)
     else:
@@ -280,7 +280,6 @@ async def execute_card(match_id: int, def_card_id: int = None):
 
 
 # --------- Card effects logic --------
-
 
 
 async def play_whisky(player_name: str):
@@ -325,8 +324,10 @@ async def play_aterrador(match: int, player: str):
     await manager.send_message_to(REVEALED_CARDS, msg, player)
 
 
-def play_puerta_atrancada(player: str, target: str):
+async def play_puerta_atrancada(player: str, target: str):
+    match_id = get_player_match(player)
     set_obstacle_between(player, target)
+    await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
 
 
 def play_cuarentena(target: str):
@@ -491,7 +492,6 @@ async def _execute_exchange(target: str, card2: int):
 
     await _send_exchange_notification(player1, target, card1, card2)
     end_player_turn(player1)
-
 
 
 async def check_infection(player_name: str, target: str, card: int, card2: int):

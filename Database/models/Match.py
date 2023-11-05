@@ -626,3 +626,7 @@ def exist_obstacle_between(player: str, target: str) -> bool:
     return match.obstacles[min(player_position, target_position)]
 
 
+@db_session
+def get_obstacles(match_id: int) -> list:
+    match = _get_match(match_id)
+    return match.obstacles
