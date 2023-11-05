@@ -28,5 +28,6 @@ DEAD_PLAYERS = "muertes"
 MATCH_STATE = "estado partida"
 OBSTACLES = "obstáculos"
 QUARANTINE = "cuarentena"
+DEFENSE_STAMP = "timestamp defensa"
 
 # ------ Auxiliary functions for sockets messages ------

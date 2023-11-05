@@ -207,6 +207,7 @@ async def _play_turn_card(
     else:
         assign_next_turn_to(match_id, target)
         set_game_state(match_id, GAME_STATE["WAIT_DEFENSE"])
+        set_defense_stamp(match_id)
 
     discard_card(player_name, card_id)
 

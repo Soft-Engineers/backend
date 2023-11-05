@@ -4,6 +4,7 @@ from Database.Database import Match, GAME_STATE, Deck
 from Game.cards.cards import *
 from Database.models.Player import *
 from random import randrange
+from time import time
 
 # --------- Basic games functions --------- #
 
@@ -639,3 +640,14 @@ def exist_obstacle_between(player: str, target: str) -> bool:
 def get_obstacles(match_id: int) -> list:
     match = _get_match(match_id)
     return match.obstacles
+
+@db_session
+def set_defense_stamp(match_id: int):
+    match = _get_match(match_id)
+    match.defense_timestamp = time()
+
+@db_session
+def get_defense_stamp(match_id: int):
+    match = _get_match(match_id)
+    return match.defense_timestamp
+
