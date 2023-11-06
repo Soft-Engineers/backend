@@ -85,10 +85,12 @@ async def _send_initial_state(match_id: int, player_name: str):
     await manager.send_message_to(INITIAL_STATE, data, player_name)
 
     positions = get_players_positions(get_match_name(match_id))
+    # probablemente se pueda eliminar (ya se envia en _send_game_state)
     await manager.broadcast(POSITIONS, positions, match_id)
     await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
     await manager.broadcast(QUARANTINE, get_quarantined_players(match_id), match_id)
     await manager.broadcast(DIRECTION, get_direction(match_id), match_id)
+    await manager.broadcast(CHAT_RECORD, get_chat_record(match_id), match_id)
 
 
 async def _send_lobby_players(match_id: int):

@@ -2,6 +2,7 @@ import json
 from Game.app_auxiliars import *
 from connection.connections import *
 from connection.socket_messages import *
+from time import time
 
 
 # Custom request exceptions
@@ -51,7 +52,14 @@ async def handle_request(request, match_id, player_name, websocket):
 
 # Define individual handler functions for each message type
 async def chat_handler(content, match_id, player_name):
-    pass
+    # Save chat message in database
+    msg = {
+        "author": player_name,
+        "message": content["message"],
+        "timestamp": time(),
+    }
+    await save_chat_message(match_id, msg)
+    await manager.broadcast(CHAT_NOTIFICATION, msg, match_id)
 
 
 async def pickup_card_handler(content, match_id, player_name):

@@ -2,7 +2,7 @@
 
 # ----- Incoming messages -----
 
-CHAT = "Chat"
+CHAT = "chat"
 PICKUP_CARD = "robar carta"
 PLAY_CARD = "jugar carta"
 DISCARD_CARD = "descartar carta"
@@ -30,5 +30,7 @@ OBSTACLES = "obstáculos"
 QUARANTINE = "cuarentena"
 DEFENSE_STAMP = "timestamp defensa"
 DIRECTION = "sentido antihorario"
+CHAT_RECORD = "historial"
+CHAT_NOTIFICATION = "notificación chat"
 
 # ------ Auxiliary functions for sockets messages ------
