@@ -405,6 +405,11 @@ async def test_play_analisis(mocker):
     }
     assert expected_msg == websocketStub.messages[0]
 
+"""
+@pytest.mark.asyncio
+async def test_play_cambio_de_lugar(mocker):
+    # Completar
+"""
 
 @pytest.mark.asyncio
 async def test_play_sospecha(mocker):

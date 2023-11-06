@@ -29,5 +29,6 @@ MATCH_STATE = "estado partida"
 OBSTACLES = "obstáculos"
 QUARANTINE = "cuarentena"
 DEFENSE_STAMP = "timestamp defensa"
+DIRECTION = "sentido antihorario"
 
 # ------ Auxiliary functions for sockets messages ------

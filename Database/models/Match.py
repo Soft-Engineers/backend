@@ -598,10 +598,11 @@ def kill_player(player_name: str):
     player.is_alive = False
 
 
-
 def _are_border_cases(position1: int, position2: int, length: int) -> bool:
     """Check if the positions represent border cases."""
-    return (position1 == 0 and position2 + 1 == length) or (position2 == 0 and position1 + 1 == length)
+    return (position1 == 0 and position2 + 1 == length) or (
+        position2 == 0 and position1 + 1 == length
+    )
 
 
 @db_session
@@ -619,6 +620,7 @@ def set_obstacle_between(player: str, target: str) -> None:
         match.obstacles[-1] = True
     else:
         match.obstacles[min(player_position, target_position)] = True
+
 
 @db_session
 def exist_obstacle_between(player: str, target: str) -> bool:
@@ -641,13 +643,19 @@ def get_obstacles(match_id: int) -> list:
     match = _get_match(match_id)
     return match.obstacles
 
+
 @db_session
 def set_defense_stamp(match_id: int):
     match = _get_match(match_id)
     match.defense_timestamp = time()
+
 
 @db_session
 def get_defense_stamp(match_id: int):
     match = _get_match(match_id)
     return match.defense_timestamp
 
+
+@db_session
+def get_direction(match_id: int) -> bool:
+    return _get_match(match_id).clockwise

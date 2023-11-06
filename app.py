@@ -101,6 +101,7 @@ async def _send_game_state(match_id: int):
         "game_state": get_game_state(match_id),
     }
     positions = get_players_positions(get_match_name(match_id))
+    await manager.broadcast(DIRECTION, get_direction(match_id), match_id)
     await manager.broadcast(POSITIONS, positions, match_id)
     await manager.broadcast(MATCH_STATE, state, match_id)
     await manager.broadcast(DEAD_PLAYERS, get_dead_players(match_id), match_id)
