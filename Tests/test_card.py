@@ -441,3 +441,42 @@ async def test_play_sospecha(mocker):
         "trigger_card": "Sospecha",
     }
     assert expected_msg == websocketStub.messages[0]
+
+
+
+def test_play_fallaste(mocker):
+    match = Mock()
+    match.players = []
+    match.id = 1
+    match.current_player = 2
+    match.played_card = None
+    card_id = 3
+    
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
+    obstacle = mocker.patch("Game.app_auxiliars.exist_obstacle_between")
+    obstacle.return_value = True
+
+    def _set_next_turn(match_id):
+        match.current_player = match.current_player + 1
+    def _set_game_state(match_id, state):
+        match.game_state = state
+    def _set_played_card(match_id, card_id):
+        match.played_card = card_id
+    def _get_next_player(match_id):
+        return match.current_player + 1
+
+    mocker.patch("Game.app_auxiliars.set_next_turn", side_effect=_set_next_turn)
+    mocker.patch("Game.app_auxiliars.set_game_state", side_effect=_set_game_state)
+    mocker.patch("Game.app_auxiliars.set_played_card", side_effect=_set_played_card)
+    mocker.patch("Game.app_auxiliars.get_next_player", side_effect=_get_next_player)
+
+    res = play_fallaste("test_player1", card_id)
+    assert res == False
+
+    obstacle.return_value = False
+    res = play_fallaste("test_player1", card_id)
+    assert res == True
+    assert match.current_player == 3
+    assert match.game_state == GAME_STATE["WAIT_EXCHANGE"]
+    assert match.played_card == card_id
+

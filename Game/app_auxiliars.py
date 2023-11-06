@@ -346,6 +346,16 @@ def play_cuarentena(target: str):
     set_quarantine(target)
 
 
+def play_fallaste(player: str, card_id: int) -> bool:
+    match_id = get_player_match(player)
+    if exist_obstacle_between(player, get_next_player(match_id)):
+        return False
+    set_next_turn(match_id)
+    set_game_state(match_id, GAME_STATE["WAIT_EXCHANGE"])
+    set_played_card(match_id, card_id)
+    return True
+
+
 # --------- Defense logic --------
 
 
@@ -418,6 +428,7 @@ async def _play_exchange_defense_card(match_id, player_name, card_id):
     check_valid_defense(player_name, card_id)
     defense_card = get_card_name(card_id)
     turn_player = get_turn_player(match_id)
+    fallaste = False
 
     if not defend_exchange(card_id):
         raise GameException(f"No puedes defender este intercambio con {defense_card}")
@@ -428,20 +439,31 @@ async def _play_exchange_defense_card(match_id, player_name, card_id):
         # No necesita implementación
         pass
     elif defense_card == "¡Fallaste!":
-        pass
+        fallaste = play_fallaste(player_name, card_id)
     else:
         pass
     discard_card(player_name, card_id)
     pick_not_panic_card(player_name)
 
     await manager.broadcast(
-        "notificación jugada", defended_exchange_msg(player_name, card_id), match_id
+        PLAY_NOTIFICATION, defended_exchange_msg(player_name, card_id), match_id
     )
-    if False:
-        # Aca irían ¡Fallaste! y ¿No podemos ser amigos?
+    if fallaste:
+        await manager.broadcast(
+            PLAY_NOTIFICATION,
+            f"{get_player_in_turn(match_id)} debe intercambiar en lugar de {player_name}",
+            match_id,
+        )
         return
     set_match_turn(match_id, turn_player)
-    end_player_turn(turn_player)
+
+    if (
+        last_played_card(match_id) == "¿No podemos ser amigos?"
+    ) and not exist_obstacle_between(turn_player, get_next_player(match_id)):
+        set_game_state(match_id, GAME_STATE["EXCHANGE"])
+        clean_played_card_data(match_id)
+    else:
+        end_player_turn(turn_player)
 
 
 # ----------- Card exchange logic ------------
@@ -503,10 +525,20 @@ async def _execute_exchange(target: str, card2: int):
     set_match_turn(match_id, player1)
 
     await _send_exchange_notification(player1, target, card1, card2)
-    end_player_turn(player1)
+
+    if (
+        last_played_card(match_id) == "¿No podemos ser amigos?"
+    ) and not exist_obstacle_between(player1, get_next_player(match_id)):
+        set_game_state(match_id, GAME_STATE["EXCHANGE"])
+        clean_played_card_data(match_id)
+    else:
+        end_player_turn(player1)
 
 
 async def check_infection(player_name: str, target: str, card: int, card2: int):
+    match_id = get_player_match(player_name)
+    if last_played_card(match_id) == "¡Fallaste!":
+        return
     if is_lacosa(player_name) and is_contagio(card):
         infect_player(target)
         await manager.send_message_to("infectado", "", target)
@@ -522,7 +554,7 @@ async def check_infection(player_name: str, target: str, card: int, card2: int):
 def check_valid_exchange(card_id: int, player: str, target: str):
     if card_id is None or card_id == "":
         raise InvalidCard("Debes seleccionar una carta para intercambiar")
-    if player == target:
+    if player == target and get_game_state(get_player_match(player)) == "EXCHANGE":
         raise InvalidPlayer("Seleccione otro jugador para intercambiar")
 
     card_name = get_card_name(card_id)
