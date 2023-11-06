@@ -200,7 +200,7 @@ async def _play_turn_card(
     else:
         assign_next_turn_to(match_id, target)
         set_game_state(match_id, GAME_STATE["WAIT_DEFENSE"])
-        set_defense_stamp(match_id)
+        set_stamp(match_id)
 
     discard_card(player_name, card_id)
 
@@ -296,14 +296,14 @@ async def play_whisky(player_name: str):
     receivers.remove(player_name)
     cards = get_player_cards_names(player_name)
 
-    set_defense_stamp(match_id)
+    set_stamp(match_id)
     for p in receivers:
         msg = {
             "cards": cards,
             "cards_owner": player_name,
             "trigger_player": player_name,
             "trigger_card": "Whisky",
-            "timestamp": get_defense_stamp(match_id),
+            "timestamp": get_stamp(match_id),
         }
         await manager.send_personal_message(REVEALED_CARDS, msg, match_id, p)
 
@@ -315,13 +315,13 @@ def play_lanzallamas(target_name: str):
 async def play_analisis(player_name: str, target_name: str):
     match_id = get_player_match(player_name)
 
-    set_defense_stamp(get_player_match(match_id))
+    set_stamp(get_player_match(match_id))
     msg = {
         "cards": get_player_cards_names(target_name),
         "cards_owner": target_name,
         "trigger_player": player_name,
         "trigger_card": "Análisis",
-        "timestamp": get_defense_stamp(match_id),
+        "timestamp": get_stamp(match_id),
     }
     await manager.send_message_to(REVEALED_CARDS, msg, player_name)
 
@@ -344,13 +344,13 @@ async def play_cambio_de_lugar(player_name: str, target_name: str):
 async def play_sospecha(player_name: str, target_name: str):
     match_id = get_player_match(player_name)
 
-    set_defense_stamp(match_id)
+    set_stamp(match_id)
     msg = {
         "cards": [get_random_card_from(target_name)],
         "cards_owner": target_name,
         "trigger_player": player_name,
         "trigger_card": "Sospecha",
-        "timestamp": get_defense_stamp(match_id),
+        "timestamp": get_stamp(match_id),
     }
     await manager.send_message_to(REVEALED_CARDS, msg, player_name)
 
@@ -358,13 +358,13 @@ async def play_sospecha(player_name: str, target_name: str):
 async def play_aterrador(match: int, player: str):
     turn_player = get_turn_player(match)
     exchange_card = get_card_name(get_exchange_card(match))
-    set_defense_stamp(match)
+    set_stamp(match)
     msg = {
         "cards": [exchange_card],
         "cards_owner": turn_player,
         "trigger_player": player,
         "trigger_card": "Aterrador",
-        "timestamp": get_defense_stamp(match),
+        "timestamp": get_stamp(match),
     }
     await manager.send_message_to(REVEALED_CARDS, msg, player)
 

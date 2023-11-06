@@ -90,7 +90,7 @@ async def _send_initial_state(match_id: int, player_name: str):
     await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
     await manager.broadcast(QUARANTINE, get_quarantined_players(match_id), match_id)
     await manager.broadcast(DIRECTION, get_direction(match_id), match_id)
-    await manager.broadcast(DEFENSE_STAMP, get_defense_stamp(match_id), match_id)
+    await manager.broadcast(DEFENSE_STAMP, get_stamp(match_id), match_id)
     await manager.send_personal_message(
         CHAT_RECORD, get_chat_record(match_id), match_id, player_name
     )
@@ -112,7 +112,7 @@ async def _send_game_state(match_id: int):
     await manager.broadcast(DEAD_PLAYERS, get_dead_players(match_id), match_id)
     await manager.broadcast(QUARANTINE, get_quarantined_players(match_id), match_id)
     if get_game_state(match_id) == GAME_STATE["WAIT_DEFENSE"]:
-        await manager.broadcast(DEFENSE_STAMP, get_defense_stamp(match_id), match_id)
+        await manager.broadcast(DEFENSE_STAMP, get_stamp(match_id), match_id)
 
 
 # ---------------- API REST ------------- #

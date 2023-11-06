@@ -647,15 +647,15 @@ def get_obstacles(match_id: int) -> list:
 
 
 @db_session
-def set_defense_stamp(match_id: int):
+def set_stamp(match_id: int):
     match = _get_match(match_id)
-    match.defense_timestamp = time()
+    match.timestamp = time()
 
 
 @db_session
-def get_defense_stamp(match_id: int):
+def get_stamp(match_id: int):
     match = _get_match(match_id)
-    return match.defense_timestamp
+    return match.timestamp
 
 
 @db_session

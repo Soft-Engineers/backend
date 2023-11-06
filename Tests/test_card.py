@@ -401,8 +401,8 @@ async def test_play_analisis(mocker):
         "Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to
     )
     mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
-    mocker.patch("Game.app_auxiliars.set_defense_stamp")
-    mocker.patch("Game.app_auxiliars.get_defense_stamp", return_value=t)
+    mocker.patch("Game.app_auxiliars.set_stamp")
+    mocker.patch("Game.app_auxiliars.get_stamp", return_value=t)
 
     await play_analisis(player.name, target.name)
 
@@ -523,8 +523,8 @@ async def test_play_sospecha(mocker):
     )
 
     mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
-    mocker.patch("Game.app_auxiliars.set_defense_stamp")
-    mocker.patch("Game.app_auxiliars.get_defense_stamp", return_value=t)
+    mocker.patch("Game.app_auxiliars.set_stamp")
+    mocker.patch("Game.app_auxiliars.get_stamp", return_value=t)
 
     await play_sospecha(player.name, target.name)
 
