@@ -797,6 +797,19 @@ class test_toggle_places(TestCase):
         self.assertEqual(mock_player2.position, 1)
 
 
+class test_toggle_direction(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_toggle_direction(self, mock_get_match):
+        match = Mock()
+        match.clockwise = True
+        mock_get_match.return_value = match
+
+        toggle_direction(1)
+        self.assertEqual(match.clockwise, False)
+        toggle_direction(1)
+        self.assertEqual(match.clockwise, True)
+
+
 class test_set_obstacle_between(TestCase):
     @patch("Database.models.Match.get_player_match", return_value=1)
     @patch("Database.models.Match.len", return_value=4)

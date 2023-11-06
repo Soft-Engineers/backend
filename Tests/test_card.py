@@ -453,6 +453,37 @@ async def test_play_cambio_de_lugar(mocker):
 
 
 @pytest.mark.asyncio
+async def test_play_vigila_tus_espaldas(mocker):
+    websocketStub = _WebStub()
+
+    match = Mock()
+    match.id = 1
+    match.clockwise = True
+
+    def _toggle_direction(match_id: int):
+        pass
+
+    def _broadcast(msg_type, msg, match_id):
+        assert msg_type == DIRECTION
+        websocketStub.messages.append(msg)
+        assert match_id == match.id
+
+    m1 = mocker.patch(
+        "Game.app_auxiliars.toggle_direction", side_effect=_toggle_direction
+    )
+    m2 = mocker.patch("Game.app_auxiliars.get_direction", return_value=True)
+    m3 = mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
+
+    await play_vigila_tus_espaldas(match.id)
+
+    m1.assert_called_once_with(match.id)
+    m2.assert_called_once_with(match.id)
+    m3.assert_called_once_with(DIRECTION, True, match.id)
+
+    assert websocketStub.get(0) == True
+
+
+@pytest.mark.asyncio
 async def test_play_sospecha(mocker):
     websocketStub = _WebStub()
     target = Mock()
