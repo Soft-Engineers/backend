@@ -216,7 +216,7 @@ async def _play_turn_card(
 
     if has_defense(card_id):
         await manager.broadcast(
-            PLAY_NOTIFICATION,
+            WAIT_NOTIFICATION,
             wait_defense_card_msg(player_name, card_id, target),
             match_id,
         )
@@ -499,7 +499,7 @@ async def _initiate_exchange(player: str, card: int, target: str):
     set_game_state(match_id, GAME_STATE["WAIT_EXCHANGE"])
 
     alert = "Esperando intercambio entre " + player + " y " + target
-    await manager.broadcast(PLAY_NOTIFICATION, alert, match_id)
+    await manager.broadcast(WAIT_NOTIFICATION, alert, match_id)
 
 
 async def _execute_exchange(target: str, card2: int):
