@@ -659,3 +659,9 @@ def get_defense_stamp(match_id: int):
 @db_session
 def get_direction(match_id: int) -> bool:
     return _get_match(match_id).clockwise
+
+
+@db_session
+def toggle_direction(match_id: int):
+    match = _get_match(match_id)
+    match.clockwise = not match.clockwise

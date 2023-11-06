@@ -273,6 +273,8 @@ async def execute_card(match_id: int, def_card_id: int = None):
     elif card_name in ["¡Cambio de Lugar!", "¡Más vale que corras!"]:
         if not def_card_name == "Aquí estoy bien":
             await play_cambio_de_lugar(player_name, target_name)
+    elif card_name == "Vigila tus espaldas":
+        play_vigila_tus_espaldas(match_id)
     elif card_name == "Whisky":
         await play_whisky(player_name)
     elif card_name == "Sospecha":
@@ -294,6 +296,12 @@ async def execute_card(match_id: int, def_card_id: int = None):
 
 
 # --------- Card effects logic --------
+
+
+async def play_vigila_tus_espaldas(match_id: int):
+    toggle_direction(match_id)
+
+    await manager.broadcast(DIRECTION, get_direction(match_id), match_id)
 
 
 async def play_whisky(player_name: str):
