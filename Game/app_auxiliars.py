@@ -170,24 +170,9 @@ async def play_card(player_name: str, card_id: int, target: str = ""):
 
     if game_state in [GAME_STATE["PLAY_TURN"], GAME_STATE["PANIC"]]:
         await _play_turn_card(match_id, player_name, card_id, target)
-        msg = {
-            "posiciones": get_match_locations(match_id),
-            "target": target,
-            "turn": get_player_in_turn(match_id),
-            "game_state": get_state_name(get_game_state(match_id)),
-        }
-        await manager.broadcast("datos jugada", msg, match_id)
 
     elif game_state == GAME_STATE["WAIT_DEFENSE"]:
         await _play_defense_card(match_id, player_name, card_id, target)
-
-        msg = {
-            "posiciones": get_match_locations(match_id),
-            "target": "",
-            "turn": get_player_in_turn(match_id),
-            "game_state": get_state_name(get_game_state(match_id)),
-        }
-        await manager.broadcast("datos jugada", msg, match_id)
 
     elif game_state == GAME_STATE["WAIT_EXCHANGE"]:
         await _play_exchange_defense_card(match_id, player_name, card_id)
@@ -459,15 +444,6 @@ async def skip_defense(player_name: str):
     if played_card_name == "Lanzallamas":
         await manager.broadcast(PLAY_NOTIFICATION, target + " no se defendió", match_id)
         await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
-
-    msg = {
-        "posiciones": get_match_locations(match_id),
-        "target": "",
-        "turn": get_player_in_turn(match_id),
-        "game_state": get_state_name(get_game_state(match_id)),
-    }
-
-    await manager.broadcast("datos jugada", msg, match_id)
 
 
 async def _play_exchange_defense_card(match_id, player_name, card_id):
