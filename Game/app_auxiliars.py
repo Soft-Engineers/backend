@@ -456,7 +456,14 @@ async def _play_exchange_defense_card(match_id, player_name, card_id):
         )
         return
     set_match_turn(match_id, turn_player)
-    end_player_turn(turn_player)
+
+    if (
+        last_played_card(match_id) == "¿No podemos ser amigos?"
+    ) and not exist_obstacle_between(turn_player, get_next_player(match_id)):
+        set_game_state(match_id, GAME_STATE["EXCHANGE"])
+        clean_played_card_data(match_id)
+    else:
+        end_player_turn(turn_player)
 
 
 # ----------- Card exchange logic ------------
@@ -518,7 +525,14 @@ async def _execute_exchange(target: str, card2: int):
     set_match_turn(match_id, player1)
 
     await _send_exchange_notification(player1, target, card1, card2)
-    end_player_turn(player1)
+
+    if (
+        last_played_card(match_id) == "¿No podemos ser amigos?"
+    ) and not exist_obstacle_between(player1, get_next_player(match_id)):
+        set_game_state(match_id, GAME_STATE["EXCHANGE"])
+        clean_played_card_data(match_id)
+    else:
+        end_player_turn(player1)
 
 
 async def check_infection(player_name: str, target: str, card: int, card2: int):
