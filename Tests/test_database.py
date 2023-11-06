@@ -494,8 +494,7 @@ class TestGetNextPlayerPosition(TestCase):
         mock_get_player_by_position.side_effect = [mock_player] * 4
 
         result = get_next_player_position(1, 0)
-
-        self.assertEqual(result, 1)
+        self.assertEqual(result, 3)
 
     @patch("Database.models.Match._get_match")
     @patch("Database.models.Match._get_player_by_position")
@@ -534,7 +533,8 @@ class TestGetPreviousPlayerPosition(TestCase):
         mock_get_player_by_position.side_effect = [mock_player] * 4
 
         result = get_previous_player_position(1, 0)
-        self.assertEqual(result, 3)
+
+        self.assertEqual(result, 1)
 
 
 class TestGetPlayerInTurn(TestCase):

@@ -29,7 +29,7 @@ MATCH_STATE = "estado partida"
 OBSTACLES = "obstáculos"
 QUARANTINE = "cuarentena"
 DEFENSE_STAMP = "timestamp defensa"
-DIRECTION = "sentido antihorario"
+DIRECTION = "sentido horario"
 CHAT_RECORD = "historial"
 CHAT_NOTIFICATION = "notificación chat"
 

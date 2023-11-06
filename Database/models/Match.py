@@ -384,7 +384,7 @@ def get_next_player_position(match_id: int, start: int) -> int:
     direction = 1 if match.clockwise else -1
 
     while True:
-        current_player = (current_player + direction) % total_players
+        current_player = (current_player - direction) % total_players
         player = _get_player_by_position(match_id, current_player)
         if player.is_alive:
             return current_player
@@ -398,7 +398,7 @@ def get_previous_player_position(match_id: int, start: int) -> int:
     direction = 1 if match.clockwise else -1
 
     while True:
-        current_player = (current_player - direction) % total_players
+        current_player = (current_player + direction) % total_players
         player = _get_player_by_position(match_id, current_player)
         if player.is_alive:
             return current_player
@@ -666,11 +666,13 @@ def toggle_direction(match_id: int):
     match = _get_match(match_id)
     match.clockwise = not match.clockwise
 
+
 @db_session
 def save_chat_message(match_id: int, msg_data: dict):
     match = _get_match(match_id)
     match.chat_record[str(match.msg_counter)] = msg_data
     match.msg_counter += 1
+
 
 @db_session
 def get_chat_record(match_id: int):
@@ -680,4 +682,3 @@ def get_chat_record(match_id: int):
     for key in record_json:
         record.append(record_json[key])
     return record
-
