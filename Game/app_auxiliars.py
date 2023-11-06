@@ -19,6 +19,10 @@ manager = ConnectionManager()
 # ------- Auxiliar functions for messages --------
 
 
+def cambio_lugar_msg(player_name: str, target_name: str):
+    return player_name + " cambió de lugar con " + target_name
+
+
 def pick_card_msg(player_name: str, card_id: int):
     alert = "Cuarentena: " + player_name + " ha robado " + get_card_name(card_id)
     return alert
@@ -262,6 +266,9 @@ async def execute_card(match_id: int, def_card_id: int = None):
     if card_name == "Lanzallamas":
         if not def_card_name == "¡Nada de barbacoas!":
             play_lanzallamas(target_name)
+    if card_name == "¡Cambio de Lugar!":
+        if not def_card_name == "Aquí estoy bien":
+            await play_cambio_de_lugar(player_name, target_name)
     elif card_name == "Whisky":
         await play_whisky(player_name)
     elif card_name == "Sospecha":
@@ -313,6 +320,21 @@ async def play_analisis(player_name: str, target_name: str):
         "trigger_card": "Análisis",
     }
     await manager.send_message_to(REVEALED_CARDS, msg, player_name)
+
+
+async def play_cambio_de_lugar(player_name: str, target_name: str):
+    match_id = get_player_match(player_name)
+    toggle_places(player_name, target_name)
+
+    await manager.broadcast(
+        PLAY_NOTIFICATION, target_name + " no se defendió", match_id
+    )
+
+    await manager.broadcast(
+        PLAY_NOTIFICATION,
+        cambio_lugar_msg(player_name, target_name),
+        match_id,
+    )
 
 
 async def play_sospecha(player_name: str, target_name: str):
@@ -400,9 +422,7 @@ async def skip_defense(player_name: str):
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     if played_card_name == "Lanzallamas":
-        await manager.broadcast(
-            "notificación jugada", target + " no se defendió", match_id
-        )
+        await manager.broadcast(PLAY_NOTIFICATION, target + " no se defendió", match_id)
         await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
 
     msg = {
