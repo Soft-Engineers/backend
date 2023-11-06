@@ -5,6 +5,7 @@ import pytest
 from unittest.mock import AsyncMock
 from Game.app_auxiliars import *
 import random
+from time import time
 
 
 class _WebStub:
@@ -384,16 +385,24 @@ async def test_play_analisis(mocker):
     player = Mock()
     player.name = "test_player"
 
+    t = time()
+    match_id = 1
+
     for i in range(0, 4):
         target.cards.append("card" + str(i))
 
     def _send_message_to(msg_type, msg, player_name):
         websocketStub.messages.append(msg)
 
+
+
     mocker.patch("Game.app_auxiliars.get_player_cards_names", return_value=target.cards)
     mocker.patch(
         "Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to
     )
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
+    mocker.patch("Game.app_auxiliars.set_defense_stamp")
+    mocker.patch("Game.app_auxiliars.get_defense_stamp", return_value=t)
 
     await play_analisis(player.name, target.name)
 
@@ -402,6 +411,7 @@ async def test_play_analisis(mocker):
         "cards_owner": target.name,
         "trigger_player": player.name,
         "trigger_card": "Análisis",
+        "timestamp": t,
     }
     assert expected_msg == websocketStub.messages[0]
 
@@ -497,6 +507,9 @@ async def test_play_sospecha(mocker):
         target.cards.add(card)
         card_list.append(card)
 
+    t = time()
+    match_id = 1
+
     def _send_message_to(msg_type, msg, player_name):
         websocketStub.messages.append(msg)
 
@@ -509,6 +522,10 @@ async def test_play_sospecha(mocker):
         "Game.app_auxiliars.get_random_card_from", return_value=random_card.name
     )
 
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
+    mocker.patch("Game.app_auxiliars.set_defense_stamp")
+    mocker.patch("Game.app_auxiliars.get_defense_stamp", return_value=t)
+
     await play_sospecha(player.name, target.name)
 
     expected_msg = {
@@ -516,5 +533,6 @@ async def test_play_sospecha(mocker):
         "cards_owner": target.name,
         "trigger_player": player.name,
         "trigger_card": "Sospecha",
+        "timestamp": t,
     }
     assert expected_msg == websocketStub.messages[0]
