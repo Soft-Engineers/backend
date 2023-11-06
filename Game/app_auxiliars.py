@@ -274,7 +274,7 @@ async def execute_card(match_id: int, def_card_id: int = None):
         if not def_card_name == "Aquí estoy bien":
             await play_cambio_de_lugar(player_name, target_name)
     elif card_name == "Vigila tus espaldas":
-        play_vigila_tus_espaldas(match_id)
+        await play_vigila_tus_espaldas(match_id)
     elif card_name == "Whisky":
         await play_whisky(player_name)
     elif card_name == "Sospecha":
