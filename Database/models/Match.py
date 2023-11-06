@@ -5,6 +5,7 @@ from Game.cards.cards import *
 from Database.models.Player import *
 from random import randrange
 from time import time
+import json
 
 # --------- Basic games functions --------- #
 
@@ -669,16 +670,15 @@ def toggle_direction(match_id: int):
 
 @db_session
 def save_chat_message(match_id: int, msg_data: dict):
+    str_json = json.dumps(msg_data)
     match = _get_match(match_id)
-    match.chat_record[str(match.msg_counter)] = msg_data
-    match.msg_counter += 1
+    match.chat_record.append(str_json)
 
 
 @db_session
 def get_chat_record(match_id: int):
     match = _get_match(match_id)
-    record_json = match.chat_record
-    record = []
-    for key in record_json:
-        record.append(record_json[key])
-    return record
+    str_records = match.chat_record
+    json_record = map(lambda s: json.loads(s), str_records)
+
+    return list(json_record)
