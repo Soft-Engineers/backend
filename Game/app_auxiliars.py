@@ -612,8 +612,8 @@ def check_target_player(player: str, target: str, card_id: int):
             raise InvalidCard(
                 f"No puedes jugar {card} a un jugador con un obstáculo en el medio"
             )
-        if requires_target_not_quarantined(card_id) and is_in_quarantine(target):
-            raise InvalidCard(f"No puedes jugar {card} a un jugador en cuarentena")
+    if requires_target_not_quarantined(card_id) and is_in_quarantine(target):
+        raise InvalidCard(f"No puedes jugar {card} a un jugador en cuarentena")
     if is_in_quarantine(player) and card == "Lanzallamas":
         raise InvalidCard("No puedes jugar Lanzallamas mientras estás en cuarentena")
 
