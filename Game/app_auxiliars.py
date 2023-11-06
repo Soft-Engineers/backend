@@ -18,8 +18,10 @@ manager = ConnectionManager()
 
 # ------- Auxiliar functions for messages --------
 
+
 def saltear_defensa_msg(target_name):
     return target_name + " no se defendió"
+
 
 def cambio_lugar_msg(player_name: str, target_name: str):
     return player_name + " cambió de lugar con " + target_name
@@ -268,7 +270,7 @@ async def execute_card(match_id: int, def_card_id: int = None):
     if card_name == "Lanzallamas":
         if not def_card_name == "¡Nada de barbacoas!":
             play_lanzallamas(target_name)
-    if card_name == "¡Cambio de Lugar!":
+    elif card_name in ["¡Cambio de Lugar!", "¡Más vale que corras!"]:
         if not def_card_name == "Aquí estoy bien":
             await play_cambio_de_lugar(player_name, target_name)
     elif card_name == "Whisky":
@@ -337,8 +339,6 @@ async def play_cambio_de_lugar(player_name: str, target_name: str):
         cambio_lugar_msg(player_name, target_name),
         match_id,
     )
-
-
 
 
 async def play_sospecha(player_name: str, target_name: str):
