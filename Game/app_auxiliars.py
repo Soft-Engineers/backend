@@ -18,6 +18,8 @@ manager = ConnectionManager()
 
 # ------- Auxiliar functions for messages --------
 
+def saltear_defensa_msg(target_name):
+    return target_name + " no se defendió"
 
 def cambio_lugar_msg(player_name: str, target_name: str):
     return player_name + " cambió de lugar con " + target_name
@@ -327,7 +329,7 @@ async def play_cambio_de_lugar(player_name: str, target_name: str):
     toggle_places(player_name, target_name)
 
     await manager.broadcast(
-        PLAY_NOTIFICATION, target_name + " no se defendió", match_id
+        PLAY_NOTIFICATION, saltear_defensa_msg(target_name), match_id
     )
 
     await manager.broadcast(
@@ -335,6 +337,8 @@ async def play_cambio_de_lugar(player_name: str, target_name: str):
         cambio_lugar_msg(player_name, target_name),
         match_id,
     )
+
+
 
 
 async def play_sospecha(player_name: str, target_name: str):

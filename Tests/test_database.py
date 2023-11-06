@@ -444,7 +444,6 @@ class test_get_game_state_for2(TestCase):
 
     @patch("Database.models.Match.get_player_by_name")
     def test_get_game_state_for_player_not_initiated(self, mock_get_player_by_name):
-
         mock_player = Mock()
         mock_player.player_name = "test_player1"
         mock_player.match = Mock()
@@ -781,6 +780,21 @@ class test_exist_obstacle(TestCase):
         mock_match.return_value = match
         exist = exist_obstacle_between("player1", "player2")
         self.assertEqual(exist, True)
+
+
+class test_toggle_places(TestCase):
+    @patch("Database.models.Player.get_player_by_name")
+    def test_toggle_places(self, mock_get_player_by_name):
+        mock_player1 = Mock()
+        mock_player2 = Mock()
+        mock_get_player_by_name.side_effect = [mock_player1, mock_player2]
+        mock_player1.position = 1
+        mock_player2.position = 2
+
+        toggle_places("player1", "player2")
+
+        self.assertEqual(mock_player1.position, 2)
+        self.assertEqual(mock_player2.position, 1)
 
 
 class test_set_obstacle_between(TestCase):
