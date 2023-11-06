@@ -15,8 +15,8 @@ from connection.request_handler import handle_request
 from Game.app_auxiliars import *
 from connection.socket_messages import *
 
-MAX_LEN_ALIAS = 16
-MIN_LEN_ALIAS = 3
+MAX_LEN_ALIAS = 8
+MIN_LEN_ALIAS = 1
 
 description = """
             La Cosa
@@ -85,9 +85,15 @@ async def _send_initial_state(match_id: int, player_name: str):
     await manager.send_message_to(INITIAL_STATE, data, player_name)
 
     positions = get_players_positions(get_match_name(match_id))
+    # probablemente se pueda eliminar (ya se envia en _send_game_state)
     await manager.broadcast(POSITIONS, positions, match_id)
     await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
     await manager.broadcast(QUARANTINE, get_quarantined_players(match_id), match_id)
+    await manager.broadcast(DIRECTION, get_direction(match_id), match_id)
+    await manager.broadcast(DEFENSE_STAMP, get_stamp(match_id), match_id)
+    await manager.send_personal_message(
+        CHAT_RECORD, get_chat_record(match_id), match_id, player_name
+    )
 
 
 async def _send_lobby_players(match_id: int):
@@ -100,9 +106,13 @@ async def _send_game_state(match_id: int):
         "turn": get_player_in_turn(match_id),
         "game_state": get_game_state(match_id),
     }
+    positions = get_players_positions(get_match_name(match_id))
+    await manager.broadcast(POSITIONS, positions, match_id)
     await manager.broadcast(MATCH_STATE, state, match_id)
     await manager.broadcast(DEAD_PLAYERS, get_dead_players(match_id), match_id)
     await manager.broadcast(QUARANTINE, get_quarantined_players(match_id), match_id)
+    if get_game_state(match_id) == GAME_STATE["WAIT_DEFENSE"]:
+        await manager.broadcast(DEFENSE_STAMP, get_stamp(match_id), match_id)
 
 
 # ---------------- API REST ------------- #

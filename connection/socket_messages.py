@@ -2,7 +2,7 @@
 
 # ----- Incoming messages -----
 
-CHAT = "Chat"
+CHAT = "chat"
 PICKUP_CARD = "robar carta"
 PLAY_CARD = "jugar carta"
 DISCARD_CARD = "descartar carta"
@@ -21,7 +21,6 @@ WAIT_NOTIFICATION = "notificación espera"
 ERROR = "error"
 MATCH_FINISHED = "partida finalizada"
 DEAD_NOTIFICATION = "notificación muerte"
-PLAY_DATA = "datos jugada"
 INITIAL_STATE = "estado inicial"
 POSITIONS = "posiciones"
 LOBBY_PLAYERS = "jugadores lobby"
@@ -29,5 +28,9 @@ DEAD_PLAYERS = "muertes"
 MATCH_STATE = "estado partida"
 OBSTACLES = "obstáculos"
 QUARANTINE = "cuarentena"
+DEFENSE_STAMP = "timestamp"
+DIRECTION = "sentido horario"
+CHAT_RECORD = "historial"
+CHAT_NOTIFICATION = "notificación chat"
 
 # ------ Auxiliary functions for sockets messages ------

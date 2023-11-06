@@ -5,6 +5,7 @@ import pytest
 from unittest.mock import AsyncMock
 from Game.app_auxiliars import *
 import random
+from time import time
 
 
 class _WebStub:
@@ -384,16 +385,24 @@ async def test_play_analisis(mocker):
     player = Mock()
     player.name = "test_player"
 
+    t = time()
+    match_id = 1
+
     for i in range(0, 4):
         target.cards.append("card" + str(i))
 
     def _send_message_to(msg_type, msg, player_name):
         websocketStub.messages.append(msg)
 
+
+
     mocker.patch("Game.app_auxiliars.get_player_cards_names", return_value=target.cards)
     mocker.patch(
         "Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to
     )
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
+    mocker.patch("Game.app_auxiliars.set_stamp")
+    mocker.patch("Game.app_auxiliars.get_stamp", return_value=t)
 
     await play_analisis(player.name, target.name)
 
@@ -402,8 +411,86 @@ async def test_play_analisis(mocker):
         "cards_owner": target.name,
         "trigger_player": player.name,
         "trigger_card": "Análisis",
+        "timestamp": t,
     }
     assert expected_msg == websocketStub.messages[0]
+
+
+@pytest.mark.asyncio
+async def test_play_cambio_de_lugar(mocker):
+    websocketStubP1 = _WebStub()
+    websocketStubP2 = _WebStub()
+
+    target = Mock()
+    target.name = "test_target"
+    target.position = 0
+
+    player = Mock()
+    player.name = "test_player"
+    target.position = 1
+
+    match = Mock()
+    match.id = 1
+
+    def _toggle_places(player_name, target_name):
+        assert (player_name == player.name and target_name == target.name) or (
+            player_name == target.name and target_name == player.name
+        )
+
+        target.position, player.position = player.position, target.position
+
+    def _broadcast(msg_type, msg, match_id):
+        assert msg_type == PLAY_NOTIFICATION
+        websocketStubP1.messages.append(msg)
+        websocketStubP2.messages.append(msg)
+        assert match_id == match.id
+
+    f1 = mocker.patch("Game.app_auxiliars.get_player_match", return_value=match.id)
+    f2 = mocker.patch("Game.app_auxiliars.toggle_places", side_effect=_toggle_places)
+    f3 = mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
+
+    await play_cambio_de_lugar(player.name, target.name)
+
+    f1.assert_called_once()
+    f2.assert_called_once()
+    assert f3.call_count == 2
+
+    assert websocketStubP1.get(0) == saltear_defensa_msg(target.name)
+    assert websocketStubP2.get(0) == saltear_defensa_msg(target.name)
+
+    assert websocketStubP1.get(1) == cambio_lugar_msg(player.name, target.name)
+    assert websocketStubP2.get(1) == cambio_lugar_msg(player.name, target.name)
+
+
+@pytest.mark.asyncio
+async def test_play_vigila_tus_espaldas(mocker):
+    websocketStub = _WebStub()
+
+    match = Mock()
+    match.id = 1
+    match.clockwise = True
+
+    def _toggle_direction(match_id: int):
+        pass
+
+    def _broadcast(msg_type, msg, match_id):
+        assert msg_type == DIRECTION
+        websocketStub.messages.append(msg)
+        assert match_id == match.id
+
+    m1 = mocker.patch(
+        "Game.app_auxiliars.toggle_direction", side_effect=_toggle_direction
+    )
+    m2 = mocker.patch("Game.app_auxiliars.get_direction", return_value=True)
+    m3 = mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
+
+    await play_vigila_tus_espaldas(match.id)
+
+    m1.assert_called_once_with(match.id)
+    m2.assert_called_once_with(match.id)
+    m3.assert_called_once_with(DIRECTION, True, match.id)
+
+    assert websocketStub.get(0) == True
 
 
 @pytest.mark.asyncio
@@ -420,6 +507,9 @@ async def test_play_sospecha(mocker):
         target.cards.add(card)
         card_list.append(card)
 
+    t = time()
+    match_id = 1
+
     def _send_message_to(msg_type, msg, player_name):
         websocketStub.messages.append(msg)
 
@@ -432,6 +522,10 @@ async def test_play_sospecha(mocker):
         "Game.app_auxiliars.get_random_card_from", return_value=random_card.name
     )
 
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
+    mocker.patch("Game.app_auxiliars.set_stamp")
+    mocker.patch("Game.app_auxiliars.get_stamp", return_value=t)
+
     await play_sospecha(player.name, target.name)
 
     expected_msg = {
@@ -439,6 +533,7 @@ async def test_play_sospecha(mocker):
         "cards_owner": target.name,
         "trigger_player": player.name,
         "trigger_card": "Sospecha",
+        "timestamp": t,
     }
     assert expected_msg == websocketStub.messages[0]
 

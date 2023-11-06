@@ -19,6 +19,14 @@ manager = ConnectionManager()
 # ------- Auxiliar functions for messages --------
 
 
+def saltear_defensa_msg(target_name):
+    return target_name + " no se defendió"
+
+
+def cambio_lugar_msg(player_name: str, target_name: str):
+    return player_name + " cambió de lugar con " + target_name
+
+
 def pick_card_msg(player_name: str, card_id: int):
     alert = "Cuarentena: " + player_name + " ha robado " + get_card_name(card_id)
     return alert
@@ -162,24 +170,9 @@ async def play_card(player_name: str, card_id: int, target: str = ""):
 
     if game_state in [GAME_STATE["PLAY_TURN"], GAME_STATE["PANIC"]]:
         await _play_turn_card(match_id, player_name, card_id, target)
-        msg = {
-            "posiciones": get_match_locations(match_id),
-            "target": target,
-            "turn": get_player_in_turn(match_id),
-            "game_state": get_state_name(get_game_state(match_id)),
-        }
-        await manager.broadcast("datos jugada", msg, match_id)
 
     elif game_state == GAME_STATE["WAIT_DEFENSE"]:
         await _play_defense_card(match_id, player_name, card_id, target)
-
-        msg = {
-            "posiciones": get_match_locations(match_id),
-            "target": "",
-            "turn": get_player_in_turn(match_id),
-            "game_state": get_state_name(get_game_state(match_id)),
-        }
-        await manager.broadcast("datos jugada", msg, match_id)
 
     elif game_state == GAME_STATE["WAIT_EXCHANGE"]:
         await _play_exchange_defense_card(match_id, player_name, card_id)
@@ -207,6 +200,7 @@ async def _play_turn_card(
     else:
         assign_next_turn_to(match_id, target)
         set_game_state(match_id, GAME_STATE["WAIT_DEFENSE"])
+        set_stamp(match_id)
 
     discard_card(player_name, card_id)
 
@@ -261,6 +255,11 @@ async def execute_card(match_id: int, def_card_id: int = None):
     if card_name == "Lanzallamas":
         if not def_card_name == "¡Nada de barbacoas!":
             play_lanzallamas(target_name)
+    elif card_name in ["¡Cambio de Lugar!", "¡Más vale que corras!"]:
+        if not def_card_name == "Aquí estoy bien":
+            await play_cambio_de_lugar(player_name, target_name)
+    elif card_name == "Vigila tus espaldas":
+        await play_vigila_tus_espaldas(match_id)
     elif card_name == "Whisky":
         await play_whisky(player_name)
     elif card_name == "Sospecha":
@@ -284,18 +283,27 @@ async def execute_card(match_id: int, def_card_id: int = None):
 # --------- Card effects logic --------
 
 
+async def play_vigila_tus_espaldas(match_id: int):
+    toggle_direction(match_id)
+
+    await manager.broadcast(DIRECTION, get_direction(match_id), match_id)
+
+
 async def play_whisky(player_name: str):
     match_id = get_player_match(player_name)
     receivers = get_match_players_names(match_id)
 
     receivers.remove(player_name)
     cards = get_player_cards_names(player_name)
+
+    set_stamp(match_id)
     for p in receivers:
         msg = {
             "cards": cards,
             "cards_owner": player_name,
             "trigger_player": player_name,
             "trigger_card": "Whisky",
+            "timestamp": get_stamp(match_id),
         }
         await manager.send_personal_message(REVEALED_CARDS, msg, match_id, p)
 
@@ -305,21 +313,44 @@ def play_lanzallamas(target_name: str):
 
 
 async def play_analisis(player_name: str, target_name: str):
+    match_id = get_player_match(player_name)
+
+    set_stamp(get_player_match(match_id))
     msg = {
         "cards": get_player_cards_names(target_name),
         "cards_owner": target_name,
         "trigger_player": player_name,
         "trigger_card": "Análisis",
+        "timestamp": get_stamp(match_id),
     }
     await manager.send_message_to(REVEALED_CARDS, msg, player_name)
 
 
+async def play_cambio_de_lugar(player_name: str, target_name: str):
+    match_id = get_player_match(player_name)
+    toggle_places(player_name, target_name)
+
+    await manager.broadcast(
+        PLAY_NOTIFICATION, saltear_defensa_msg(target_name), match_id
+    )
+
+    await manager.broadcast(
+        PLAY_NOTIFICATION,
+        cambio_lugar_msg(player_name, target_name),
+        match_id,
+    )
+
+
 async def play_sospecha(player_name: str, target_name: str):
+    match_id = get_player_match(player_name)
+
+    set_stamp(match_id)
     msg = {
         "cards": [get_random_card_from(target_name)],
         "cards_owner": target_name,
         "trigger_player": player_name,
         "trigger_card": "Sospecha",
+        "timestamp": get_stamp(match_id),
     }
     await manager.send_message_to(REVEALED_CARDS, msg, player_name)
 
@@ -327,11 +358,13 @@ async def play_sospecha(player_name: str, target_name: str):
 async def play_aterrador(match: int, player: str):
     turn_player = get_turn_player(match)
     exchange_card = get_card_name(get_exchange_card(match))
+    set_stamp(match)
     msg = {
         "cards": [exchange_card],
         "cards_owner": turn_player,
         "trigger_player": player,
         "trigger_card": "Aterrador",
+        "timestamp": get_stamp(match),
     }
     await manager.send_message_to(REVEALED_CARDS, msg, player)
 
@@ -409,19 +442,8 @@ async def skip_defense(player_name: str):
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     if played_card_name == "Lanzallamas":
-        await manager.broadcast(
-            "notificación jugada", target + " no se defendió", match_id
-        )
+        await manager.broadcast(PLAY_NOTIFICATION, target + " no se defendió", match_id)
         await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
-
-    msg = {
-        "posiciones": get_match_locations(match_id),
-        "target": "",
-        "turn": get_player_in_turn(match_id),
-        "game_state": get_state_name(get_game_state(match_id)),
-    }
-
-    await manager.broadcast("datos jugada", msg, match_id)
 
 
 async def _play_exchange_defense_card(match_id, player_name, card_id):
@@ -590,8 +612,8 @@ def check_target_player(player: str, target: str, card_id: int):
             raise InvalidCard(
                 f"No puedes jugar {card} a un jugador con un obstáculo en el medio"
             )
-        if requires_target_not_quarantined(card_id) and is_in_quarantine(target):
-            raise InvalidCard(f"No puedes jugar {card} a un jugador en cuarentena")
+    if requires_target_not_quarantined(card_id) and is_in_quarantine(target):
+        raise InvalidCard(f"No puedes jugar {card} a un jugador en cuarentena")
     if is_in_quarantine(player) and card == "Lanzallamas":
         raise InvalidCard("No puedes jugar Lanzallamas mientras estás en cuarentena")
 
