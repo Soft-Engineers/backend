@@ -15,8 +15,8 @@ from connection.request_handler import handle_request
 from Game.app_auxiliars import *
 from connection.socket_messages import *
 
-MAX_LEN_ALIAS = 16
-MIN_LEN_ALIAS = 3
+MAX_LEN_ALIAS = 8
+MIN_LEN_ALIAS = 1
 
 description = """
             La Cosa

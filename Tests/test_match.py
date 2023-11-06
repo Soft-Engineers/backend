@@ -441,7 +441,7 @@ def test_leave_match():
         assert response.status_code == 200
         assert response.json() == {"detail": "ok"}
 
-    namePlayer_that_leaves = "playerthatleaves"
+    namePlayer_that_leaves = "pla_leav"
     _create_player(namePlayer_that_leaves)
     body = {"player_name": namePlayer_that_leaves, "match_name": nameGame}
     response = client.post("/match/join", json=body)
