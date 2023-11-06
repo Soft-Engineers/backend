@@ -404,6 +404,13 @@ def get_previous_player_position(match_id: int, start: int) -> int:
 
 
 @db_session
+def get_next_player_from(match_id: int, player_name: str) -> str:
+    player_position = get_player_position(player_name)
+    next_pos = get_next_player_position(match_id, player_position)
+    return _get_player_by_position(match_id, next_pos).player_name
+
+
+@db_session
 def set_next_turn(match_id: int):
     match = _get_match(match_id)
     match.current_player = get_next_player_position(match_id, match.current_player)
@@ -640,3 +647,21 @@ def exist_obstacle_between(player: str, target: str) -> bool:
 def get_obstacles(match_id: int) -> list:
     match = _get_match(match_id)
     return match.obstacles
+
+
+@db_session
+def append_to_exchange_json(player: str, card_id: int) -> None:
+    match = get_player_match(player)
+    match.exchange_json[player] = card_id
+
+
+@db_session
+def all_players_selected(match_id: int) -> bool:
+    match = _get_match(match_id)
+    return len(match.exchange_json) == match.players.count()
+
+
+@db_session
+def get_exchange_json(match_id: int) -> dict:
+    match = _get_match(match_id)
+    return match.exchange_json

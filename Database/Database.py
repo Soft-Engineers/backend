@@ -30,6 +30,7 @@ class Match(db.Entity):
     exchange_player = Optional(str, default=None, nullable=True)
     last_infected = Optional(str, default=None, nullable=True)
     obstacles = Optional(IntArray, default=[])
+    exchange_json = Optional(Json, default={})
 
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
@@ -74,4 +75,5 @@ GAME_STATE = {
     "WAIT_EXCHANGE": 5,
     "WAIT_DEFENSE": 6,
     "PANIC": 7,
+    "VUELTA Y VUELTA" : 8,
 }

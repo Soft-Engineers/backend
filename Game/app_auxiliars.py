@@ -190,6 +190,7 @@ async def play_card(player_name: str, card_id: int, target: str = ""):
 async def _play_turn_card(
     match_id: int, player_name: str, card_id: int, target: str = ""
 ):
+    card_name = get_card_name(card_id)
     if not is_player_turn(player_name):
         raise GameException("No es tu turno")
     if get_game_state(match_id) == GAME_STATE["PANIC"] and not is_panic(card_id):
@@ -202,6 +203,8 @@ async def _play_turn_card(
             player_name, get_next_player(match_id)
         ) or allows_global_exchange(card_id):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
+        elif card_name == "Vuelta y vuelta":
+            set_game_state(match_id, GAME_STATE["VUELTA Y VUELTA"])
         else:
             end_player_turn(player_name)
     else:
@@ -274,6 +277,9 @@ async def execute_card(match_id: int, def_card_id: int = None):
         await play_puerta_atrancada(player_name, target_name)
     elif card_name == "Cuarentena":
         play_cuarentena(target_name)
+    elif card_name == "Vuelta y vuelta":
+        # No hace falta implementación
+        pass
     else:
         pass
 
@@ -466,6 +472,8 @@ async def exchange_handler(player: str, card: int):
     elif game_state == GAME_STATE["WAIT_EXCHANGE"]:
         # El target es el jugador que inició el intercambio, no hace falta
         await _execute_exchange(player, card)
+    elif game_state == GAME_STATE["VUELTA Y VUELTA"]:
+        await vuelta_y_vuelta(player, card)
     else:
         raise GameException("No puedes intercambiar cartas en este momento")
 
@@ -513,6 +521,27 @@ async def check_infection(player_name: str, target: str, card: int, card2: int):
     elif is_lacosa(target) and is_contagio(card2):
         infect_player(player_name)
         await manager.send_message_to("infectado", "", player_name)
+
+
+# ----------- Especial cards logic ------------
+
+async def vuelta_y_vuelta(player: str, card: int):
+    match_id = get_player_match(player)
+    
+    if player not in get_exchange_json(match_id).keys():
+        append_to_exchange_json(player, card)
+    if not all_players_selected(match_id):
+        return
+
+    exchange_json = get_exchange_json(match_id)
+    for player in exchange_json.keys():
+        next_player = get_next_player_from(match_id, player)
+        card = exchange_json(match_id)[player]
+        card2 = exchange_json(match_id)[next_player]
+        exchange_players_cards(player, card, next_player, card2)
+        check_infection(player, next_player, card, card2)
+
+    end_player_turn(get_turn_player(match_id))    
 
 
 # ---------------- Checks ----------------
