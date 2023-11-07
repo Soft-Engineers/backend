@@ -371,7 +371,7 @@ async def play_aterrador(match: int, player: str):
 
 async def play_puerta_atrancada(player: str, target: str):
     match_id = get_player_match(player)
-    set_obstacle_between(player, target)
+    set_barred_door_between(player, target)
     await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
 
 
@@ -608,7 +608,7 @@ def check_target_player(player: str, target: str, card_id: int):
     if requires_adjacent_target(card_id):
         if not is_adyacent(player, target):
             raise InvalidCard(f"Solo puedes jugar {card} a un jugador adyacente")
-        if card != "Hacha" and exist_obstacle_between(player, target):
+        if card != "Hacha" and exist_door_between(player, target):
             raise InvalidCard(
                 f"No puedes jugar {card} a un jugador con un obstáculo en el medio"
             )

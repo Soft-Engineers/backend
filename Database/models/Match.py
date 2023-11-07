@@ -608,7 +608,7 @@ def _are_border_cases(position1: int, position2: int, length: int) -> bool:
 
 
 @db_session
-def set_obstacle_between(player: str, target: str) -> None:
+def set_barred_door_between(player: str, target: str) -> None:
     """Set an obstacle between two adjacent players."""
     match_id = get_player_match(player)
     match = _get_match(match_id)
@@ -625,19 +625,35 @@ def set_obstacle_between(player: str, target: str) -> None:
 
 
 @db_session
-def exist_obstacle_between(player: str, target: str) -> bool:
-    """Check if there's an obstacle between two adjacent players."""
-    match_id = get_player_match(player)
-    match = _get_match(match_id)
-    player_len = len(match.players)
+def exist_door_between(player: str, target: str) -> bool:
+    """Check if there's an obstacle (barred door or quarantine)
+    between two adjacent players."""
     player_position = get_player_position(player)
     target_position = get_player_position(target)
+    match = _get_match(get_player_match(player))
+    res = False
+    clockwise = match.clockwise
+    match.clockwise = False
+    # Está a la derecha
+    if target_position == get_next_player_position(match.id, player_position):
+        while player_position != target_position:
+            if match.obstacles[player_position]:
+                res = True
+            player_position = (player_position + 1) % len(match.players)
 
-    if player_position == target_position:
-        return False
-    if _are_border_cases(player_position, target_position, player_len):
-        return match.obstacles[-1]
-    return match.obstacles[min(player_position, target_position)]
+    # Está a la izquierda
+    elif target_position == get_previous_player_position(match.id, player_position):
+        while player_position != target_position:
+            if match.obstacles[player_position - 1]:
+                res = True
+            player_position = (player_position - 1) % len(match.players)
+    match.clockwise = clockwise
+    return res
+
+
+@db_session
+def exist_obstacle_between(player: str, target: str) -> bool:
+    return exist_door_between(player, target) or is_in_quarantine(target)
 
 
 @db_session
