@@ -6,7 +6,9 @@ from fastapi.testclient import TestClient
 from Tests.auxiliar_functions import *
 from app import MAX_LEN_ALIAS
 from Game.app_auxiliars import *
-
+from Database.models.Match import _get_match
+from time import time
+import json
 
 client = TestClient(app)
 
@@ -439,7 +441,7 @@ def test_leave_match():
         assert response.status_code == 200
         assert response.json() == {"detail": "ok"}
 
-    namePlayer_that_leaves = "playerthatleaves"
+    namePlayer_that_leaves = "pla_leav"
     _create_player(namePlayer_that_leaves)
     body = {"player_name": namePlayer_that_leaves, "match_name": nameGame}
     response = client.post("/match/join", json=body)
@@ -511,3 +513,46 @@ def test_leave_match_player_not_exist():
     response = client.put("/match/leave", json=body_match)
     assert response.status_code == 404
     assert response.json() == {"detail": "Jugador no encontrado"}
+
+
+class test_save_chat_message(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_save_chat_message(self, mock_get_match):
+        msg_data = {
+            "author": "test_user",
+            "message": "test_message",
+            "timestamp": time(),
+        }
+
+        match = Mock()
+        match.id = 1
+        match.chat_record = []
+
+        mock_get_match.return_value = match
+
+        save_chat_message(match.id, msg_data)
+
+        mock_get_match.assert_called_once_with(match.id)
+        assert match.chat_record[0] == json.dumps(msg_data)
+
+
+class test_get_chat_record(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_get_chat_record(self, mock_get_match):
+        msg_data = {
+            "author": "test_user",
+            "message": "test_message",
+            "timestamp": time(),
+        }
+
+        match = Mock()
+        match.id = 1
+        match.chat_record = []
+        match.chat_record.append(json.dumps(msg_data))
+
+        mock_get_match.return_value = match
+
+        record = get_chat_record(match.id)
+
+        mock_get_match.assert_called_once_with(match.id)
+        assert record == [msg_data]

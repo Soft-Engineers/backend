@@ -4,6 +4,8 @@ from Database.Database import Match, GAME_STATE, Deck
 from Game.cards.cards import *
 from Database.models.Player import *
 from random import randrange
+from time import time
+import json
 
 # --------- Basic games functions --------- #
 
@@ -383,7 +385,7 @@ def get_next_player_position(match_id: int, start: int) -> int:
     direction = 1 if match.clockwise else -1
 
     while True:
-        current_player = (current_player + direction) % total_players
+        current_player = (current_player - direction) % total_players
         player = _get_player_by_position(match_id, current_player)
         if player.is_alive:
             return current_player
@@ -397,7 +399,7 @@ def get_previous_player_position(match_id: int, start: int) -> int:
     direction = 1 if match.clockwise else -1
 
     while True:
-        current_player = (current_player - direction) % total_players
+        current_player = (current_player + direction) % total_players
         player = _get_player_by_position(match_id, current_player)
         if player.is_alive:
             return current_player
@@ -605,10 +607,11 @@ def kill_player(player_name: str):
     player.is_alive = False
 
 
-
 def _are_border_cases(position1: int, position2: int, length: int) -> bool:
     """Check if the positions represent border cases."""
-    return (position1 == 0 and position2 + 1 == length) or (position2 == 0 and position1 + 1 == length)
+    return (position1 == 0 and position2 + 1 == length) or (
+        position2 == 0 and position1 + 1 == length
+    )
 
 
 @db_session
@@ -626,6 +629,7 @@ def set_obstacle_between(player: str, target: str) -> None:
         match.obstacles[-1] = True
     else:
         match.obstacles[min(player_position, target_position)] = True
+
 
 @db_session
 def exist_obstacle_between(player: str, target: str) -> bool:
@@ -665,3 +669,42 @@ def all_players_selected(match_id: int) -> bool:
 def get_exchange_json(match_id: int) -> dict:
     match = _get_match(match_id)
     return match.exchange_json
+
+
+@db_session
+def set_stamp(match_id: int):
+    match = _get_match(match_id)
+    match.timestamp = time()
+
+
+@db_session
+def get_stamp(match_id: int):
+    match = _get_match(match_id)
+    return match.timestamp
+
+
+@db_session
+def get_direction(match_id: int) -> bool:
+    return _get_match(match_id).clockwise
+
+
+@db_session
+def toggle_direction(match_id: int):
+    match = _get_match(match_id)
+    match.clockwise = not match.clockwise
+
+
+@db_session
+def save_chat_message(match_id: int, msg_data: dict):
+    str_json = json.dumps(msg_data)
+    match = _get_match(match_id)
+    match.chat_record.append(str_json)
+
+
+@db_session
+def get_chat_record(match_id: int):
+    match = _get_match(match_id)
+    str_records = match.chat_record
+    json_record = map(lambda s: json.loads(s), str_records)
+
+    return list(json_record)

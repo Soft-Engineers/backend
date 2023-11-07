@@ -31,6 +31,9 @@ class Match(db.Entity):
     last_infected = Optional(str, default=None, nullable=True)
     obstacles = Optional(IntArray, default=[])
     exchange_json = Optional(Json, default={})
+    timestamp = Optional(float, default=None, nullable=True)
+    chat_record = Optional(StrArray, default=[])
+
 
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)

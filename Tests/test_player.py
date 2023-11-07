@@ -13,13 +13,13 @@ client = TestClient(app)
 
 
 def test_player_create():
-    response = client.post("/player/create", data={"name_player": "test_player"})
+    response = client.post("/player/create", data={"name_player": "test_pla"})
     assert response.status_code == 200
-    assert response.json() == {"player_id": get_player_id("test_player")}
+    assert response.json() == {"player_id": get_player_id("test_pla")}
 
 
 def test_player_with_existing_name():
-    response = client.post("/player/create", data={"name_player": "test_player"})
+    response = client.post("/player/create", data={"name_player": "test_pla"})
     assert response.status_code == 400
     assert response.json() == {"detail": "Nombre no disponible"}
 
@@ -44,24 +44,24 @@ def test_player_with_invalid_name2():
 def test_player_is_host():
     game_config = {
         "match_name": "test_match",
-        "player_name": "test_player",
+        "player_name": "test_pla",
         "min_players": 4,
         "max_players": 12,
     }
     # create match
     response = client.post("/match/create", json=game_config)
-    player_data = {"player_name": "test_player", "match_name": "test_match"}
+    player_data = {"player_name": "test_pla", "match_name": "test_match"}
     response = client.get("/player/host", params=player_data)
     assert response.status_code == 200
     assert response.json() == {"is_host": True}
 
 
 def test_player_is_not_host():
-    client.post("/player/create", data={"name_player": "test_player2"})
-    client.post("/player/create", data={"name_player": "test_player3"})
+    client.post("/player/create", data={"name_player": "test_pl2"})
+    client.post("/player/create", data={"name_player": "test_pl3"})
     game_config = {
         "match_name": "test_match2",
-        "player_name": "test_player2",
+        "player_name": "test_pl2",
         "min_players": 4,
         "max_players": 12,
     }
@@ -69,12 +69,12 @@ def test_player_is_not_host():
     client.post("/match/create", json=game_config)
     # join match
     player_data = {
-        "player_name": "test_player3",
+        "player_name": "test_pl3",
         "match_name": "test_match2",
         "password": "",
     }
     client.post("/match/join", json=player_data)
-    player_data = {"player_name": "test_player3", "match_name": "test_match2"}
+    player_data = {"player_name": "test_pl3", "match_name": "test_match2"}
     response = client.get("/player/host", params=player_data)
     assert response.status_code == 200
     assert response.json() == {"is_host": False}

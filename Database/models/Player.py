@@ -203,3 +203,10 @@ def exchange_players_cards(player1: str, card1: int, player2: str, card2: int):
     player2.cards.add(card1)
     card1.player.add(player2)
     card2.player.add(player1)
+
+
+@db_session
+def toggle_places(playerA_name, playerB_name):
+    playerA = get_player_by_name(playerA_name)
+    playerB = get_player_by_name(playerB_name)
+    playerA.position, playerB.position = playerB.position, playerA.position
