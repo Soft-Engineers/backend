@@ -85,8 +85,7 @@ def end_player_turn(player_name: str):
     clean_played_card_data(match_id)
     clear_exchange(match_id)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
-    if is_in_quarantine(player_name):
-        decrease_quarantine(player_name)
+    decrease_all_quarantines(match_id)
 
 
 # ------- Pick Card logic --------

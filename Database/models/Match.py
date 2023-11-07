@@ -536,11 +536,26 @@ def get_match_locations(match_id: int) -> list:
 
 
 @db_session
+def decrease_all_quarantines(match_id: int):
+    match = _get_match(match_id)
+    for player in match.players:
+        if player.in_quarantine > 0:
+            player.in_quarantine -= 1
+
+ 
+@db_session
 def get_quarantined_players(match_id: int) -> list:
+    """Returns a list of players and their rounds left in quarantine"""
     match = _get_match(match_id)
     players = {}
+    match_len = len(match.players)
     for player in match.players:
-        players[player.player_name] = player.in_quarantine
+        if player.in_quarantine == 0:
+            players[player.player_name] = 0
+        elif player.in_quarantine/match_len > 1:
+            players[player.player_name] = 2
+        else:
+            players[player.player_name] = 1
     return players
 
 
