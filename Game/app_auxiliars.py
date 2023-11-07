@@ -583,11 +583,10 @@ async def check_infection(player_name: str, target: str, card: int, card2: int):
 async def vuelta_y_vuelta(player: str, card: int):
     match_id = get_player_match(player)
 
-    if not has_card(player, card):
-        raise InvalidCard("No tienes esa carta en tu mano")
     if player in get_exchange_json(match_id).keys():
         raise GameException("Ya has seleccionado una carta para intercambiar")
-
+    
+    check_valid_exchange(card, player, get_next_player(match_id))
     append_to_exchange_json(player, card)
     if not all_players_selected(match_id):
         return
@@ -596,10 +595,12 @@ async def vuelta_y_vuelta(player: str, card: int):
     for player in exchange_json.keys():
         next_player = get_next_player_from(match_id, player)
         card = exchange_json[player]
-        card2 = exchange_json[next_player]
         add_card_to_player(next_player, card)
         remove_card_from_player(player, card)
-        await check_infection(player, next_player, card, card2)
+        if is_lacosa(player) and is_contagio(card):
+            infect_player(next_player)
+            await manager.send_message_to(INFECTED, "", next_player)
+    clean_exchange_json(match_id)
 
     for player in get_match_players_names(match_id):
         await manager.send_message_to(CARDS, get_player_hand(player), player)

@@ -666,6 +666,12 @@ def all_players_selected(match_id: int) -> bool:
 
 
 @db_session
+def clean_exchange_json(match_id: int) -> None:
+    match = _get_match(match_id)
+    match.exchange_json = {}
+
+
+@db_session
 def get_exchange_json(match_id: int) -> dict:
     match = _get_match(match_id)
     return match.exchange_json
