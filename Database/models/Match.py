@@ -655,7 +655,7 @@ def get_obstacles(match_id: int) -> list:
 
 @db_session
 def append_to_exchange_json(player: str, card_id: int) -> None:
-    match = get_player_match(player)
+    match = _get_match(get_player_match(player))
     match.exchange_json[player] = card_id
 
 
@@ -708,3 +708,19 @@ def get_chat_record(match_id: int):
     json_record = map(lambda s: json.loads(s), str_records)
 
     return list(json_record)
+
+
+@db_session
+def add_card_to_player(player_name: str, card_id: int):
+    player = get_player_by_name(player_name)
+    card = Card.get(id=card_id)
+    player.cards.add(card)
+    card.player.add(player)
+
+
+@db_session
+def remove_card_from_player(player_name: str, card_id: int):
+    player = get_player_by_name(player_name)
+    card = Card.get(id=card_id)
+    player.cards.remove(card)
+    card.player.remove(player)

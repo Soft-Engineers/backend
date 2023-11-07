@@ -192,12 +192,12 @@ async def _play_turn_card(
     await persist_played_card_data(player_name, card_id, target)
     if not has_defense(card_id):
         await execute_card(match_id=match_id)
-        if not exist_obstacle_between(
+        if card_name == "Vuelta y vuelta":
+            set_game_state(match_id, GAME_STATE["VUELTA_Y_VUELTA"])
+        elif not exist_obstacle_between(
             player_name, get_next_player(match_id)
         ) or allows_global_exchange(card_id):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
-        elif card_name == "Vuelta y vuelta":
-            set_game_state(match_id, GAME_STATE["VUELTA Y VUELTA"])
         else:
             end_player_turn(player_name)
     else:
@@ -516,7 +516,7 @@ async def exchange_handler(player: str, card: int):
     elif game_state == GAME_STATE["WAIT_EXCHANGE"]:
         # El target es el jugador que inició el intercambio, no hace falta
         await _execute_exchange(player, card)
-    elif game_state == GAME_STATE["VUELTA Y VUELTA"]:
+    elif game_state == GAME_STATE["VUELTA_Y_VUELTA"]:
         await vuelta_y_vuelta(player, card)
     else:
         raise GameException("No puedes intercambiar cartas en este momento")
@@ -579,23 +579,31 @@ async def check_infection(player_name: str, target: str, card: int, card2: int):
 
 # ----------- Especial cards logic ------------
 
+
 async def vuelta_y_vuelta(player: str, card: int):
     match_id = get_player_match(player)
-    
-    if player not in get_exchange_json(match_id).keys():
-        append_to_exchange_json(player, card)
+
+    if not has_card(player, card):
+        raise InvalidCard("No tienes esa carta en tu mano")
+    if player in get_exchange_json(match_id).keys():
+        raise GameException("Ya has seleccionado una carta para intercambiar")
+
+    append_to_exchange_json(player, card)
     if not all_players_selected(match_id):
         return
 
     exchange_json = get_exchange_json(match_id)
     for player in exchange_json.keys():
         next_player = get_next_player_from(match_id, player)
-        card = exchange_json(match_id)[player]
-        card2 = exchange_json(match_id)[next_player]
-        exchange_players_cards(player, card, next_player, card2)
-        check_infection(player, next_player, card, card2)
+        card = exchange_json[player]
+        card2 = exchange_json[next_player]
+        add_card_to_player(next_player, card)
+        remove_card_from_player(player, card)
+        await check_infection(player, next_player, card, card2)
 
-    end_player_turn(get_turn_player(match_id))    
+    for player in get_match_players_names(match_id):
+        await manager.send_message_to(CARDS, get_player_hand(player), player)
+    end_player_turn(get_turn_player(match_id))
 
 
 # ---------------- Checks ----------------
