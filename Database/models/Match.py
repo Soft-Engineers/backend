@@ -613,6 +613,7 @@ def kill_player(player_name: str):
         discard.cards.add(card)
         card.deck.add(discard)
     player.is_alive = False
+    player.in_quarantine = 0
 
 
 def _are_border_cases(position1: int, position2: int, length: int) -> bool:
