@@ -556,3 +556,31 @@ class test_get_chat_record(TestCase):
 
         mock_get_match.assert_called_once_with(match.id)
         assert record == [msg_data]
+
+
+class test_save_log(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_save_log(self, mock_get_match):
+        match = Mock()
+        match.logs_record = ["test_log1"]
+
+        mock_get_match.return_value = match
+
+        save_log(match.id, "test_log2")
+
+        mock_get_match.assert_called_once_with(match.id)
+        self.assertEqual(match.logs_record, ["test_log1", "test_log2"])
+
+class test_get_logs_record(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_get_logs_record(self, mock_get_match):
+        match = Mock()
+        match.logs_record = ["test_log1", "test_log2"]
+
+        mock_get_match.return_value = match
+
+        record = get_logs(match.id)
+
+        mock_get_match.assert_called_once_with(match.id)
+        self.assertEqual(record, ["test_log1", "test_log2"])
+
