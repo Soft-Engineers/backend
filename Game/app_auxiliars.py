@@ -593,7 +593,7 @@ async def play_revelaciones(player_name: str, decision: str):
     if not is_player_turn(player_name):
         raise GameException("No es tu turno")
     if get_game_state(match_id) != GAME_STATE["REVELACIONES"]:
-        raise GameException("No puedes jugar elegir en este momento")
+        raise GameException("No puedes elegir en este momento")
 
     finish_revelaciones = False
     if decision == "omitir revelaciones":
