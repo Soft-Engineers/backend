@@ -59,7 +59,7 @@ async def chat_handler(content, match_id, player_name):
         "message": content["message"],
         "timestamp": time(),
     }
-    await save_chat_message(match_id, msg)
+    save_chat_message(match_id, msg)
     await manager.broadcast(CHAT_NOTIFICATION, msg, match_id)
 
 
