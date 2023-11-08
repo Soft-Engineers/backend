@@ -129,7 +129,7 @@ class test_check_target_player(TestCase):
         )
         self.is_adyacent = patch("Game.app_auxiliars.is_adyacent", return_value=True)
         self.obstacle_between = patch(
-            "Game.app_auxiliars.exist_obstacle_between", return_value=False
+            "Game.app_auxiliars.exist_door_between", return_value=False
         )
         self.target_not_quarantine = patch(
             "Game.app_auxiliars.requires_target_not_quarantined", return_value=False
@@ -186,8 +186,8 @@ class test_check_target_player(TestCase):
             str(e.exception), f"Solo puedes jugar {card} a un jugador adyacente"
         )
 
-    @patch("Game.app_auxiliars.exist_obstacle_between", return_value=True)
-    def test_check_target_player_obstacle_between(self, exist_obstacle_between):
+    @patch("Game.app_auxiliars.exist_door_between", return_value=True)
+    def test_check_target_player_obstacle_between(self, exist_door_between):
         with self.assertRaises(InvalidCard) as e:
             check_target_player("test_player", "test_target", 1)
         self.assertEqual(
@@ -394,8 +394,6 @@ async def test_play_analisis(mocker):
     def _send_message_to(msg_type, msg, player_name):
         websocketStub.messages.append(msg)
 
-
-
     mocker.patch("Game.app_auxiliars.get_player_cards_names", return_value=target.cards)
     mocker.patch(
         "Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to
@@ -538,7 +536,6 @@ async def test_play_sospecha(mocker):
     assert expected_msg == websocketStub.messages[0]
 
 
-
 def test_play_fallaste(mocker):
     match = Mock()
     match.players = []
@@ -546,17 +543,20 @@ def test_play_fallaste(mocker):
     match.current_player = 2
     match.played_card = None
     card_id = 3
-    
+
     mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
     obstacle = mocker.patch("Game.app_auxiliars.exist_obstacle_between")
     obstacle.return_value = True
 
     def _set_next_turn(match_id):
         match.current_player = match.current_player + 1
+
     def _set_game_state(match_id, state):
         match.game_state = state
+
     def _set_played_card(match_id, card_id):
         match.played_card = card_id
+
     def _get_next_player(match_id):
         return match.current_player + 1
 
@@ -574,4 +574,3 @@ def test_play_fallaste(mocker):
     assert match.current_player == 3
     assert match.game_state == GAME_STATE["WAIT_EXCHANGE"]
     assert match.played_card == card_id
-

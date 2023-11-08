@@ -543,11 +543,26 @@ def get_match_locations(match_id: int) -> list:
 
 
 @db_session
+def decrease_all_quarantines(match_id: int):
+    match = _get_match(match_id)
+    for player in match.players:
+        if player.in_quarantine > 0:
+            player.in_quarantine -= 1
+
+ 
+@db_session
 def get_quarantined_players(match_id: int) -> list:
+    """Returns a list of players and their rounds left in quarantine"""
     match = _get_match(match_id)
     players = {}
+    match_len = len(match.players)
     for player in match.players:
-        players[player.player_name] = player.in_quarantine
+        if player.in_quarantine == 0:
+            players[player.player_name] = 0
+        elif player.in_quarantine/match_len > 1:
+            players[player.player_name] = 2
+        else:
+            players[player.player_name] = 1
     return players
 
 
@@ -605,6 +620,7 @@ def kill_player(player_name: str):
         discard.cards.add(card)
         card.deck.add(discard)
     player.is_alive = False
+    player.in_quarantine = 0
 
 
 def _are_border_cases(position1: int, position2: int, length: int) -> bool:
@@ -615,7 +631,7 @@ def _are_border_cases(position1: int, position2: int, length: int) -> bool:
 
 
 @db_session
-def set_obstacle_between(player: str, target: str) -> None:
+def set_barred_door_between(player: str, target: str) -> None:
     """Set an obstacle between two adjacent players."""
     match_id = get_player_match(player)
     match = _get_match(match_id)
@@ -632,19 +648,35 @@ def set_obstacle_between(player: str, target: str) -> None:
 
 
 @db_session
-def exist_obstacle_between(player: str, target: str) -> bool:
-    """Check if there's an obstacle between two adjacent players."""
-    match_id = get_player_match(player)
-    match = _get_match(match_id)
-    player_len = len(match.players)
+def exist_door_between(player: str, target: str) -> bool:
+    """Check if there's an obstacle (barred door or quarantine)
+    between two adjacent players."""
     player_position = get_player_position(player)
     target_position = get_player_position(target)
+    match = _get_match(get_player_match(player))
+    res = False
+    clockwise = match.clockwise
+    match.clockwise = False
+    # Está a la derecha
+    if target_position == get_next_player_position(match.id, player_position):
+        while player_position != target_position:
+            if match.obstacles[player_position]:
+                res = True
+            player_position = (player_position + 1) % len(match.players)
 
-    if player_position == target_position:
-        return False
-    if _are_border_cases(player_position, target_position, player_len):
-        return match.obstacles[-1]
-    return match.obstacles[min(player_position, target_position)]
+    # Está a la izquierda
+    elif target_position == get_previous_player_position(match.id, player_position):
+        while player_position != target_position:
+            if match.obstacles[player_position - 1]:
+                res = True
+            player_position = (player_position - 1) % len(match.players)
+    match.clockwise = clockwise
+    return res
+
+
+@db_session
+def exist_obstacle_between(player: str, target: str) -> bool:
+    return exist_door_between(player, target) or is_in_quarantine(target)
 
 
 @db_session
