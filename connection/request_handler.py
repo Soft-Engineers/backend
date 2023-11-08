@@ -35,6 +35,7 @@ async def handle_request(request, match_id, player_name, websocket):
             LEAVE_MATCH: leave_match_handler,
             EXCHANGE_CARD: exchange_card_handler,
             DECLARE: declaration_handler,
+            REVELACIONES: play_revelaciones_handler,
         }
 
         handler = message_handlers.get(msg_type)

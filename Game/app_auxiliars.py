@@ -557,6 +557,36 @@ async def check_infection(player_name: str, target: str, card: int, card2: int):
 # ----------- Especial cards logic ------------
 
 
+async def _omit_revelaciones(player_name: str, match_id: int):
+    await manager.broadcast(
+        WAIT_NOTIFICATION, f"{player_name} no reveló su mano", match_id
+    )
+
+async def _reveal_hand(player_name: str, match_id: int) -> bool:
+    await show_hand_to_all(player_name)
+    if count_infected_cards(player_name) > 0:
+        await manager.broadcast(
+            PLAY_NOTIFICATION,
+            f"{player_name} mostró carta de ¡Infectado!, la ronda de revelaciones termina",
+            match_id,
+        )
+        return True
+    return False
+
+
+async def _reveal_infected_card(player_name: str, match_id: int):
+    if count_infected_cards(player_name) == 0:
+        raise GameException("No tienes cartas de ¡Infectado! en tu mano")
+    players = get_match_players_names(match_id)
+    players.remove(player_name)
+    await show_player_cards_to(player_name, ["¡Infectado!"], players)
+    await manager.broadcast(
+        PLAY_NOTIFICATION,
+        f"{player_name} mostró carta de ¡Infectado!, la ronda de revelaciones termina",
+        match_id,
+    )
+
+
 async def play_revelaciones(player_name: str, decision: str):
     match_id = get_player_match(player_name)
 
@@ -566,29 +596,26 @@ async def play_revelaciones(player_name: str, decision: str):
         raise GameException("No puedes jugar elegir en este momento")
 
     finish_revelaciones = False
-    if decision == "pasar":
+    if decision == "omitir revelaciones":
+        await _omit_revelaciones(player_name, match_id)
+    elif decision == "revelar mano":
+        finish_revelaciones = await _reveal_hand(player_name, match_id)
+    elif decision == "revelar carta":
+        await _reveal_infected_card(player_name, match_id)
+        finish_revelaciones = True
+
+    set_next_turn(match_id)
+    turn_player = get_turn_player(match_id)
+    if get_player_in_turn(match_id) == turn_player:
+        finish_revelaciones = True
         await manager.broadcast(
-            WAIT_NOTIFICATION, f"{player_name} no reveló su mano", match_id
+            PLAY_NOTIFICATION,
+            "La ronda de revelaciones terminó",
+            match_id,
         )
-        set_next_turn(match_id)
-
-    elif decision == "revelar_mano":
-        await show_hand_to_all(player_name)
-        if count_infected_cards(player_name) > 0:
-            finish_revelaciones = True
-
-    elif decision == "revelar_carta":
-        if count_infected_cards(player_name) == 0:
-            raise GameException("No tienes cartas de ¡Infectado! en tu mano")
-        players = get_match_players_names(match_id).remove(player_name)
-        await show_player_cards_to(player_name, ["¡Infectado!"], players)
-        finish_revelaciones = True
-
-    next_player = get_next_player(match_id)
-    if next_player == player_name:
-        finish_revelaciones = True
     if finish_revelaciones:
-        if not exist_obstacle_between(player_name, next_player):
+        set_match_turn(match_id, turn_player)
+        if not exist_obstacle_between(player_name, get_next_player(match_id)):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
             end_player_turn(player_name)
