@@ -70,7 +70,7 @@ async def _send_exchange_notification(player1, target, card1, card2):
     alert = f"{player1} intercambió {card1} con {target} {card2}"
     if is_in_quarantine(player1) or is_in_quarantine(target):
         alert = "Cuarentena: " + alert
-    await manager.broadcast("notificación jugada", alert, match)
+    await manager.broadcast(PLAY_NOTIFICATION, alert, match)
     await manager.send_message_to("cards", get_player_hand(player1), player1)
     await manager.send_message_to("cards", get_player_hand(target), target)
 
@@ -414,7 +414,7 @@ async def _play_defense_card(
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     await manager.broadcast(
-        "notificación jugada", defended_card_msg(player_name, card_id), match_id
+        PLAY_NOTIFICATION, defended_card_msg(player_name, card_id), match_id
     )
 
 

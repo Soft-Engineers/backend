@@ -1,8 +1,9 @@
 from threading import Lock
 from fastapi import WebSocket
 from collections import defaultdict
-from Database.models.Match import check_match_existence
+from Database.models.Match import check_match_existence, save_log
 from Database.models.Player import player_exists, get_player_match
+from connection.socket_messages import PLAY_NOTIFICATION
 
 
 class ManagerException(Exception):
@@ -87,6 +88,9 @@ class ConnectionManager:
             print("Socket closed")
 
     async def broadcast(self, message_type: str, message_content, match_id: int):
+        if message_type == PLAY_NOTIFICATION:
+            save_log(match_id, message_content)
+
         msg = self.__gen_msg(message_type, message_content)
 
         connections = self._get_connections_and_lock(match_id)
