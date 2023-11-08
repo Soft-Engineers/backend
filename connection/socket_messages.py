@@ -30,7 +30,6 @@ OBSTACLES = "obstáculos"
 QUARANTINE = "cuarentena"
 DEFENSE_STAMP = "timestamp"
 DIRECTION = "sentido horario"
-CHAT_RECORD = "historial"
 CHAT_NOTIFICATION = "notificación chat"
 
 # ------ Auxiliary functions for sockets messages ------
