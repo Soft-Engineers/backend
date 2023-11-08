@@ -95,3 +95,7 @@ async def declaration_handler(content, match_id, player_name):
         await set_win(match_id, "No quedan humanos vivos")
     else:
         await set_win(match_id, "Declaración incorrecta")
+
+
+async def play_revelaciones_handler(content, match_id, player_name):
+    await play_revelaciones(player_name, content["decision"])

@@ -401,6 +401,8 @@ async def test_play_analisis(mocker):
     mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
     mocker.patch("Game.app_auxiliars.set_stamp")
     mocker.patch("Game.app_auxiliars.get_stamp", return_value=t)
+    mocker.patch("Game.app_auxiliars.get_turn_player", return_value=player.name)
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Análisis")
 
     await play_analisis(player.name, target.name)
 
@@ -511,7 +513,7 @@ async def test_play_sospecha(mocker):
     def _send_message_to(msg_type, msg, player_name):
         websocketStub.messages.append(msg)
 
-    mocker.patch("Game.app_auxiliars.get_turn_player", return_value=target.name)
+    mocker.patch("Game.app_auxiliars.get_turn_player", return_value=player.name)
     mocker.patch(
         "Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to
     )
@@ -519,10 +521,10 @@ async def test_play_sospecha(mocker):
     mocker.patch(
         "Game.app_auxiliars.get_random_card_from", return_value=random_card.name
     )
-
     mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
     mocker.patch("Game.app_auxiliars.set_stamp")
     mocker.patch("Game.app_auxiliars.get_stamp", return_value=t)
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Sospecha")
 
     await play_sospecha(player.name, target.name)
 
