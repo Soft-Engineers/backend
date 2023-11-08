@@ -715,3 +715,19 @@ def get_chat_record(match_id: int):
     json_record = map(lambda s: json.loads(s), str_records)
 
     return list(json_record)
+
+
+@db_session
+def amount_discarded(match_id: int) -> int:
+    match = _get_match(match_id)
+    return match.amount_discarded
+
+@db_session
+def increase_discarded(match_id: int):
+    match = _get_match(match_id)
+    match.amount_discarded += 1
+
+@db_session
+def reset_discarded(match_id: int):
+    match = _get_match(match_id)
+    match.amount_discarded = 0

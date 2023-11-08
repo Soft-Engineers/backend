@@ -136,7 +136,7 @@ async def discard_player_card(player_name: str, card_id: int):
 
     if game_state == GAME_STATE["PANIC"]:
         raise GameException("Debes jugar la carta de Pánico")
-    if not game_state == GAME_STATE["PLAY_TURN"]:
+    if not game_state in [GAME_STATE["PLAY_TURN"], GAME_STATE["DISCARD"]]:
         raise GameException("No puedes descartar carta en este momento")
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
@@ -150,10 +150,15 @@ async def discard_player_card(player_name: str, card_id: int):
         raise InvalidCard("No puedes descartar tu última carta de infectado")
 
     discard_card(player_name, card_id)
-    await manager.broadcast(
-        PLAY_NOTIFICATION, discard_card_msg(player_name, card_name), match_id
-    )
-
+    if last_played_card(match_id) == "Olvidadizo":
+        play_olvidadizo(player_name)
+        if amount_discarded(match_id) < 3:
+            return
+        reset_discarded(match_id)
+    else:
+        await manager.broadcast(
+            PLAY_NOTIFICATION, discard_card_msg(player_name, card_name), match_id
+        )
     if not exist_obstacle_between(player_name, get_next_player(match_id)):
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
     else:
@@ -182,6 +187,7 @@ async def play_card(player_name: str, card_id: int, target: str = ""):
 async def _play_turn_card(
     match_id: int, player_name: str, card_id: int, target: str = ""
 ):
+    card_name = get_card_name(card_id)
     if not is_player_turn(player_name):
         raise GameException("No es tu turno")
     if get_game_state(match_id) == GAME_STATE["PANIC"] and not is_panic(card_id):
@@ -190,7 +196,9 @@ async def _play_turn_card(
     await persist_played_card_data(player_name, card_id, target)
     if not has_defense(card_id):
         await execute_card(match_id=match_id)
-        if not exist_obstacle_between(
+        if card_name == "Olvidadizo":
+            set_game_state(match_id, GAME_STATE["DISCARD"])
+        elif not exist_obstacle_between(
             player_name, get_next_player(match_id)
         ) or allows_global_exchange(card_id):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
@@ -386,6 +394,16 @@ def play_fallaste(player: str, card_id: int) -> bool:
     set_game_state(match_id, GAME_STATE["WAIT_EXCHANGE"])
     set_played_card(match_id, card_id)
     return True
+
+
+def play_olvidadizo(player: str):
+    match_id = get_player_match(player)
+    increase_discarded(match_id)
+    if amount_discarded(match_id) < 3:
+        set_game_state(match_id, GAME_STATE["DISCARD"])
+    else:
+        for i in range(3):
+            pick_not_panic_card(player)
 
 
 # --------- Defense logic --------
