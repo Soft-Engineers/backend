@@ -78,5 +78,6 @@ GAME_STATE = {
     "WAIT_EXCHANGE": 5,
     "WAIT_DEFENSE": 6,
     "PANIC": 7,
+    "REVELACIONES": 9,
     "DISCARD": 10,
 }
