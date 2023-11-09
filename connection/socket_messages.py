@@ -10,6 +10,7 @@ SKIP_DEFENSE = "omitir defensa"
 LEAVE_MATCH = "leave match"
 EXCHANGE_CARD = "intercambiar carta"
 DECLARE = "declaración"
+REVELACIONES = "revelaciones"
 
 
 # ------ Outgoing messages ------
@@ -32,5 +33,6 @@ DEFENSE_STAMP = "timestamp"
 DIRECTION = "sentido horario"
 CHAT_RECORD = "historial"
 CHAT_NOTIFICATION = "notificación chat"
+LOGS_RECORD = "logs"
 
 # ------ Auxiliary functions for sockets messages ------

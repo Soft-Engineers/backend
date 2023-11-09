@@ -6,6 +6,11 @@ from unittest.mock import AsyncMock
 from Game.app_auxiliars import *
 import random
 from time import time
+from Game.app_auxiliars import (
+    _omit_revelaciones,
+    _reveal_hand,
+    _reveal_infected_card,
+)
 
 
 class _WebStub:
@@ -401,6 +406,8 @@ async def test_play_analisis(mocker):
     mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
     mocker.patch("Game.app_auxiliars.set_stamp")
     mocker.patch("Game.app_auxiliars.get_stamp", return_value=t)
+    mocker.patch("Game.app_auxiliars.get_turn_player", return_value=player.name)
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Análisis")
 
     await play_analisis(player.name, target.name)
 
@@ -511,7 +518,7 @@ async def test_play_sospecha(mocker):
     def _send_message_to(msg_type, msg, player_name):
         websocketStub.messages.append(msg)
 
-    mocker.patch("Game.app_auxiliars.get_turn_player", return_value=target.name)
+    mocker.patch("Game.app_auxiliars.get_turn_player", return_value=player.name)
     mocker.patch(
         "Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to
     )
@@ -519,10 +526,10 @@ async def test_play_sospecha(mocker):
     mocker.patch(
         "Game.app_auxiliars.get_random_card_from", return_value=random_card.name
     )
-
     mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
     mocker.patch("Game.app_auxiliars.set_stamp")
     mocker.patch("Game.app_auxiliars.get_stamp", return_value=t)
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Sospecha")
 
     await play_sospecha(player.name, target.name)
 
@@ -574,3 +581,103 @@ def test_play_fallaste(mocker):
     assert match.current_player == 3
     assert match.game_state == GAME_STATE["WAIT_EXCHANGE"]
     assert match.played_card == card_id
+
+
+@pytest.mark.asyncio
+async def test_play_revelaciones(mocker):
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
+    in_turn = mocker.patch("Game.app_auxiliars.is_player_turn", return_value=False)
+    game_state = mocker.patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["DRAW_CARD"])
+
+    with pytest.raises(GameException) as e:
+        await play_revelaciones("test_player1", "decision")
+        assert str(e.value) == "No es tu turno"
+
+    in_turn.return_value = True
+    with pytest.raises(GameException) as e:
+        await play_revelaciones("test_player1", "decision")
+        assert str(e.value) == "No puedes elegir en este momento"
+
+    game_state.return_value = GAME_STATE["REVELACIONES"]
+    websocketStub = _WebStub()
+    def _broadcast(msg_type, msg, match_id):
+        websocketStub.messages.append(msg)
+    def _set_match_turn(match_id, turn):
+        match.turn = turn
+    def _set_game_state(match_id, state):
+        match.game_state = state
+
+    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
+    mocker.patch("Game.app_auxiliars.set_next_turn")
+    mocker.patch("Game.app_auxiliars.set_match_turn", side_effect=_set_match_turn)
+    mocker.patch("Game.app_auxiliars.set_game_state", side_effect=_set_game_state)
+    mocker.patch("Game.app_auxiliars.get_next_player", return_value="test_player3")
+    
+
+    turn_player = mocker.patch("Game.app_auxiliars.get_turn_player")
+    turn_player.return_value = "test_player2"
+    player_in_turn = mocker.patch("Game.app_auxiliars.get_player_in_turn")
+    player_in_turn.return_value = "test_player2"
+
+    match = Mock()
+    match.turn = "test_player2"
+
+    mocker.patch("Game.app_auxiliars.exist_obstacle_between", return_value=False)
+    await play_revelaciones("test_player1", "decision")
+    assert websocketStub.buff_size() == 1
+    assert websocketStub.get(0) == "La ronda de revelaciones terminó"
+    assert match.game_state == GAME_STATE["EXCHANGE"]
+
+
+@pytest.mark.asyncio
+async def test_omit_revelaciones(mocker):
+    websocketStub = _WebStub()
+    def _broadcast(msg_type, msg, match_id):
+        websocketStub.messages.append(msg)
+    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
+    player_name = "test_player1"
+    await _omit_revelaciones(player_name, 1)
+    assert websocketStub.buff_size() == 1
+    assert websocketStub.get(0) == player_name + " no reveló su mano"
+
+@pytest.mark.asyncio
+async def tests_reveal_hand(mocker):
+    websocketStub = _WebStub()
+    def _broadcast(msg_type, msg, match_id):
+        websocketStub.messages.append(msg)
+    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
+
+    mocker.patch("Game.app_auxiliars.show_hand_to_all")
+    infected_card = mocker.patch("Game.app_auxiliars.count_infected_cards", return_value=0)
+    player_name = "test_player1"
+    res = await _reveal_hand(player_name, 1)
+    assert res == False
+
+    infected_card.return_value = 1
+    res = await _reveal_hand(player_name, 1)
+    assert websocketStub.buff_size() == 1
+    assert websocketStub.get(0) == f"{player_name} mostró carta de ¡Infectado!, la ronda de revelaciones termina"
+    assert res == True
+
+
+@pytest.mark.asyncio
+async def tests_reveal_infected_card(mocker):
+    websocketStub = _WebStub()
+    def _broadcast(msg_type, msg, match_id):
+        websocketStub.messages.append(msg)
+    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
+
+    mocker.patch("Game.app_auxiliars.show_hand_to_all")
+    infected_card = mocker.patch("Game.app_auxiliars.count_infected_cards", return_value=0)
+    player_name = "test_player1"
+    with pytest.raises(GameException) as e:
+        await _reveal_infected_card(player_name, 1)
+        assert str(e.value) == "No tienes cartas de ¡Infectado! en tu mano"
+
+    mocker.patch("Game.app_auxiliars.get_match_players_names", return_value =  ["test_player1", "test_player2"])
+    mocker.patch("Game.app_auxiliars.show_player_cards_to")
+    infected_card.return_value = 1
+    await _reveal_infected_card(player_name, 1)
+    assert websocketStub.buff_size() == 1
+    assert websocketStub.get(0) == f"{player_name} mostró carta de ¡Infectado!, la ronda de revelaciones termina"
+
