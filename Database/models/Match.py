@@ -791,3 +791,27 @@ def save_log(match_id: int, log: str):
 def get_logs(match_id: int):
     match = _get_match(match_id)
     return match.logs_record
+
+
+@db_session
+def set_target_obstacle(match_id: int, position: int):
+    match = _get_match(match_id)
+    match.target_obstacle = position
+
+
+@db_session
+def get_target_obstacle(match_id: int) -> int:
+    match = _get_match(match_id)
+    return match.target_obstacle
+
+
+@db_session
+def exist_door_in_position(match_id: int, position: int) -> bool:
+    match = _get_match(match_id)
+    return match.obstacles[position]
+
+
+@db_session
+def remove_barred_door(index: int, match_id: int):
+    match = _get_match(match_id)
+    match.obstacles[index] = False

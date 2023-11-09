@@ -192,9 +192,7 @@ def _can_exchange(player: str, card: int) -> bool:
     return not exist_obstacle_between(player, next) or allows_global_exchange(card)
 
 
-async def _play_turn_card(
-    match_id: int, player_name: str, card_id: int, target: str = ""
-):
+async def _play_turn_card(match_id: int, player_name: str, card_id: int, target):
     card_name = get_card_name(card_id)
     if not is_player_turn(player_name):
         raise GameException("No es tu turno")
@@ -233,10 +231,9 @@ async def _play_turn_card(
         )
 
 
-async def persist_played_card_data(
-    player_name: str, card_id: int, target_name: str = ""
-):
+async def persist_played_card_data(player_name: str, card_id: int, target):
     card_name = get_card_name(card_id)
+    match_id = get_player_match(player_name)
 
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
@@ -246,17 +243,20 @@ async def persist_played_card_data(
         raise InvalidCard("No puedes jugar una carta " + card_name)
 
     if requires_target(card_id):
-        if target_name is None or target_name == "":
+        if target is None or target == "":
             raise InvalidCard("Esta carta requiere un objetivo")
-        check_target_player(player_name, target_name, card_id)
-
-    match_id = get_player_match(player_name)
+        if card_name == "Hacha":
+            check_valid_obstacle(player_name, target)
+        else:
+            check_target_player(player_name, target, card_id)
 
     set_played_card(match_id, card_id)
     set_turn_player(match_id, player_name)
-    if not target_name == "" and not target_name is None:
-        set_target_player(match_id, target_name)
-
+    if card_name == "Hacha":
+        set_target_obstacle(match_id, target)
+    elif not target == "" and not target is None:
+        set_target_player(match_id, target)
+        
     discard_card(player_name, card_id)
 
 
@@ -293,6 +293,9 @@ async def execute_card(match_id: int, def_card_id: int = None):
     elif card_name == "Vuelta y vuelta":
         # No hace falta implementación
         pass
+    elif card_name == "Hacha":
+        obstacle = get_target_obstacle(match_id)
+        play_hacha(obstacle, match_id)
     else:
         pass
 
@@ -380,6 +383,10 @@ async def play_puerta_atrancada(player: str, target: str):
 
 def play_cuarentena(target: str):
     set_quarantine(target)
+
+
+def play_hacha(barred_door: int, match_id: int):
+    remove_barred_door(barred_door, match_id)
 
 
 def play_fallaste(player: str, card_id: int) -> bool:
@@ -720,6 +727,18 @@ def check_target_player(player: str, target: str, card_id: int):
         raise InvalidCard(f"No puedes jugar {card} a un jugador en cuarentena")
     if is_in_quarantine(player) and card == "Lanzallamas":
         raise InvalidCard("No puedes jugar Lanzallamas mientras estás en cuarentena")
+
+
+def check_valid_obstacle(player: str, obstacle: int):
+    match_id = get_player_match(player)
+    try:
+        obstacle = int(obstacle)
+    except ValueError:
+        raise InvalidCard("Obstáculo no válido")
+    if obstacle < 0 or obstacle > 11:
+        raise InvalidCard("Obstáculo no válido")
+    if not exist_door_in_position(match_id, obstacle):
+        raise InvalidCard("No existe un obstáculo en esa posición")
 
 
 def check_valid_defense(player: str, defense_card: int):
