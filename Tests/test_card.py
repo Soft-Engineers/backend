@@ -829,7 +829,6 @@ async def tests_reveal_infected_card(mocker):
     )
 
 
-
 class test_play_olvidadizo(TestCase):
     @patch("Game.app_auxiliars.get_player_match", return_value=1)
     @patch("Game.app_auxiliars.increase_discarded")

@@ -744,7 +744,6 @@ def get_chat_record(match_id: int):
     match = _get_match(match_id)
     str_records = match.chat_record
     json_record = map(lambda s: json.loads(s), str_records)
-
     return list(json_record)
 
 
@@ -791,5 +790,4 @@ def save_log(match_id: int, log: str):
 @db_session
 def get_logs(match_id: int):
     match = _get_match(match_id)
-
     return match.logs_record
