@@ -179,6 +179,12 @@ async def play_card(player_name: str, card_id: int, target: str = ""):
         raise GameException("No puedes jugar carta en este momento")
 
 
+def _can_exchange(player: str, card: int) -> bool:
+    match = get_player_match(player)
+    next = get_next_player(match)
+    return not exist_obstacle_between(player, next) or allows_global_exchange(card)
+
+
 async def _play_turn_card(
     match_id: int, player_name: str, card_id: int, target: str = ""
 ):
@@ -195,9 +201,7 @@ async def _play_turn_card(
             set_game_state(match_id, GAME_STATE["VUELTA_Y_VUELTA"])
         elif card_name == "Revelaciones":
             set_game_state(match_id, GAME_STATE["REVELACIONES"])
-        elif not exist_obstacle_between(
-            player_name, get_next_player(match_id)
-        ) or allows_global_exchange(card_id):
+        elif _can_exchange(player_name, card_id):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
             end_player_turn(player_name)
@@ -488,11 +492,7 @@ async def exchange_handler(player: str, card: int):
     turn_player = get_turn_player(match_id)
 
     if game_state == GAME_STATE["EXCHANGE"]:
-        if (
-            turn_player == player
-            and last_card != None
-            and allows_global_exchange(last_card)
-        ):
+        if turn_player == player and allows_global_exchange(last_card):
             target = get_target_player(match_id)
         else:
             target = get_next_player(match_id)
@@ -569,7 +569,7 @@ async def vuelta_y_vuelta(player: str, card: int):
 
     if player in get_exchange_json(match_id).keys():
         raise GameException("Ya has seleccionado una carta para intercambiar")
-    
+
     check_valid_exchange(card, player, get_next_player(match_id))
     append_to_exchange_json(player, card)
     if not all_players_selected(match_id):

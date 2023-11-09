@@ -571,6 +571,7 @@ class test_save_log(TestCase):
         mock_get_match.assert_called_once_with(match.id)
         self.assertEqual(match.logs_record, ["test_log1", "test_log2"])
 
+
 class test_get_logs_record(TestCase):
     @patch("Database.models.Match._get_match")
     def test_get_logs_record(self, mock_get_match):
@@ -583,4 +584,3 @@ class test_get_logs_record(TestCase):
 
         mock_get_match.assert_called_once_with(match.id)
         self.assertEqual(record, ["test_log1", "test_log2"])
-
