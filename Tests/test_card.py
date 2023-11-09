@@ -827,3 +827,14 @@ async def tests_reveal_infected_card(mocker):
         websocketStub.get(0)
         == f"{player_name} mostró carta de ¡Infectado!, la ronda de revelaciones termina"
     )
+
+
+
+class test_play_olvidadizo(TestCase):
+    @patch("Game.app_auxiliars.get_player_match", return_value=1)
+    @patch("Game.app_auxiliars.increase_discarded")
+    @patch("Game.app_auxiliars.amount_discarded", return_value=3)
+    @patch("Game.app_auxiliars.pick_not_panic_card")
+    def test_play_olvidadizo(self, mock_pick_not_panic_card, *args):
+        play_olvidadizo("test_player")
+        self.assertEqual(mock_pick_not_panic_card.call_count, 3)

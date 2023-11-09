@@ -842,3 +842,29 @@ class test_set_barred_door_between(TestCase):
         mock_match.return_value = match
         set_barred_door_between("player1", "player2")
         self.assertEqual(match.obstacles, [False, False, False, True])
+
+
+class test_discarded(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_amount_discarded(self, mock_get_match):
+        match = Mock()
+        match.amount_discarded = 3
+        mock_get_match.return_value = match
+        result = amount_discarded(1)
+        self.assertEqual(result, 3)
+
+    @patch("Database.models.Match._get_match")
+    def test_increase_discarded(self, mock_get_match):
+        match = Mock()
+        match.amount_discarded = 3
+        mock_get_match.return_value = match
+        increase_discarded(1)
+        self.assertEqual(match.amount_discarded, 4)
+
+    @patch("Database.models.Match._get_match")
+    def test_reset_discarded(self, mock_get_match):
+        match = Mock()
+        match.amount_discarded = 3
+        mock_get_match.return_value = match
+        reset_discarded(1)
+        self.assertEqual(match.amount_discarded, 0)
