@@ -264,6 +264,10 @@ async def execute_card(match_id: int, def_card_id: int = None):
         await play_vigila_tus_espaldas(match_id)
     elif card_name == "Whisky":
         await play_whisky(player_name)
+    elif card_name == "¡Ups!":
+        await play_ups(player_name)
+    elif card_name == "Que quede entre nosotros...":
+        await play_que_quede_entre_nosotros(player_name, target_name)
     elif card_name == "Sospecha":
         await play_sospecha(player_name, target_name)
     elif card_name == "Análisis":
@@ -310,7 +314,16 @@ async def show_hand_to_all(player_name: str):
     await show_player_cards_to(player_name, cards, receivers)
 
 
+async def play_que_quede_entre_nosotros(player_name: str, target_name: str):
+    cards = get_player_cards_names(player_name)
+    await show_player_cards_to(player_name, cards, [target_name])
+
+
 async def play_whisky(player_name: str):
+    await show_hand_to_all(player_name)
+
+
+async def play_ups(player_name: str):
     await show_hand_to_all(player_name)
 
 
@@ -561,6 +574,7 @@ async def _omit_revelaciones(player_name: str, match_id: int):
     await manager.broadcast(
         WAIT_NOTIFICATION, f"{player_name} no reveló su mano", match_id
     )
+
 
 async def _reveal_hand(player_name: str, match_id: int) -> bool:
     await show_hand_to_all(player_name)
