@@ -406,6 +406,13 @@ def get_previous_player_position(match_id: int, start: int) -> int:
 
 
 @db_session
+def get_next_player_from(match_id: int, player_name: str) -> str:
+    player_position = get_player_position(player_name)
+    next_pos = get_next_player_position(match_id, player_position)
+    return _get_player_by_position(match_id, next_pos).player_name
+
+
+@db_session
 def set_next_turn(match_id: int):
     match = _get_match(match_id)
     match.current_player = get_next_player_position(match_id, match.current_player)
@@ -679,6 +686,30 @@ def get_obstacles(match_id: int) -> list:
 
 
 @db_session
+def append_to_exchange_json(player: str, card_id: int) -> None:
+    match = _get_match(get_player_match(player))
+    match.exchange_json[player] = card_id
+
+
+@db_session
+def all_players_selected(match_id: int) -> bool:
+    match = _get_match(match_id)
+    return len(match.exchange_json) == match.players.count()
+
+
+@db_session
+def clean_exchange_json(match_id: int) -> None:
+    match = _get_match(match_id)
+    match.exchange_json = {}
+
+
+@db_session
+def get_exchange_json(match_id: int) -> dict:
+    match = _get_match(match_id)
+    return match.exchange_json
+
+
+@db_session
 def set_stamp(match_id: int):
     match = _get_match(match_id)
     match.timestamp = time()
@@ -713,8 +744,23 @@ def get_chat_record(match_id: int):
     match = _get_match(match_id)
     str_records = match.chat_record
     json_record = map(lambda s: json.loads(s), str_records)
-
     return list(json_record)
+
+
+@db_session
+def add_card_to_player(player_name: str, card_id: int):
+    player = get_player_by_name(player_name)
+    card = Card.get(id=card_id)
+    player.cards.add(card)
+    card.player.add(player)
+
+
+@db_session
+def remove_card_from_player(player_name: str, card_id: int):
+    player = get_player_by_name(player_name)
+    card = Card.get(id=card_id)
+    player.cards.remove(card)
+    card.player.remove(player)
 
 
 @db_session
@@ -744,5 +790,4 @@ def save_log(match_id: int, log: str):
 @db_session
 def get_logs(match_id: int):
     match = _get_match(match_id)
-
     return match.logs_record

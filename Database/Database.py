@@ -30,6 +30,7 @@ class Match(db.Entity):
     exchange_player = Optional(str, default=None, nullable=True)
     last_infected = Optional(str, default=None, nullable=True)
     obstacles = Optional(IntArray, default=[])
+    exchange_json = Optional(Json, default={})
     timestamp = Optional(float, default=None, nullable=True)
     chat_record = Optional(StrArray, default=[])
     logs_record = Optional(StrArray, default=[])
@@ -78,6 +79,7 @@ GAME_STATE = {
     "WAIT_EXCHANGE": 5,
     "WAIT_DEFENSE": 6,
     "PANIC": 7,
+    "VUELTA_Y_VUELTA" : 8,
     "REVELACIONES": 9,
     "DISCARD": 10,
 }
