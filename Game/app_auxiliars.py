@@ -198,7 +198,7 @@ async def _play_turn_card(
         await execute_card(match_id=match_id)
         if card_name == "Olvidadizo":
             set_game_state(match_id, GAME_STATE["DISCARD"])
-        if card_name == "Revelaciones":
+        elif card_name == "Revelaciones":
             set_game_state(match_id, GAME_STATE["REVELACIONES"])
         elif not exist_obstacle_between(
             player_name, get_next_player(match_id)
