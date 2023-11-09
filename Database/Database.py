@@ -32,6 +32,7 @@ class Match(db.Entity):
     obstacles = Optional(IntArray, default=[])
     timestamp = Optional(float, default=None, nullable=True)
     chat_record = Optional(StrArray, default=[])
+    logs_record = Optional(StrArray, default=[])
 
 
 class Player(db.Entity):

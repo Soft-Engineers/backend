@@ -33,5 +33,6 @@ DEFENSE_STAMP = "timestamp"
 DIRECTION = "sentido horario"
 CHAT_RECORD = "historial"
 CHAT_NOTIFICATION = "notificación chat"
+LOGS_RECORD = "logs"
 
 # ------ Auxiliary functions for sockets messages ------
