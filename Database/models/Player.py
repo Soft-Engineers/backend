@@ -101,7 +101,7 @@ def is_lacosa(player_name: str) -> bool:
 def set_quarantine(player_name: str):
     player = get_player_by_name(player_name)
     match_len = player.match.players.count()
-    player.in_quarantine = 2*match_len
+    player.in_quarantine = 2 * match_len
 
 
 @db_session
@@ -176,8 +176,15 @@ def has_card(player_name, card_id):
 
 @db_session
 def count_infection_cards(player_name: str) -> int:
+    """Includes "La Cosa" card"""
     player = get_player_by_name(player_name)
     return player.cards.filter(lambda c: c.type == CardType.CONTAGIO.value).count()
+
+
+@db_session
+def count_infected_cards(player_name: str) -> int:
+    player = get_player_by_name(player_name)
+    return player.cards.filter(lambda c: c.card_name == "¡Infectado!").count()
 
 
 @db_session

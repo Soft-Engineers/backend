@@ -10,6 +10,7 @@ SKIP_DEFENSE = "omitir defensa"
 LEAVE_MATCH = "leave match"
 EXCHANGE_CARD = "intercambiar carta"
 DECLARE = "declaración"
+REVELACIONES = "revelaciones"
 
 
 # ------ Outgoing messages ------
