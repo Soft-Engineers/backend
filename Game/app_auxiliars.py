@@ -70,7 +70,7 @@ async def _send_exchange_notification(player1, target, card1, card2):
     alert = f"{player1} intercambió {card1} con {target} {card2}"
     if is_in_quarantine(player1) or is_in_quarantine(target):
         alert = "Cuarentena: " + alert
-    await manager.broadcast("notificación jugada", alert, match)
+    await manager.broadcast(PLAY_NOTIFICATION, alert, match)
     await manager.send_message_to("cards", get_player_hand(player1), player1)
     await manager.send_message_to("cards", get_player_hand(target), target)
 
@@ -193,6 +193,8 @@ async def _play_turn_card(
         await execute_card(match_id=match_id)
         if card_name == "Vuelta y vuelta":
             set_game_state(match_id, GAME_STATE["VUELTA_Y_VUELTA"])
+        elif card_name == "Revelaciones":
+            set_game_state(match_id, GAME_STATE["REVELACIONES"])
         elif not exist_obstacle_between(
             player_name, get_next_player(match_id)
         ) or allows_global_exchange(card_id):
@@ -288,29 +290,33 @@ async def execute_card(match_id: int, def_card_id: int = None):
 # --------- Card effects logic --------
 
 
-async def play_vigila_tus_espaldas(match_id: int):
-    toggle_direction(match_id)
+async def show_player_cards_to(
+    cards_owner: str, cards: list[str], to_players: list[str]
+):
+    """Show 'cards' from 'cards_owner' hand to 'to_players'"""
+    match_id = get_player_match(cards_owner)
+    set_stamp(match_id)
+    for p in to_players:
+        msg = {
+            "cards": cards,
+            "cards_owner": cards_owner,
+            "trigger_player": get_turn_player(match_id),
+            "trigger_card": last_played_card(match_id),
+            "timestamp": get_stamp(match_id),
+        }
+        await manager.send_message_to(REVEALED_CARDS, msg, p)
 
-    await manager.broadcast(DIRECTION, get_direction(match_id), match_id)
+
+async def show_hand_to_all(player_name: str):
+    """Show player's hand to all players except himself"""
+    receivers = get_match_players_names(get_player_match(player_name))
+    receivers.remove(player_name)
+    cards = get_player_cards_names(player_name)
+    await show_player_cards_to(player_name, cards, receivers)
 
 
 async def play_whisky(player_name: str):
-    match_id = get_player_match(player_name)
-    receivers = get_match_players_names(match_id)
-
-    receivers.remove(player_name)
-    cards = get_player_cards_names(player_name)
-
-    set_stamp(match_id)
-    for p in receivers:
-        msg = {
-            "cards": cards,
-            "cards_owner": player_name,
-            "trigger_player": player_name,
-            "trigger_card": "Whisky",
-            "timestamp": get_stamp(match_id),
-        }
-        await manager.send_personal_message(REVEALED_CARDS, msg, match_id, p)
+    await show_hand_to_all(player_name)
 
 
 def play_lanzallamas(target_name: str):
@@ -318,17 +324,8 @@ def play_lanzallamas(target_name: str):
 
 
 async def play_analisis(player_name: str, target_name: str):
-    match_id = get_player_match(player_name)
-
-    set_stamp(get_player_match(match_id))
-    msg = {
-        "cards": get_player_cards_names(target_name),
-        "cards_owner": target_name,
-        "trigger_player": player_name,
-        "trigger_card": "Análisis",
-        "timestamp": get_stamp(match_id),
-    }
-    await manager.send_message_to(REVEALED_CARDS, msg, player_name)
+    cards = get_player_cards_names(target_name)
+    await show_player_cards_to(target_name, cards, [player_name])
 
 
 async def play_cambio_de_lugar(player_name: str, target_name: str):
@@ -347,31 +344,19 @@ async def play_cambio_de_lugar(player_name: str, target_name: str):
 
 
 async def play_sospecha(player_name: str, target_name: str):
-    match_id = get_player_match(player_name)
-
-    set_stamp(match_id)
-    msg = {
-        "cards": [get_random_card_from(target_name)],
-        "cards_owner": target_name,
-        "trigger_player": player_name,
-        "trigger_card": "Sospecha",
-        "timestamp": get_stamp(match_id),
-    }
-    await manager.send_message_to(REVEALED_CARDS, msg, player_name)
+    card = get_random_card_from(target_name)
+    await show_player_cards_to(target_name, [card], [player_name])
 
 
 async def play_aterrador(match: int, player: str):
     turn_player = get_turn_player(match)
     exchange_card = get_card_name(get_exchange_card(match))
-    set_stamp(match)
-    msg = {
-        "cards": [exchange_card],
-        "cards_owner": turn_player,
-        "trigger_player": player,
-        "trigger_card": "Aterrador",
-        "timestamp": get_stamp(match),
-    }
-    await manager.send_message_to(REVEALED_CARDS, msg, player)
+    await show_player_cards_to(turn_player, [exchange_card], [player])
+
+
+async def play_vigila_tus_espaldas(match_id: int):
+    toggle_direction(match_id)
+    await manager.broadcast(DIRECTION, get_direction(match_id), match_id)
 
 
 async def play_puerta_atrancada(player: str, target: str):
@@ -420,7 +405,7 @@ async def _play_defense_card(
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     await manager.broadcast(
-        "notificación jugada", defended_card_msg(player_name, card_id), match_id
+        PLAY_NOTIFICATION, defended_card_msg(player_name, card_id), match_id
     )
 
 
@@ -604,6 +589,71 @@ async def vuelta_y_vuelta(player: str, card: int):
     for player in get_match_players_names(match_id):
         await manager.send_message_to(CARDS, get_player_hand(player), player)
     end_player_turn(get_turn_player(match_id))
+
+
+async def _omit_revelaciones(player_name: str, match_id: int):
+    await manager.broadcast(
+        WAIT_NOTIFICATION, f"{player_name} no reveló su mano", match_id
+    )
+
+
+async def _reveal_hand(player_name: str, match_id: int) -> bool:
+    await show_hand_to_all(player_name)
+    if count_infected_cards(player_name) > 0:
+        await manager.broadcast(
+            PLAY_NOTIFICATION,
+            f"{player_name} mostró carta de ¡Infectado!, la ronda de revelaciones termina",
+            match_id,
+        )
+        return True
+    return False
+
+
+async def _reveal_infected_card(player_name: str, match_id: int):
+    if count_infected_cards(player_name) == 0:
+        raise GameException("No tienes cartas de ¡Infectado! en tu mano")
+    players = get_match_players_names(match_id)
+    players.remove(player_name)
+    await show_player_cards_to(player_name, ["¡Infectado!"], players)
+    await manager.broadcast(
+        PLAY_NOTIFICATION,
+        f"{player_name} mostró carta de ¡Infectado!, la ronda de revelaciones termina",
+        match_id,
+    )
+
+
+async def play_revelaciones(player_name: str, decision: str):
+    match_id = get_player_match(player_name)
+
+    if not is_player_turn(player_name):
+        raise GameException("No es tu turno")
+    if get_game_state(match_id) != GAME_STATE["REVELACIONES"]:
+        raise GameException("No puedes elegir en este momento")
+
+    finish_revelaciones = False
+    if decision == "omitir revelaciones":
+        await _omit_revelaciones(player_name, match_id)
+    elif decision == "revelar mano":
+        finish_revelaciones = await _reveal_hand(player_name, match_id)
+    elif decision == "revelar carta":
+        await _reveal_infected_card(player_name, match_id)
+        finish_revelaciones = True
+
+    set_next_turn(match_id)
+    turn_player = get_turn_player(match_id)
+    if get_player_in_turn(match_id) == turn_player:
+        finish_revelaciones = True
+        await manager.broadcast(
+            PLAY_NOTIFICATION,
+            "La ronda de revelaciones terminó",
+            match_id,
+        )
+    if finish_revelaciones:
+        set_match_turn(match_id, turn_player)
+        if not exist_obstacle_between(player_name, get_next_player(match_id)):
+            set_game_state(match_id, GAME_STATE["EXCHANGE"])
+        else:
+            end_player_turn(player_name)
 
 
 # ---------------- Checks ----------------

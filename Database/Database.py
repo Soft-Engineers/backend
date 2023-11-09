@@ -33,6 +33,7 @@ class Match(db.Entity):
     exchange_json = Optional(Json, default={})
     timestamp = Optional(float, default=None, nullable=True)
     chat_record = Optional(StrArray, default=[])
+    logs_record = Optional(StrArray, default=[])
 
 
 class Player(db.Entity):
@@ -79,4 +80,5 @@ GAME_STATE = {
     "WAIT_DEFENSE": 6,
     "PANIC": 7,
     "VUELTA_Y_VUELTA" : 8,
+    "REVELACIONES": 9,
 }

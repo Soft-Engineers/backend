@@ -35,6 +35,7 @@ async def handle_request(request, match_id, player_name, websocket):
             LEAVE_MATCH: leave_match_handler,
             EXCHANGE_CARD: exchange_card_handler,
             DECLARE: declaration_handler,
+            REVELACIONES: play_revelaciones_handler,
         }
 
         handler = message_handlers.get(msg_type)
@@ -58,7 +59,7 @@ async def chat_handler(content, match_id, player_name):
         "message": content["message"],
         "timestamp": time(),
     }
-    await save_chat_message(match_id, msg)
+    save_chat_message(match_id, msg)
     await manager.broadcast(CHAT_NOTIFICATION, msg, match_id)
 
 
@@ -95,3 +96,7 @@ async def declaration_handler(content, match_id, player_name):
         await set_win(match_id, "No quedan humanos vivos")
     else:
         await set_win(match_id, "Declaración incorrecta")
+
+
+async def play_revelaciones_handler(content, match_id, player_name):
+    await play_revelaciones(player_name, content["decision"])
