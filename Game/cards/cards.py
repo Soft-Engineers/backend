@@ -87,7 +87,7 @@ card_templates = [
     CardTemplate("Que quede entre nosotros...", [T(7, 1), T(9, 1)], CardType.PANICO),
     CardTemplate("Vuelta y vuelta", [T(4, 1), T(9, 1)], CardType.PANICO),
     CardTemplate("¿No podemos ser amigos?", [T(7, 1), T(9, 1)], CardType.PANICO),
-    CardTemplate("Cita a ciegas", [T(4, 1), T(9, 1)], CardType.PANICO),
+    CardTemplate("Cita a ciegas", [T(4, 100), T(9, 1)], CardType.PANICO),
     CardTemplate("¡Ups!", [T(10, 1)], CardType.PANICO),
 ]
 

@@ -40,8 +40,11 @@ def play_card_msg(player_name: str, card_id: int, target: str):
 
 
 def discard_card_msg(player_name: str, card_name: str):
+    match_id = get_player_match(player_name)
     if is_in_quarantine(player_name):
         alert = "Cuarentena: " + player_name + " descartó " + card_name
+    elif get_played_card_name(match_id) == "Cita a ciegas":
+        alert = player_name + " ha intercambiado una carta con el mazo"
     else:
         alert = player_name + " ha descartado una carta"
     return alert
@@ -74,6 +77,11 @@ async def _send_exchange_notification(player1, target, card1, card2):
     await manager.send_message_to("cards", get_player_hand(player1), player1)
     await manager.send_message_to("cards", get_player_hand(target), target)
 
+# ------- Auxiliar functions DB access --------
+
+def get_played_card_name(match_id: int) -> str:
+    card_id = get_played_card(match_id)
+    return "" if card_id == None else get_card_name(card_id)
 
 # ------- Auxiliar functions for game logic --------
 
@@ -133,10 +141,14 @@ async def discard_player_card(player_name: str, card_id: int):
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
     card_name = get_card_name(card_id)
+    played_card = get_played_card_name(match_id)
 
     if game_state == GAME_STATE["PANIC"]:
         raise GameException("Debes jugar la carta de Pánico")
-    if not game_state == GAME_STATE["PLAY_TURN"]:
+    if (
+        not game_state == GAME_STATE["PLAY_TURN"]
+        and not game_state == GAME_STATE["DISCARD"]
+    ):
         raise GameException("No puedes descartar carta en este momento")
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
@@ -154,7 +166,13 @@ async def discard_player_card(player_name: str, card_id: int):
         PLAY_NOTIFICATION, discard_card_msg(player_name, card_name), match_id
     )
 
-    if not exist_obstacle_between(player_name, get_next_player(match_id)):
+    if played_card == "Cita a ciegas":
+        pick_not_panic_card(player_name)
+
+    if (
+        not exist_obstacle_between(player_name, get_next_player(match_id))
+        and not played_card == "Cita a ciegas"
+    ):
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
     else:
         end_player_turn(player_name)
@@ -193,6 +211,8 @@ async def _play_turn_card(
         await execute_card(match_id=match_id)
         if card_name == "Revelaciones":
             set_game_state(match_id, GAME_STATE["REVELACIONES"])
+        elif card_name == "Cita a ciegas":
+            set_game_state(match_id, GAME_STATE["DISCARD"])
         elif not exist_obstacle_between(
             player_name, get_next_player(match_id)
         ) or allows_global_exchange(card_id):
