@@ -763,7 +763,7 @@ def remove_card_from_player(player_name: str, card_id: int):
     player.cards.remove(card)
     card.player.remove(player)
 
-    
+@db_session
 def save_log(match_id: int, log: str):
     match = _get_match(match_id)
     match.logs_record.append(log)
