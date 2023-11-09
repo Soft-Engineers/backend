@@ -574,3 +574,126 @@ def test_play_fallaste(mocker):
     assert match.current_player == 3
     assert match.game_state == GAME_STATE["WAIT_EXCHANGE"]
     assert match.played_card == card_id
+
+
+@pytest.mark.asyncio
+async def test_vuelta_vuelta(mocker):
+    exchange_json = {
+        "player0": 0,
+    }
+
+    def _append_to_exchange_json(player_name, card_id):
+        exchange_json[player_name] = card_id
+
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
+    mocker.patch("Game.app_auxiliars.get_exchange_json", return_value=exchange_json)
+
+    with pytest.raises(GameException) as e:
+        await vuelta_y_vuelta("player0", 0)
+        assert str(e.value) == "Ya has seleccionado una carta para intercambiar"
+
+    mocker.patch("Game.app_auxiliars.check_valid_exchange", return_value=True)
+    mocker.patch(
+        "Game.app_auxiliars.append_to_exchange_json",
+        side_effect=_append_to_exchange_json,
+    )
+    all_selected = mocker.patch(
+        "Game.app_auxiliars.all_players_selected", return_value=False
+    )
+
+    match = Mock()
+    match.players = []
+    match.current_player = -1
+    for i in range(0, 4):
+        player = Mock()
+        player.name = "player" + str(i)
+        match.players.append(player)
+
+    mocker.patch("Game.app_auxiliars.get_next_player")
+    await vuelta_y_vuelta("player1", 4)
+    assert exchange_json["player0"] == 0
+    assert exchange_json["player1"] == 4
+
+    exchange_json["player2"] = 8
+    all_selected.return_value = True
+
+    match.current_player = -1
+
+    def _get_next_player_from(match_id, player_name):
+        for player in match.players:
+            if player.name == player_name:
+                index = match.players.index(player)
+                print(index)
+                return match.players[(index + 1) % 4].name
+
+    mocker.patch(
+        "Game.app_auxiliars.get_next_player_from", side_effect=_get_next_player_from
+    )
+
+    j = 0
+    for player in match.players:
+        player.cards = []
+        for i in range(0, 4):
+            player.cards.append(j)
+            j = j + 1
+
+    def _add_card_to(player_name, card_id):
+        for player in match.players:
+            if player.name == player_name:
+                player.cards.append(card_id)
+
+    def _remove_card_from_player(player_name, card_id):
+        for player in match.players:
+            if player.name == player_name:
+                player.cards.remove(card_id)
+
+    def _clean_exchange_json(match_id):
+        exchange_json.clear()
+
+    mocker.patch("Game.app_auxiliars.add_card_to_player", side_effect=_add_card_to)
+    mocker.patch(
+        "Game.app_auxiliars.remove_card_from_player",
+        side_effect=_remove_card_from_player,
+    )
+    mocker.patch("Game.app_auxiliars.is_lacosa", return_value=False)
+    mocker.patch(
+        "Game.app_auxiliars.clean_exchange_json", side_effect=_clean_exchange_json
+    )
+    mocker.patch(
+        "Game.app_auxiliars.get_match_players_names",
+        return_value=["player0", "player1", "player2"],
+    )
+
+    websocketStub = _WebStub()
+
+    def _send_message_to(msg_type, msg, player_name):
+        websocketStub.messages.append(msg)
+
+    mocker.patch(
+        "Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to
+    )
+
+    def _get_player_hand(player_name):
+        for player in match.players:
+            if player.name == player_name:
+                return player.cards
+
+    mocker.patch("Game.app_auxiliars.get_player_hand", side_effect=_get_player_hand)
+    mocker.patch("Game.app_auxiliars.get_turn_player")
+    mocker.patch("Game.app_auxiliars.end_player_turn")
+
+    exchange_json = {
+        "player0": 0,
+        "player1": 4,
+        "player2": 8,
+    }
+
+    mocker.patch("Game.app_auxiliars.get_exchange_json", return_value=exchange_json)
+    await vuelta_y_vuelta("player3", 12)
+    expected_p0_cards = [1, 2, 3, 12]
+    expected_p1_cards = [5, 6, 7, 0]
+    expected_p2_cards = [9, 10, 11, 4]
+    assert websocketStub.buff_size() == 3
+    assert websocketStub.get(0) == expected_p0_cards
+    assert websocketStub.get(1) == expected_p1_cards
+    assert websocketStub.get(2) == expected_p2_cards
