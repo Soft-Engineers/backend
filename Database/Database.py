@@ -33,7 +33,7 @@ class Match(db.Entity):
     timestamp = Optional(float, default=None, nullable=True)
     chat_record = Optional(StrArray, default=[])
     logs_record = Optional(StrArray, default=[])
-
+    amount_discarded = Optional(int, default=0)
 
 class Player(db.Entity):
     id = PrimaryKey(int, auto=True)
@@ -79,4 +79,5 @@ GAME_STATE = {
     "WAIT_DEFENSE": 6,
     "PANIC": 7,
     "REVELACIONES": 9,
+    "DISCARD": 10,
 }

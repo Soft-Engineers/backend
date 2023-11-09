@@ -42,6 +42,8 @@ def play_card_msg(player_name: str, card_id: int, target: str):
 def discard_card_msg(player_name: str, card_name: str):
     if is_in_quarantine(player_name):
         alert = "Cuarentena: " + player_name + " descartó " + card_name
+    elif last_played_card(get_player_match(player_name)) == "Olvidadizo":
+        alert = player_name + " descartó 3 cartas y robó 3 nuevas"
     else:
         alert = player_name + " ha descartado una carta"
     return alert
@@ -136,7 +138,7 @@ async def discard_player_card(player_name: str, card_id: int):
 
     if game_state == GAME_STATE["PANIC"]:
         raise GameException("Debes jugar la carta de Pánico")
-    if not game_state == GAME_STATE["PLAY_TURN"]:
+    if not game_state in [GAME_STATE["PLAY_TURN"], GAME_STATE["DISCARD"]]:
         raise GameException("No puedes descartar carta en este momento")
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
@@ -150,10 +152,15 @@ async def discard_player_card(player_name: str, card_id: int):
         raise InvalidCard("No puedes descartar tu última carta de infectado")
 
     discard_card(player_name, card_id)
+    if last_played_card(match_id) == "Olvidadizo":
+        play_olvidadizo(player_name)
+        if amount_discarded(match_id) < 3:
+            return
+        reset_discarded(match_id)
+
     await manager.broadcast(
         PLAY_NOTIFICATION, discard_card_msg(player_name, card_name), match_id
     )
-
     if not exist_obstacle_between(player_name, get_next_player(match_id)):
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
     else:
@@ -191,7 +198,9 @@ async def _play_turn_card(
     await persist_played_card_data(player_name, card_id, target)
     if not has_defense(card_id):
         await execute_card(match_id=match_id)
-        if card_name == "Revelaciones":
+        if card_name == "Olvidadizo":
+            set_game_state(match_id, GAME_STATE["DISCARD"])
+        elif card_name == "Revelaciones":
             set_game_state(match_id, GAME_STATE["REVELACIONES"])
         elif not exist_obstacle_between(
             player_name, get_next_player(match_id)
@@ -372,6 +381,14 @@ def play_fallaste(player: str, card_id: int) -> bool:
     set_game_state(match_id, GAME_STATE["WAIT_EXCHANGE"])
     set_played_card(match_id, card_id)
     return True
+
+
+def play_olvidadizo(player: str):
+    match_id = get_player_match(player)
+    increase_discarded(match_id)
+    if amount_discarded(match_id) == 3:
+        for i in range(3):
+            pick_not_panic_card(player)
 
 
 # --------- Defense logic --------
@@ -561,6 +578,7 @@ async def _omit_revelaciones(player_name: str, match_id: int):
     await manager.broadcast(
         WAIT_NOTIFICATION, f"{player_name} no reveló su mano", match_id
     )
+
 
 async def _reveal_hand(player_name: str, match_id: int) -> bool:
     await show_hand_to_all(player_name)
