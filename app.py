@@ -64,6 +64,8 @@ async def websocket_endpoint(websocket: WebSocket):
         else:
             await _send_lobby_players(match_id)
 
+        await _send_logs_record(match_id)
+
         while True:
             if match_exists(match_name) and db_is_match_initiated(match_name):
                 await _send_game_state(match_id)
@@ -94,7 +96,6 @@ async def _send_initial_state(match_id: int, player_name: str):
     await manager.send_personal_message(
         CHAT_RECORD, get_chat_record(match_id), match_id, player_name
     )
-    await _send_logs_record(match_id)
 
 
 async def _send_logs_record(match_id: int):
@@ -258,6 +259,7 @@ async def start_game(match_player: PlayerInMatch):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
     started_match(match_name)
+    reset_chat_record(match_id)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
     start_alert = ("LA PARTIDA COMIENZA!!!",)
     await manager.broadcast("start_match", start_alert, match_id)
