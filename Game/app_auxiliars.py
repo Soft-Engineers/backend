@@ -156,13 +156,16 @@ async def discard_player_card(player_name: str, card_id: int):
     ):
         raise InvalidCard("No puedes descartar tu última carta de infectado")
 
-    discard_card(player_name, card_id)
+    if played_card == "Cita a ciegas":
+        pick_not_panic_card(player_name)
+        set_top_card(card_id, match_id)
+        remove_player_card(player_name, card_id)
+    else:
+        discard_card(player_name, card_id)
+
     await manager.broadcast(
         PLAY_NOTIFICATION, discard_card_msg(player_name, card_name), match_id
     )
-
-    if played_card == "Cita a ciegas":
-        pick_not_panic_card(player_name)
 
     if (
         not exist_obstacle_between(player_name, get_next_player(match_id))
@@ -277,10 +280,8 @@ async def execute_card(match_id: int, def_card_id: int = None):
             await play_cambio_de_lugar(player_name, target_name)
     elif card_name == "Vigila tus espaldas":
         await play_vigila_tus_espaldas(match_id)
-    elif card_name == "Whisky":
+    elif card_name in ["Whisky", "¡Ups!"]:
         await play_whisky(player_name)
-    elif card_name == "¡Ups!":
-        await play_ups(player_name)
     elif card_name == "Que quede entre nosotros...":
         await play_que_quede_entre_nosotros(player_name, target_name)
     elif card_name == "Sospecha":
@@ -335,10 +336,6 @@ async def play_que_quede_entre_nosotros(player_name: str, target_name: str):
 
 
 async def play_whisky(player_name: str):
-    await show_hand_to_all(player_name)
-
-
-async def play_ups(player_name: str):
     await show_hand_to_all(player_name)
 
 
