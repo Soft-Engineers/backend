@@ -246,10 +246,10 @@ async def persist_played_card_data(player_name: str, card_id: int, target):
         raise InvalidCard("No puedes jugar una carta " + card_name)
 
     if requires_target(card_id):
-        if card_name == "Hacha":
-            check_valid_obstacle(player_name, target)
-        elif target is None or target == "":
+        if target is None or target == "":
             raise InvalidCard("Esta carta requiere un objetivo")
+        elif card_name == "Hacha" and isinstance(target, int):
+            check_valid_obstacle(player_name, target)
         else:
             check_target_player(player_name, target, card_id)
 
@@ -734,12 +734,6 @@ def check_target_player(player: str, target: str, card_id: int):
 
 def check_valid_obstacle(player: str, obstacle: int):
     match_id = get_player_match(player)
-    if obstacle is None or obstacle == "":
-        raise InvalidCard("Debes seleccionar un obstáculo")
-    try:
-        obstacle = int(obstacle)
-    except ValueError:
-        raise InvalidCard("Debes seleccionar un obstáculo")
     if obstacle < 0 or obstacle > 11:
         raise InvalidCard("Obstáculo no válido")
     if not exist_door_in_position(match_id, obstacle):
