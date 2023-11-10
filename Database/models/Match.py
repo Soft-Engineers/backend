@@ -342,6 +342,27 @@ def get_players_positions(match_name: str) -> list:
     return positions
 
 
+def _apply_n(n: int, f: callable, const, acum):
+    if n == 0:
+        return acum
+    return _apply_n(n - 1, f, const, f(const, acum))
+
+
+def is_three_steps_from(player_name: str, target_name: str) -> bool:
+    caster_position = get_player_position(player_name)
+    target_position = get_player_position(target_name)
+
+    left = _apply_n(
+        3, get_previous_player_position, get_player_match(player_name), caster_position
+    )
+
+    right = _apply_n(
+        3, get_next_player_position, get_player_match(player_name), caster_position
+    )
+
+    return target_position == left or target_position == right
+
+
 @db_session
 def _is_adyacent(player: Player, player_target: Player) -> bool:
     is_next = (

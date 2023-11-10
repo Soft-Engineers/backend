@@ -52,6 +52,17 @@ def discard_card_msg(player_name: str, card_name: str):
     return alert
 
 
+async def uno_dos_anulado_msg(player_name, target_name):
+    msg = "La carta no tiene efecto porque "
+    if is_in_quarantine(player_name) and is_in_quarantine(target_name):
+        msg += "ambos jugadores están en cuarentena"
+    elif is_in_quarantine(player_name):
+        msg += player_name + " está en cuarentena"
+    else:
+        msg += target_name + " está en cuarentena"
+    await manager.broadcast(PLAY_NOTIFICATION, msg, get_player_match(player_name))
+
+
 def wait_defense_card_msg(player_name: str, card_id: int, target: str):
     alert = target + " se está defendiendo de " + player_name
     return alert
@@ -324,6 +335,8 @@ async def execute_card(match_id: int, def_card_id: int = None):
         await play_sospecha(player_name, target_name)
     elif card_name == "Análisis":
         await play_analisis(player_name, target_name)
+    elif card_name == "Uno, dos..":
+        await play_uno_dos(player_name, target_name)
     elif card_name in ["Seducción", "¿No podemos ser amigos?"]:
         # No necesitan implementación
         pass
@@ -385,6 +398,13 @@ def play_lanzallamas(target_name: str):
 async def play_analisis(player_name: str, target_name: str):
     cards = get_player_cards_names(target_name)
     await show_player_cards_to(target_name, cards, [player_name])
+
+
+async def play_uno_dos(player_name: str, target_name: str):
+    if not is_in_quarantine(player_name) and not is_in_quarantine(target_name):
+        await play_cambio_de_lugar(player_name, target_name)
+    else:
+        await uno_dos_anulado_msg(player_name, target_name)
 
 
 async def play_cambio_de_lugar(player_name: str, target_name: str):
@@ -753,7 +773,7 @@ def check_target_player(player: str, target: str, card_id: int):
         raise InvalidPlayer("El jugador seleccionado está muerto")
     if get_player_match(player) != get_player_match(target):
         raise InvalidPlayer("Jugador no válido")
-    if player == target:
+    if not can_target_caster(card_id):
         raise InvalidPlayer("Selecciona a otro jugador como objetivo")
     if requires_adjacent_target(card_id):
         if not is_adyacent(player, target):
@@ -762,6 +782,8 @@ def check_target_player(player: str, target: str, card_id: int):
             raise InvalidCard(
                 f"No puedes jugar {card} a un jugador con un obstáculo en el medio"
             )
+    if card == "Uno, dos.." and not is_three_steps_from(player, target):
+        raise InvalidCard("Solo puedes jugar Uno, dos.. a un jugador a 3 pasos")
     if requires_target_not_quarantined(card_id) and is_in_quarantine(target):
         raise InvalidCard(f"No puedes jugar {card} a un jugador en cuarentena")
     if is_in_quarantine(player) and card == "Lanzallamas":

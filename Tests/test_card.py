@@ -119,6 +119,9 @@ class TestPlayCardMsgFunction(TestCase):
 
 
 class test_check_target_player(TestCase):
+
+    
+
     def setUp(self):
         self.card_name = patch(
             "Game.app_auxiliars.get_card_name", return_value="SomeCard"
@@ -142,6 +145,9 @@ class test_check_target_player(TestCase):
         self.is_in_quarantine = patch(
             "Game.app_auxiliars.is_in_quarantine", return_value=False
         )
+        self.can_target_caster = patch(
+            "Game.app_auxiliars.can_target_caster", return_value=True
+        )
 
         self.card_name.start()
         self.player_alive.start()
@@ -151,6 +157,7 @@ class test_check_target_player(TestCase):
         self.obstacle_between.start()
         self.target_not_quarantine.start()
         self.is_in_quarantine.start()
+        self.can_target_caster.start()
 
     def tearDown(self):
         self.card_name.stop()
@@ -161,6 +168,7 @@ class test_check_target_player(TestCase):
         self.obstacle_between.stop()
         self.target_not_quarantine.stop()
         self.is_in_quarantine.stop()
+        self.can_target_caster.stop()
 
     def test_check_target_player(self):
         check_target_player("test_player", "test_target", 1)
@@ -177,9 +185,10 @@ class test_check_target_player(TestCase):
             check_target_player("test_player", "test_target", 1)
         self.assertEqual(str(e.exception), "Jugador no válido")
 
-    def test_equal_players(self):
+    @patch("Game.app_auxiliars.can_target_caster", return_value=False)
+    def test_equal_players(self, can_target_caster):
         with self.assertRaises(InvalidPlayer) as e:
-            check_target_player("test_player", "test_player", 1)
+            check_target_player("test_player", "test_player", 23)
         self.assertEqual(str(e.exception), "Selecciona a otro jugador como objetivo")
 
     @patch("Game.app_auxiliars.is_adyacent", return_value=False)
