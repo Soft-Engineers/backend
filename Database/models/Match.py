@@ -608,6 +608,7 @@ def get_alive_players(match_id: int) -> list:
             alive_players.append(player.player_name)
     return alive_players
 
+
 @db_session
 def is_la_cosa_alive(match_id: int) -> bool:
     match = _get_match(match_id)
