@@ -43,6 +43,8 @@ def discard_card_msg(player_name: str, card_name: str):
     match_id = get_player_match(player_name)
     if is_in_quarantine(player_name):
         alert = "Cuarentena: " + player_name + " descartó " + card_name
+    elif last_played_card(get_player_match(player_name)) == "Olvidadizo":
+        alert = player_name + " descartó 3 cartas y robó 3 nuevas"
     elif last_played_card(match_id) == "Cita a ciegas":
         alert = player_name + " ha intercambiado una carta con el mazo"
     else:
@@ -99,7 +101,6 @@ def gen_chat_message(match_id: int, player_name: str, content: str):
     if db_is_match_initiated(get_match_name(match_id)) and not is_player_alive(
         player_name
     ):
-        print("muerto")
         raise InvalidPlayer("No puedes enviar mensajes si estás muerto")
     msg = {
         "author": player_name,
@@ -160,10 +161,7 @@ async def discard_player_card(player_name: str, card_id: int):
 
     if game_state == GAME_STATE["PANIC"]:
         raise GameException("Debes jugar la carta de Pánico")
-    if (
-        not game_state == GAME_STATE["PLAY_TURN"]
-        and not game_state == GAME_STATE["DISCARD"]
-    ):
+    if not game_state in [GAME_STATE["PLAY_TURN"], GAME_STATE["DISCARD"]]:
         raise GameException("No puedes descartar carta en este momento")
     if not has_card(player_name, card_id):
         raise InvalidCard("No tienes esa carta en tu mano")
@@ -182,6 +180,12 @@ async def discard_player_card(player_name: str, card_id: int):
         remove_player_card(player_name, card_id)
     else:
         discard_card(player_name, card_id)
+        if last_played_card(match_id) == "Olvidadizo":
+            play_olvidadizo(player_name)
+            if amount_discarded(match_id) < 3:
+                return
+            reset_discarded(match_id)
+
 
     await manager.broadcast(
         PLAY_NOTIFICATION, discard_card_msg(player_name, card_name), match_id
@@ -215,6 +219,12 @@ async def play_card(player_name: str, card_id: int, target: str = ""):
         raise GameException("No puedes jugar carta en este momento")
 
 
+def _can_exchange(player: str, card: int) -> bool:
+    match = get_player_match(player)
+    next = get_next_player(match)
+    return not exist_obstacle_between(player, next) or allows_global_exchange(card)
+
+
 async def _play_turn_card(
     match_id: int, player_name: str, card_id: int, target: str = ""
 ):
@@ -227,13 +237,15 @@ async def _play_turn_card(
     await persist_played_card_data(player_name, card_id, target)
     if not has_defense(card_id):
         await execute_card(match_id=match_id)
-        if card_name == "Revelaciones":
+        if card_name == "Vuelta y vuelta":
+            set_game_state(match_id, GAME_STATE["VUELTA_Y_VUELTA"])
+        elif card_name == "Olvidadizo":
+            set_game_state(match_id, GAME_STATE["DISCARD"])
+        elif card_name == "Revelaciones":
             set_game_state(match_id, GAME_STATE["REVELACIONES"])
         elif card_name == "Cita a ciegas":
             set_game_state(match_id, GAME_STATE["DISCARD"])
-        elif not exist_obstacle_between(
-            player_name, get_next_player(match_id)
-        ) or allows_global_exchange(card_id):
+        elif _can_exchange(player_name, card_id):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
             end_player_turn(player_name)
@@ -315,6 +327,9 @@ async def execute_card(match_id: int, def_card_id: int = None):
         await play_puerta_atrancada(player_name, target_name)
     elif card_name == "Cuarentena":
         play_cuarentena(target_name)
+    elif card_name == "Vuelta y vuelta":
+        # No hace falta implementación
+        pass
     else:
         pass
 
@@ -417,6 +432,14 @@ def play_fallaste(player: str, card_id: int) -> bool:
     set_game_state(match_id, GAME_STATE["WAIT_EXCHANGE"])
     set_played_card(match_id, card_id)
     return True
+
+
+def play_olvidadizo(player: str):
+    match_id = get_player_match(player)
+    increase_discarded(match_id)
+    if amount_discarded(match_id) == 3:
+        for i in range(3):
+            pick_not_panic_card(player)
 
 
 # --------- Defense logic --------
@@ -528,11 +551,7 @@ async def exchange_handler(player: str, card: int):
     turn_player = get_turn_player(match_id)
 
     if game_state == GAME_STATE["EXCHANGE"]:
-        if (
-            turn_player == player
-            and last_card != None
-            and allows_global_exchange(last_card)
-        ):
+        if turn_player == player and allows_global_exchange(last_card):
             target = get_target_player(match_id)
         else:
             target = get_next_player(match_id)
@@ -540,6 +559,8 @@ async def exchange_handler(player: str, card: int):
     elif game_state == GAME_STATE["WAIT_EXCHANGE"]:
         # El target es el jugador que inició el intercambio, no hace falta
         await _execute_exchange(player, card)
+    elif game_state == GAME_STATE["VUELTA_Y_VUELTA"]:
+        await vuelta_y_vuelta(player, card)
     else:
         raise GameException("No puedes intercambiar cartas en este momento")
 
@@ -600,6 +621,33 @@ async def check_infection(player_name: str, target: str, card: int, card2: int):
 
 
 # ----------- Especial cards logic ------------
+
+
+async def vuelta_y_vuelta(player: str, card: int):
+    match_id = get_player_match(player)
+
+    if player in get_exchange_json(match_id).keys():
+        raise GameException("Ya has seleccionado una carta para intercambiar")
+
+    check_valid_exchange(card, player, get_next_player(match_id))
+    append_to_exchange_json(player, card)
+    if not all_players_selected(match_id):
+        return
+
+    exchange_json = get_exchange_json(match_id)
+    for player in exchange_json.keys():
+        next_player = get_next_player_from(match_id, player)
+        card = exchange_json[player]
+        add_card_to_player(next_player, card)
+        remove_player_card(player, card)
+        if is_lacosa(player) and is_contagio(card):
+            infect_player(next_player)
+            await manager.send_message_to(INFECTED, "", next_player)
+    clean_exchange_json(match_id)
+
+    for player in get_match_players_names(match_id):
+        await manager.send_message_to(CARDS, get_player_hand(player), player)
+    end_player_turn(get_turn_player(match_id))
 
 
 async def _omit_revelaciones(player_name: str, match_id: int):

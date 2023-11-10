@@ -598,7 +598,6 @@ class test_get_logs_record(TestCase):
         mock_get_match.assert_called_once_with(match.id)
         self.assertEqual(record, ["test_log1", "test_log2"])
 
-
 class test_set_top_card(TestCase):
     @patch("Database.models.Match._get_match")
     def test_set_top_card(self, mock_get_match):

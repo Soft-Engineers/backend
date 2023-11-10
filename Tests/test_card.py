@@ -584,10 +584,135 @@ def test_play_fallaste(mocker):
 
 
 @pytest.mark.asyncio
+async def test_vuelta_vuelta(mocker):
+    exchange_json = {
+        "player0": 0,
+    }
+
+    def _append_to_exchange_json(player_name, card_id):
+        exchange_json[player_name] = card_id
+
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
+    mocker.patch("Game.app_auxiliars.get_exchange_json", return_value=exchange_json)
+
+    with pytest.raises(GameException) as e:
+        await vuelta_y_vuelta("player0", 0)
+        assert str(e.value) == "Ya has seleccionado una carta para intercambiar"
+
+    mocker.patch("Game.app_auxiliars.check_valid_exchange", return_value=True)
+    mocker.patch(
+        "Game.app_auxiliars.append_to_exchange_json",
+        side_effect=_append_to_exchange_json,
+    )
+    all_selected = mocker.patch(
+        "Game.app_auxiliars.all_players_selected", return_value=False
+    )
+
+    match = Mock()
+    match.players = []
+    match.current_player = -1
+    for i in range(0, 4):
+        player = Mock()
+        player.name = "player" + str(i)
+        match.players.append(player)
+
+    mocker.patch("Game.app_auxiliars.get_next_player")
+    await vuelta_y_vuelta("player1", 4)
+    assert exchange_json["player0"] == 0
+    assert exchange_json["player1"] == 4
+
+    exchange_json["player2"] = 8
+    all_selected.return_value = True
+
+    match.current_player = -1
+
+    def _get_next_player_from(match_id, player_name):
+        for player in match.players:
+            if player.name == player_name:
+                index = match.players.index(player)
+                print(index)
+                return match.players[(index + 1) % 4].name
+
+    mocker.patch(
+        "Game.app_auxiliars.get_next_player_from", side_effect=_get_next_player_from
+    )
+
+    j = 0
+    for player in match.players:
+        player.cards = []
+        for i in range(0, 4):
+            player.cards.append(j)
+            j = j + 1
+
+    def _add_card_to(player_name, card_id):
+        for player in match.players:
+            if player.name == player_name:
+                player.cards.append(card_id)
+
+    def _remove_card_from_player(player_name, card_id):
+        for player in match.players:
+            if player.name == player_name:
+                player.cards.remove(card_id)
+
+    def _clean_exchange_json(match_id):
+        exchange_json.clear()
+
+    mocker.patch("Game.app_auxiliars.add_card_to_player", side_effect=_add_card_to)
+    mocker.patch(
+        "Game.app_auxiliars.remove_player_card",
+        side_effect=_remove_card_from_player,
+    )
+    mocker.patch("Game.app_auxiliars.is_lacosa", return_value=False)
+    mocker.patch(
+        "Game.app_auxiliars.clean_exchange_json", side_effect=_clean_exchange_json
+    )
+    mocker.patch(
+        "Game.app_auxiliars.get_match_players_names",
+        return_value=["player0", "player1", "player2"],
+    )
+
+    websocketStub = _WebStub()
+
+    def _send_message_to(msg_type, msg, player_name):
+        websocketStub.messages.append(msg)
+
+    mocker.patch(
+        "Game.app_auxiliars.manager.send_message_to", side_effect=_send_message_to
+    )
+
+    def _get_player_hand(player_name):
+        for player in match.players:
+            if player.name == player_name:
+                return player.cards
+
+    mocker.patch("Game.app_auxiliars.get_player_hand", side_effect=_get_player_hand)
+    mocker.patch("Game.app_auxiliars.get_turn_player")
+    mocker.patch("Game.app_auxiliars.end_player_turn")
+
+    exchange_json = {
+        "player0": 0,
+        "player1": 4,
+        "player2": 8,
+    }
+
+    mocker.patch("Game.app_auxiliars.get_exchange_json", return_value=exchange_json)
+    await vuelta_y_vuelta("player3", 12)
+    expected_p0_cards = [1, 2, 3, 12]
+    expected_p1_cards = [5, 6, 7, 0]
+    expected_p2_cards = [9, 10, 11, 4]
+    assert websocketStub.buff_size() == 3
+    assert websocketStub.get(0) == expected_p0_cards
+    assert websocketStub.get(1) == expected_p1_cards
+    assert websocketStub.get(2) == expected_p2_cards
+
+
+@pytest.mark.asyncio
 async def test_play_revelaciones(mocker):
     mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
     in_turn = mocker.patch("Game.app_auxiliars.is_player_turn", return_value=False)
-    game_state = mocker.patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["DRAW_CARD"])
+    game_state = mocker.patch(
+        "Game.app_auxiliars.get_game_state", return_value=GAME_STATE["DRAW_CARD"]
+    )
 
     with pytest.raises(GameException) as e:
         await play_revelaciones("test_player1", "decision")
@@ -600,10 +725,13 @@ async def test_play_revelaciones(mocker):
 
     game_state.return_value = GAME_STATE["REVELACIONES"]
     websocketStub = _WebStub()
+
     def _broadcast(msg_type, msg, match_id):
         websocketStub.messages.append(msg)
+
     def _set_match_turn(match_id, turn):
         match.turn = turn
+
     def _set_game_state(match_id, state):
         match.game_state = state
 
@@ -612,7 +740,6 @@ async def test_play_revelaciones(mocker):
     mocker.patch("Game.app_auxiliars.set_match_turn", side_effect=_set_match_turn)
     mocker.patch("Game.app_auxiliars.set_game_state", side_effect=_set_game_state)
     mocker.patch("Game.app_auxiliars.get_next_player", return_value="test_player3")
-    
 
     turn_player = mocker.patch("Game.app_auxiliars.get_turn_player")
     turn_player.return_value = "test_player2"
@@ -632,23 +759,30 @@ async def test_play_revelaciones(mocker):
 @pytest.mark.asyncio
 async def test_omit_revelaciones(mocker):
     websocketStub = _WebStub()
+
     def _broadcast(msg_type, msg, match_id):
         websocketStub.messages.append(msg)
+
     mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
     player_name = "test_player1"
     await _omit_revelaciones(player_name, 1)
     assert websocketStub.buff_size() == 1
     assert websocketStub.get(0) == player_name + " no reveló su mano"
 
+
 @pytest.mark.asyncio
 async def tests_reveal_hand(mocker):
     websocketStub = _WebStub()
+
     def _broadcast(msg_type, msg, match_id):
         websocketStub.messages.append(msg)
+
     mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
 
     mocker.patch("Game.app_auxiliars.show_hand_to_all")
-    infected_card = mocker.patch("Game.app_auxiliars.count_infected_cards", return_value=0)
+    infected_card = mocker.patch(
+        "Game.app_auxiliars.count_infected_cards", return_value=0
+    )
     player_name = "test_player1"
     res = await _reveal_hand(player_name, 1)
     assert res == False
@@ -656,28 +790,50 @@ async def tests_reveal_hand(mocker):
     infected_card.return_value = 1
     res = await _reveal_hand(player_name, 1)
     assert websocketStub.buff_size() == 1
-    assert websocketStub.get(0) == f"{player_name} mostró carta de ¡Infectado!, la ronda de revelaciones termina"
+    assert (
+        websocketStub.get(0)
+        == f"{player_name} mostró carta de ¡Infectado!, la ronda de revelaciones termina"
+    )
     assert res == True
 
 
 @pytest.mark.asyncio
 async def tests_reveal_infected_card(mocker):
     websocketStub = _WebStub()
+
     def _broadcast(msg_type, msg, match_id):
         websocketStub.messages.append(msg)
+
     mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
 
     mocker.patch("Game.app_auxiliars.show_hand_to_all")
-    infected_card = mocker.patch("Game.app_auxiliars.count_infected_cards", return_value=0)
+    infected_card = mocker.patch(
+        "Game.app_auxiliars.count_infected_cards", return_value=0
+    )
     player_name = "test_player1"
     with pytest.raises(GameException) as e:
         await _reveal_infected_card(player_name, 1)
         assert str(e.value) == "No tienes cartas de ¡Infectado! en tu mano"
 
-    mocker.patch("Game.app_auxiliars.get_match_players_names", return_value =  ["test_player1", "test_player2"])
+    mocker.patch(
+        "Game.app_auxiliars.get_match_players_names",
+        return_value=["test_player1", "test_player2"],
+    )
     mocker.patch("Game.app_auxiliars.show_player_cards_to")
     infected_card.return_value = 1
     await _reveal_infected_card(player_name, 1)
     assert websocketStub.buff_size() == 1
-    assert websocketStub.get(0) == f"{player_name} mostró carta de ¡Infectado!, la ronda de revelaciones termina"
+    assert (
+        websocketStub.get(0)
+        == f"{player_name} mostró carta de ¡Infectado!, la ronda de revelaciones termina"
+    )
 
+
+class test_play_olvidadizo(TestCase):
+    @patch("Game.app_auxiliars.get_player_match", return_value=1)
+    @patch("Game.app_auxiliars.increase_discarded")
+    @patch("Game.app_auxiliars.amount_discarded", return_value=3)
+    @patch("Game.app_auxiliars.pick_not_panic_card")
+    def test_play_olvidadizo(self, mock_pick_not_panic_card, *args):
+        play_olvidadizo("test_player")
+        self.assertEqual(mock_pick_not_panic_card.call_count, 3)

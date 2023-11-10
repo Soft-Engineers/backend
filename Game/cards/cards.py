@@ -80,7 +80,7 @@ card_templates = [
     CardTemplate("Revelaciones", [T(8, 1)], CardType.PANICO),
     CardTemplate("Cuerdas podridas", [T(6, 1), T(9, 1)], CardType.PANICO),
     CardTemplate("¡Sal de aquí!", [T(5, 1)], CardType.PANICO),
-    CardTemplate("Olvidadizo", [T(4, 1)], CardType.PANICO),
+    CardTemplate("Olvidadizo", [T(4, 20)], CardType.PANICO),
     CardTemplate("Uno, dos..", [T(5, 1), T(9, 1)], CardType.PANICO),
     CardTemplate("Tres, cuatro..", [T(4, 1), T(9, 1)], CardType.PANICO),
     CardTemplate("¿Es aquí la fiesta?", [T(5, 1), T(9, 1)], CardType.PANICO),

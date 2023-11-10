@@ -124,6 +124,8 @@ def requires_target_not_quarantined(card_id: int) -> bool:
 
 @db_session
 def allows_global_exchange(card_id: int) -> bool:
+    if card_id is None:
+        return False
     card_name = get_card_name(card_id)
     return card_name in GLOBAL_EXCHANGE
 

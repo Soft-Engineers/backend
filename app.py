@@ -108,17 +108,32 @@ async def _send_lobby_players(match_id: int):
 
 
 async def _send_game_state(match_id: int):
+    game_state = get_game_state(match_id)
     state = {
         "turn": get_player_in_turn(match_id),
-        "game_state": get_game_state(match_id),
+        "game_state": game_state,
     }
     positions = get_players_positions(get_match_name(match_id))
     await manager.broadcast(POSITIONS, positions, match_id)
     await manager.broadcast(MATCH_STATE, state, match_id)
     await manager.broadcast(DEAD_PLAYERS, get_dead_players(match_id), match_id)
     await manager.broadcast(QUARANTINE, get_quarantined_players(match_id), match_id)
-    if get_game_state(match_id) == GAME_STATE["WAIT_DEFENSE"]:
+    if game_state == GAME_STATE["WAIT_DEFENSE"]:
         await manager.broadcast(DEFENSE_STAMP, get_stamp(match_id), match_id)
+    if game_state == GAME_STATE["VUELTA_Y_VUELTA"]:
+        await send_alredy_selected(match_id)
+
+
+async def send_alredy_selected(match_id: int):
+    """Send to players if they have already selected a card in vuelta y vuelta"""
+    players = db_get_players(get_match_name(match_id))
+    exchange_json = get_exchange_json(match_id)
+    for player in players:
+        if player in exchange_json:
+            selected = 1
+        else:
+            selected = 0
+        await manager.send_message_to(ALREADY_SELECTED, selected, player)
 
 
 # ---------------- API REST ------------- #
