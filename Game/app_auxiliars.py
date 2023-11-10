@@ -288,14 +288,11 @@ async def persist_played_card_data(player_name: str, card_id: int, target):
         raise InvalidCard("No puedes jugar " + card_name + " a un obstáculo")
 
     if requires_target(card_id):
-        print(target)
         if target is None or target == "":
             raise InvalidCard("Esta carta requiere un objetivo")
         elif card_name == "Hacha" and isinstance(target, int):
-            print("is obstacle")
             check_valid_obstacle(player_name, target)
         else:
-            print("is player")
             check_target_player(player_name, target, card_id)
 
     set_played_card(match_id, card_id)
