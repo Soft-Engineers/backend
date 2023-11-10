@@ -773,7 +773,7 @@ def check_target_player(player: str, target: str, card_id: int):
         raise InvalidPlayer("El jugador seleccionado está muerto")
     if get_player_match(player) != get_player_match(target):
         raise InvalidPlayer("Jugador no válido")
-    if not can_target_caster(card_id):
+    if player == target and not can_target_caster(card_id):
         raise InvalidPlayer("Selecciona a otro jugador como objetivo")
     if requires_adjacent_target(card_id):
         if not is_adyacent(player, target):
