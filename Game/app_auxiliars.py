@@ -32,9 +32,12 @@ def pick_card_msg(player_name: str, card_id: int):
     return alert
 
 
-def play_card_msg(player_name: str, card_id: int, target: str):
-    alert = player_name + " jugó " + get_card_name(card_id)
-    if requires_target(card_id):
+def play_card_msg(player_name: str, card_id: int, target):
+    card = get_card_name(card_id)
+    alert = player_name + " jugó " + card
+    if card == "Hacha":
+        alert += " y destruyó un obstáculo"
+    elif requires_target(card_id):
         alert += " a " + target
     return alert
 
@@ -243,10 +246,10 @@ async def persist_played_card_data(player_name: str, card_id: int, target):
         raise InvalidCard("No puedes jugar una carta " + card_name)
 
     if requires_target(card_id):
-        if target is None or target == "":
-            raise InvalidCard("Esta carta requiere un objetivo")
         if card_name == "Hacha":
             check_valid_obstacle(player_name, target)
+        elif target is None or target == "":
+            raise InvalidCard("Esta carta requiere un objetivo")
         else:
             check_target_player(player_name, target, card_id)
 
@@ -256,7 +259,7 @@ async def persist_played_card_data(player_name: str, card_id: int, target):
         set_target_obstacle(match_id, target)
     elif not target == "" and not target is None:
         set_target_player(match_id, target)
-        
+
     discard_card(player_name, card_id)
 
 
@@ -295,7 +298,7 @@ async def execute_card(match_id: int, def_card_id: int = None):
         pass
     elif card_name == "Hacha":
         obstacle = get_target_obstacle(match_id)
-        play_hacha(obstacle, match_id)
+        await play_hacha(obstacle, match_id)
     else:
         pass
 
@@ -385,9 +388,9 @@ def play_cuarentena(target: str):
     set_quarantine(target)
 
 
-def play_hacha(barred_door: int, match_id: int):
+async def play_hacha(barred_door: int, match_id: int):
     remove_barred_door(barred_door, match_id)
-
+    await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
 
 def play_fallaste(player: str, card_id: int) -> bool:
     match_id = get_player_match(player)
@@ -731,10 +734,12 @@ def check_target_player(player: str, target: str, card_id: int):
 
 def check_valid_obstacle(player: str, obstacle: int):
     match_id = get_player_match(player)
+    if obstacle is None or obstacle == "":
+        raise InvalidCard("Debes seleccionar un obstáculo")
     try:
         obstacle = int(obstacle)
     except ValueError:
-        raise InvalidCard("Obstáculo no válido")
+        raise InvalidCard("Debes seleccionar un obstáculo")
     if obstacle < 0 or obstacle > 11:
         raise InvalidCard("Obstáculo no válido")
     if not exist_door_in_position(match_id, obstacle):
