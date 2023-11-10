@@ -7,6 +7,68 @@ from Game.app_auxiliars import *
 import random
 from time import time
 
+class _WebStub:
+    def __init__(self):
+        super().__init__()
+        self.messages = []
+        self.accepted = False
+
+    async def accept(self):
+        self.accepted = True
+
+    async def send_message_to(self, msg, player_name, match_id):
+        self.messages.append(msg)
+
+    async def broadcast(self, type, msg, match_id):
+        self.messages.append(msg)
+
+    def buff_size(self):
+        return len(self.messages)
+
+    def get(self, index):
+        return self.messages[index]
+    
+    def reset(self):
+        self.messages = []
+
+
+def _check_uno_dos_msg(websocketStub, sufix, player_name=""):
+    assert websocketStub.buff_size() == 1
+    assert websocketStub.get(0)["type"] == PLAY_NOTIFICATION
+    assert websocketStub.get(0)["msg"] == "La carta no tiene efecto porque " + player_name + sufix
+    websocketStub.reset()
+
+@pytest.mark.asyncio
+async def test_uno_dos_anulado_msg(mocker):
+    websocketStub = _WebStub()
+
+    player_name = "player"
+    target_name = "target"
+    quarentine_cases = [True, True,                 # Ambos cuarentena
+                        False, True,                # Solo player cuarentena
+                        False, False, True,         # Solo target cuarentena
+                        False, False, False, False] # Caso indefinido 
+
+    def _send_message_to(msg_type, msg, player_name):
+        websocketStub.messages.append({"msg": msg, "type": msg_type})
+
+    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_send_message_to)
+    mocker.patch("Game.app_auxiliars.get_player_match")
+    mocker.patch("Game.app_auxiliars.is_in_quarantine", side_effect=quarentine_cases)
+    
+    await send_uno_dos_anulado_msg(player_name, target_name)
+    _check_uno_dos_msg(websocketStub, "ambos jugadores están en cuarentena")
+
+    await send_uno_dos_anulado_msg(player_name, target_name)
+    _check_uno_dos_msg(websocketStub, " está en cuarentena", player_name)
+
+    await send_uno_dos_anulado_msg(player_name, target_name)
+    _check_uno_dos_msg(websocketStub, " está en cuarentena", target_name)
+
+    with pytest.raises(Error):
+        await send_uno_dos_anulado_msg(player_name, target_name)
+
+
 
 class test_gen_chat_message(TestCase):
     @patch("Game.app_auxiliars.is_player_alive", return_value=False)

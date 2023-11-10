@@ -52,14 +52,16 @@ def discard_card_msg(player_name: str, card_name: str):
     return alert
 
 
-async def uno_dos_anulado_msg(player_name, target_name):
+async def send_uno_dos_anulado_msg(player_name, target_name):
     msg = "La carta no tiene efecto porque "
     if is_in_quarantine(player_name) and is_in_quarantine(target_name):
         msg += "ambos jugadores están en cuarentena"
     elif is_in_quarantine(player_name):
         msg += player_name + " está en cuarentena"
-    else:
+    elif is_in_quarantine(target_name):
         msg += target_name + " está en cuarentena"
+    else:
+        raise Error("La carta debería ser anulada")
     await manager.broadcast(PLAY_NOTIFICATION, msg, get_player_match(player_name))
 
 
@@ -404,7 +406,7 @@ async def play_uno_dos(player_name: str, target_name: str):
     if not is_in_quarantine(player_name) and not is_in_quarantine(target_name):
         await play_cambio_de_lugar(player_name, target_name)
     else:
-        await uno_dos_anulado_msg(player_name, target_name)
+        await send_uno_dos_anulado_msg(player_name, target_name)
 
 
 async def play_cambio_de_lugar(player_name: str, target_name: str):
