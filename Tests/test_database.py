@@ -167,10 +167,11 @@ class test_db_add_player(TestCase):
 
 
 class test_pick_random_card(TestCase):
+    @patch("Database.models.Deck.is_there_top_card", return_value=False)
     @patch("Database.models.Deck.is_deck_empty", return_value=False)
     @patch("Database.models.Deck.get_player_by_name")
     @patch("Database.models.Deck.get_deck")
-    def test_pick_random_card(self, mock_get_deck, mock_get_player, mock_is_deck_empty):
+    def test_pick_random_card(self, mock_get_deck, mock_get_player, *args):
         mock_player = Mock()
         mock_deck = Mock()
         mock_player.cards = set()
@@ -188,6 +189,46 @@ class test_pick_random_card(TestCase):
         mock_get_deck.assert_called_once_with(mock_player.match.id)
         mock_deck.cards.random.assert_called_once_with(1)
         mock_deck.cards.remove.assert_called_once_with(mock_card)
+        assert mock_card in mock_player.cards
+        self.assertEqual(card_id, mock_card.id)
+
+    @patch("Database.models.Deck.is_there_top_card", return_value=True)
+    @patch("Database.models.Deck.is_deck_empty", return_value=False)
+    @patch("Database.models.Deck.pop_top_card", return_value=1)
+    @patch("Database.models.Deck.get_card_by_id")
+    @patch("Database.models.Deck.get_player_by_name")
+    @patch("Database.models.Deck.get_deck")
+    def test_pick_random_card_top(
+        self,
+        mock_get_deck,
+        mock_get_player,
+        mock_get_card,
+        mock_pop_top_card,
+        mock_is_deck_empty,
+        mock_is_there_top_card,
+    ):
+        mock_player = Mock()
+        mock_player.cards = set()
+
+        mock_deck = Mock()
+
+        mock_get_player.return_value = mock_player
+        mock_get_deck.return_value = mock_deck
+
+        mock_card = Mock()
+        mock_card.id = 1
+
+        mock_get_card.return_value = mock_card
+
+        card_id = pick_random_card("test_player")
+
+        mock_get_player.assert_called_once_with("test_player")
+        mock_get_deck.assert_not_called()
+        mock_deck.cards.random.assert_not_called()
+        mock_deck.cards.remove.assert_not_called()
+        mock_pop_top_card.assert_called_once_with(mock_player.match.id)
+        mock_is_deck_empty.assert_called_once_with(mock_player.match.id)
+        mock_is_there_top_card.assert_called_once_with(mock_player.match.id)
         assert mock_card in mock_player.cards
         self.assertEqual(card_id, mock_card.id)
 

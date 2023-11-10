@@ -22,6 +22,7 @@ class Match(db.Entity):
     clockwise = Optional(bool, default=True)
     current_player = Required(int, default=0)
     deck = Set("Deck")
+    top_card = Optional(int, default=None, nullable=True)
     game_state = Optional(int, default=0)
     played_card = Optional(int, default=None, nullable=True)
     turn_player = Optional(str, default=None, nullable=True)

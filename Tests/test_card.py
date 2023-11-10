@@ -630,7 +630,6 @@ async def test_vuelta_vuelta(mocker):
         for player in match.players:
             if player.name == player_name:
                 index = match.players.index(player)
-                print(index)
                 return match.players[(index + 1) % 4].name
 
     mocker.patch(
@@ -659,7 +658,7 @@ async def test_vuelta_vuelta(mocker):
 
     mocker.patch("Game.app_auxiliars.add_card_to_player", side_effect=_add_card_to)
     mocker.patch(
-        "Game.app_auxiliars.remove_card_from_player",
+        "Game.app_auxiliars.remove_player_card",
         side_effect=_remove_card_from_player,
     )
     mocker.patch("Game.app_auxiliars.is_lacosa", return_value=False)

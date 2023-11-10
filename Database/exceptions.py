@@ -51,3 +51,6 @@ class MatchNotStarted(DatabaseError):
 
 class InvalidPlayer(DatabaseError):
     pass
+
+class NoTopCard(DatabaseError):
+    pass

@@ -756,14 +756,6 @@ def add_card_to_player(player_name: str, card_id: int):
 
 
 @db_session
-def remove_card_from_player(player_name: str, card_id: int):
-    player = get_player_by_name(player_name)
-    card = Card.get(id=card_id)
-    player.cards.remove(card)
-    card.player.remove(player)
-
-
-@db_session
 def amount_discarded(match_id: int) -> int:
     match = _get_match(match_id)
     return match.amount_discarded
@@ -782,6 +774,12 @@ def reset_discarded(match_id: int):
 
 
 @db_session
+def reset_chat_record(match_id: int):
+    match = _get_match(match_id)
+    match.chat_record.clear()
+
+
+@db_session
 def save_log(match_id: int, log: str):
     match = _get_match(match_id)
     match.logs_record.append(log)
@@ -791,3 +789,28 @@ def save_log(match_id: int, log: str):
 def get_logs(match_id: int):
     match = _get_match(match_id)
     return match.logs_record
+
+
+@db_session
+def set_top_card(card_id: int, match_id: int):
+    match = _get_match(match_id)
+    match.top_card = card_id
+
+
+@db_session
+def is_there_top_card(match_id: int) -> bool:
+    match = _get_match(match_id)
+    return match.top_card is not None
+
+
+@db_session
+def pop_top_card(match_id: int) -> int:
+    match = _get_match(match_id)
+
+    if match.top_card is None:
+        raise NoTopCard("No hay carta en la cima")
+
+    card_id = match.top_card
+    match.top_card = None
+
+    return card_id
