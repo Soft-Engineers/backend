@@ -284,6 +284,8 @@ async def persist_played_card_data(player_name: str, card_id: int, target):
         raise InvalidCard("No puedes jugar una carta de defensa ahora")
     elif is_contagio(card_id):
         raise InvalidCard("No puedes jugar una carta " + card_name)
+    elif card_name != "Hacha" and isinstance(target, int):
+        raise InvalidCard("No puedes jugar " + card_name + " a un obstáculo")
 
     if requires_target(card_id):
         print(target)
@@ -806,11 +808,14 @@ def _check_hacha_target(player: str, target: str):
 
 def check_valid_obstacle(player: str, obstacle: int):
     match_id = get_player_match(player)
-    player_position = get_player_position(player)
-    if obstacle < 0 or obstacle > 11:
+    names = get_match_players_names(match_id)
+    if obstacle < 0 or obstacle > len(names) - 1:
         raise InvalidCard("Obstáculo no válido")
     if not exist_door_in_position(match_id, obstacle):
         raise InvalidCard("No existe un obstáculo en esa posición")
+    if not is_adjacent_to_obstacle(player, obstacle):
+        raise InvalidCard("Debes seleccionar un obstáculo adyacente")
+
 
 
 def check_valid_defense(player: str, defense_card: int):
