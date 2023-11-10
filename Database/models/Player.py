@@ -9,7 +9,7 @@ from Database.models.Card import *
 
 
 @db_session
-def create_player(new_player_name):
+def create_player(new_player_name: str):
     Player(player_name=new_player_name)
 
 

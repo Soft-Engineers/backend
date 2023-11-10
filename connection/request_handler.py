@@ -54,12 +54,7 @@ async def handle_request(request, match_id, player_name, websocket):
 # Define individual handler functions for each message type
 async def chat_handler(content, match_id, player_name):
     # Save chat message in database
-    msg = {
-        "author": player_name,
-        "message": content["message"],
-        "timestamp": time(),
-    }
-    save_chat_message(match_id, msg)
+    msg = gen_chat_message(match_id, player_name, content["message"])
     await manager.broadcast(CHAT_NOTIFICATION, msg, match_id)
 
 
