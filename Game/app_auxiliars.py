@@ -255,7 +255,7 @@ async def persist_played_card_data(player_name: str, card_id: int, target):
 
     set_played_card(match_id, card_id)
     set_turn_player(match_id, player_name)
-    if card_name == "Hacha":
+    if card_name == "Hacha" and isinstance(target, int):
         set_target_obstacle(match_id, target)
     elif not target == "" and not target is None:
         set_target_player(match_id, target)
