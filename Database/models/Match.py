@@ -651,6 +651,7 @@ def set_barred_door_between(player: str, target: str) -> None:
 def exist_door_between(player: str, target: str) -> bool:
     """Check if there's an obstacle (barred door or quarantine)
     between two adjacent players."""
+    print(get_intercalated_obstacles(get_player_match(player)))
     player_position = get_player_position(player)
     target_position = get_player_position(target)
     match = _get_match(get_player_match(player))
@@ -672,6 +673,44 @@ def exist_door_between(player: str, target: str) -> bool:
             player_position = (player_position - 1) % len(match.players)
     match.clockwise = clockwise
     return res
+
+
+
+@db_session
+def get_intercalated_obstacles(match_id: int) -> list:
+    match = _get_match(match_id)
+    intercalated_list = []
+    for i in range(len(match.obstacles)):
+        for player in match.players:
+            if player.position == i:
+                intercalated_list.append(player)
+        intercalated_list.append(match.obstacles[i])
+    return intercalated_list
+
+
+@db_session
+def exist_door_between_positions(match_id: int, position1: int, position2: int) -> bool:
+    """Check if there's an obstacle (barred door or quarantine)
+    between two adjacent positions."""
+    match = _get_match(match_id)
+    intercalated_list = get_intercalated_obstacles(match_id)
+    # Está a la derecha
+    if position2 > position1:
+        while position1 != position2:
+            if intercalated_list[position1+1]:
+                return True
+            elif intercalated_list[position1].is_alive:
+                return False
+            position1 = (position1 + 1) % len(match.players)
+    # Está a la izquierda
+    elif position2 < position1:
+        while position1 != position2:
+            if intercalated_list[position1].is_alive:
+                return False
+            elif intercalated_list[position1-1]:
+                return True
+            position1 = (position1 - 1) % len(match.players)
+    return False
 
 
 @db_session
@@ -803,6 +842,12 @@ def set_target_obstacle(match_id: int, position: int):
 def get_target_obstacle(match_id: int) -> int:
     match = _get_match(match_id)
     return match.target_obstacle
+
+
+@db_session
+def clear_target_obstacle(match_id: int):
+    match = _get_match(match_id)
+    match.target_obstacle = None
 
 
 @db_session
