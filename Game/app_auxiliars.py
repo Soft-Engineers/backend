@@ -809,11 +809,12 @@ def _check_hacha_target(player: str, target: str):
 def check_valid_obstacle(player: str, obstacle: int):
     match_id = get_player_match(player)
     names = get_match_players_names(match_id)
+    alive_players = get_alive_players(match_id)
     if obstacle < 0 or obstacle > len(names) - 1:
         raise InvalidCard("Obstáculo no válido")
     if not exist_door_in_position(match_id, obstacle):
         raise InvalidCard("No existe un obstáculo en esa posición")
-    if not is_adjacent_to_obstacle(player, obstacle):
+    if len(alive_players) != 2 and not is_adjacent_to_obstacle(player, obstacle):
         raise InvalidCard("Debes seleccionar un obstáculo adyacente")
 
 

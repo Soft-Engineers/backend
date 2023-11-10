@@ -599,6 +599,14 @@ def get_dead_players(match_id: int) -> list:
             dead_players.append(player.player_name)
     return dead_players
 
+@db_session
+def get_alive_players(match_id: int) -> list:
+    match = _get_match(match_id)
+    alive_players = []
+    for player in match.players:
+        if player.is_alive:
+            alive_players.append(player.player_name)
+    return alive_players
 
 @db_session
 def is_la_cosa_alive(match_id: int) -> bool:
@@ -670,50 +678,48 @@ def set_barred_door_between(player: str, target: str) -> None:
 
 
 @db_session
-def exist_door_between(player: str, target: str) -> bool:
-    """Check if there's an obstacle (barred door or quarantine)
-    between two adjacent players."""
+def _door_to_right(player: str, target: str) -> bool:
+    match = _get_match(get_player_match(player))
     player_position = get_player_position(player)
     target_position = get_player_position(target)
-    match = _get_match(get_player_match(player))
-    res = False
-    clockwise = match.clockwise
-    match.clockwise = False
-    # Está a la derecha
-    if target_position == get_next_player_position(match.id, player_position):
-        while player_position != target_position:
-            if match.obstacles[player_position]:
-                res = True
-            player_position = (player_position + 1) % len(match.players)
+    while player_position != target_position:
+        if match.obstacles[player_position]:
+            return player_position
+        player_position = (player_position + 1) % len(match.players)
+    return -1
 
-    # Está a la izquierda
-    elif target_position == get_previous_player_position(match.id, player_position):
-        while player_position != target_position:
-            if match.obstacles[player_position - 1]:
-                res = True
-            player_position = (player_position - 1) % len(match.players)
-    match.clockwise = clockwise
-    return res
+
+@db_session
+def _door_to_left(player: str, target: str) -> bool:
+    match = _get_match(get_player_match(player))
+    player_position = get_player_position(player)
+    target_position = get_player_position(target)
+    while player_position != target_position:
+        if match.obstacles[player_position - 1]:
+            return player_position-1
+        player_position = (player_position - 1) % len(match.players)
+    return -1
 
 
 @db_session
 def get_first_door_between(player: str, target: str) -> int:
     """Get the first door between two adjacent players."""
-    player_position = get_player_position(player)
     target_position = get_player_position(target)
     match = _get_match(get_player_match(player))
+    right_player = get_right_alive_player(match.id, player)
+    left_player = get_left_alive_player(match.id, player)
+    # Caso 2 jugadores
+    if right_player == left_player:
+        if match.clockwise:
+            return _door_to_left(player, target)
+        else:
+            return _door_to_right(player, target)
     # Está a la derecha
-    if target_position == get_player_position(get_right_alive_player(match.id, player)):
-        while player_position != target_position:
-            if match.obstacles[player_position]:
-                return player_position
-            player_position = (player_position + 1) % len(match.players)
+    if target_position == get_player_position(right_player):
+        return _door_to_right(player, target)
     # Está a la izquierda
-    elif target_position == get_player_position(get_left_alive_player(match.id, player)):
-        while player_position != target_position:
-            if match.obstacles[player_position - 1]:
-                return player_position-1
-            player_position = (player_position - 1) % len(match.players)
+    elif target_position == get_player_position(left_player):
+        return _door_to_left(player, target)
     return -1
 
 
@@ -725,6 +731,11 @@ def is_adjacent_to_obstacle(player: str, index: int) -> bool:
     elif index == get_first_door_between(player, get_left_alive_player(match.id, player)):
         return True
     return False
+
+
+@db_session
+def exist_door_between(player: str, target: str) -> bool:
+    return get_first_door_between(player, target) != -1
 
 
 @db_session
