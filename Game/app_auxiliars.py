@@ -43,7 +43,7 @@ def discard_card_msg(player_name: str, card_name: str):
     match_id = get_player_match(player_name)
     if is_in_quarantine(player_name):
         alert = "Cuarentena: " + player_name + " descartó " + card_name
-    elif last_played_card(get_player_match(player_name)) == "Olvidadizo":
+    elif last_played_card(match_id) == "Olvidadizo":
         alert = player_name + " descartó 3 cartas y robó 3 nuevas"
     elif last_played_card(match_id) == "Cita a ciegas":
         alert = player_name + " ha intercambiado una carta con el mazo"
@@ -183,13 +183,13 @@ async def discard_player_card(player_name: str, card_id: int):
         pick_not_panic_card(player_name)
         set_top_card(card_id, match_id)
         remove_player_card(player_name, card_id)
+    elif played_card == "Olvidadizo":
+        play_olvidadizo(player_name, card_id)
+        if amount_discarded(match_id) < 3:
+            return
+        reset_discarded(match_id)
     else:
         discard_card(player_name, card_id)
-        if last_played_card(match_id) == "Olvidadizo":
-            play_olvidadizo(player_name)
-            if amount_discarded(match_id) < 3:
-                return
-            reset_discarded(match_id)
 
     await manager.broadcast(
         PLAY_NOTIFICATION, discard_card_msg(player_name, card_name), match_id
@@ -438,8 +438,9 @@ def play_fallaste(player: str, card_id: int) -> bool:
     return True
 
 
-def play_olvidadizo(player: str):
+def play_olvidadizo(player: str, card_id: int):
     match_id = get_player_match(player)
+    discard_card(player, card_id)
     increase_discarded(match_id)
     if amount_discarded(match_id) == 3:
         for i in range(3):
