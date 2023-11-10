@@ -630,7 +630,6 @@ async def test_vuelta_vuelta(mocker):
         for player in match.players:
             if player.name == player_name:
                 index = match.players.index(player)
-                print(index)
                 return match.players[(index + 1) % 4].name
 
     mocker.patch(

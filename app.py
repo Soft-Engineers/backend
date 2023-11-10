@@ -97,12 +97,14 @@ async def _send_initial_state(match_id: int, player_name: str):
         CHAT_RECORD, get_chat_record(match_id), match_id, player_name
     )
 
+def _join_match_msg(player_name: str):
+    return player_name + " se ha unido a la partida"
 
 async def _send_greetings(match_id: int, player_name: str):
     players = get_match_players_names(match_id)
     players.remove(player_name)
 
-    msg_str = player_name + " se ha unido a la partida"
+    msg_str = _join_match_msg(player_name)
     msg = gen_msg_json("", msg_str)
 
     for player in players:

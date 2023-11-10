@@ -7,10 +7,34 @@ from Tests.auxiliar_functions import *
 from app import MAX_LEN_ALIAS
 from Game.app_auxiliars import *
 from Database.models.Match import _get_match
+from app import _send_greetings, _join_match_msg
 from time import time
 import json
+import pytest
 
 client = TestClient(app)
+
+
+class _WebStub:
+    def __init__(self):
+        super().__init__()
+        self.messages = []
+        self.accepted = False
+
+    async def accept(self):
+        self.accepted = True
+
+    async def send_message_to(self, msg, player_name, match_id):
+        self.messages.append(msg)
+
+    async def broadcast(self, type, msg, match_id):
+        self.messages.append(msg)
+
+    def buff_size(self):
+        return len(self.messages)
+
+    def get(self, index):
+        return self.messages[index]
 
 
 def test_match_listing():
@@ -600,6 +624,7 @@ class test_get_logs_record(TestCase):
         mock_get_match.assert_called_once_with(match.id)
         self.assertEqual(record, ["test_log1", "test_log2"])
 
+
 class test_set_top_card(TestCase):
     @patch("Database.models.Match._get_match")
     def test_set_top_card(self, mock_get_match):
@@ -665,3 +690,47 @@ class test_pop_top_card(TestCase):
             pop_top_card(match.id)
 
         mock_get_match.assert_called_once_with(match.id)
+
+
+@pytest.mark.asyncio
+async def test_send_greetings(mocker):
+    websocketStub1 = _WebStub()
+    websocketStub2 = _WebStub()
+
+    players = ["p1", "p2"]
+
+    mocker.patch("app.get_match_players_names", return_value=players.copy())
+
+    def _gen_msg(message_type: str, message_content):
+        return {
+            "message_type": message_type,
+            "message_content": message_content,
+        }
+
+    def _send_personal_message(
+        message_type: str, message_content, match_id: int, player_name: str
+    ):
+        msg = _gen_msg(message_type, message_content)
+        if player_name == players[0]:
+            websocketStub1.messages.append(msg)
+        elif player_name == players[1]:
+            websocketStub2.messages.append(msg)
+
+    mocker.patch(
+        "app.manager.send_personal_message", side_effect=_send_personal_message
+    )
+
+    await _send_greetings(1, players[0])
+
+    assert websocketStub1.buff_size() == 0
+    assert websocketStub2.buff_size() == 1
+
+    found = websocketStub2.get(0)
+    expected = _gen_msg(
+        CHAT_NOTIFICATION, gen_msg_json("", _join_match_msg(players[0]))
+    )
+
+    del found["message_content"]["timestamp"]
+    del expected["message_content"]["timestamp"]
+
+    assert found == expected
