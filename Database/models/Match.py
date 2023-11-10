@@ -694,7 +694,8 @@ def append_to_exchange_json(player: str, card_id: int) -> None:
 @db_session
 def all_players_selected(match_id: int) -> bool:
     match = _get_match(match_id)
-    return len(match.exchange_json) == match.players.count()
+    alive_players = match.players.filter(lambda p: p.is_alive)
+    return len(match.exchange_json) == alive_players.count()
 
 
 @db_session
