@@ -673,8 +673,11 @@ def set_barred_door_between(player: str, target: str) -> None:
         return
     if _are_border_cases(player_position, target_position, player_len):
         match.obstacles[-1] = True
-    else:
-        match.obstacles[min(player_position, target_position)] = True
+    elif get_right_alive_player(match_id, player) == target:
+        match.obstacles[player_position] = True
+    elif get_left_alive_player(match_id, player) == target:
+        match.obstacles[player_position-1] = True
+
 
 
 @db_session
@@ -696,7 +699,7 @@ def _door_to_left(player: str, target: str) -> bool:
     target_position = get_player_position(target)
     while player_position != target_position:
         if match.obstacles[player_position - 1]:
-            return player_position-1
+            return (player_position - 1) % len(match.players)
         player_position = (player_position - 1) % len(match.players)
     return -1
 
