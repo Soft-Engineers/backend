@@ -96,17 +96,22 @@ def end_player_turn(player_name: str):
 # ------- Chat logic --------
 
 
-def gen_chat_message(match_id: int, player_name: str, content: str):
-    
-    if db_is_match_initiated(get_match_name(match_id)) and not is_player_alive(
-        player_name
-    ):
-        raise InvalidPlayer("No puedes enviar mensajes si estás muerto")
+def gen_msg_json(player_name, content):
     msg = {
         "author": player_name,
         "message": content,
         "timestamp": time(),
     }
+
+    return msg
+
+
+def gen_chat_message(match_id: int, player_name: str, content: str):
+    if db_is_match_initiated(get_match_name(match_id)) and not is_player_alive(
+        player_name
+    ):
+        raise InvalidPlayer("No puedes enviar mensajes si estás muerto")
+    msg = gen_msg_json(player_name, content)
     save_chat_message(match_id, msg)
 
     return msg
@@ -185,7 +190,6 @@ async def discard_player_card(player_name: str, card_id: int):
             if amount_discarded(match_id) < 3:
                 return
             reset_discarded(match_id)
-
 
     await manager.broadcast(
         PLAY_NOTIFICATION, discard_card_msg(player_name, card_name), match_id

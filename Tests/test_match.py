@@ -179,6 +179,8 @@ def test_player_create_match_invalid_bounds_inconsistent():
 
 
 class test_join_game(TestCase):
+    @patch("app.get_match_id", return_value=1)
+    @patch("app._send_greetings")
     @patch("app.db_add_player")
     @patch("app.is_correct_password", return_value=True)
     @patch("app.db_is_match_initiated", return_value=False)

@@ -98,6 +98,19 @@ async def _send_initial_state(match_id: int, player_name: str):
     )
 
 
+async def _send_greetings(match_id: int, player_name: str):
+    players = get_match_players_names(match_id)
+    players.remove(player_name)
+
+    msg_str = player_name + " se ha unido a la partida"
+    msg = gen_msg_json("", msg_str)
+
+    for player in players:
+        await manager.send_personal_message(
+            CHAT_NOTIFICATION, msg, match_id, player
+        )
+
+
 async def _send_logs_record(match_id: int):
     await manager.broadcast(LOGS_RECORD, get_logs(match_id), match_id)
 
@@ -236,6 +249,7 @@ async def join_game(join_match: JoinMatch):
         else:
             db_add_player(join_match.player_name, join_match.match_name)
             response = {"detail": "ok"}
+            await _send_greetings(get_match_id(join_match.match_name), join_match.player_name)
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return response
