@@ -91,6 +91,26 @@ def end_player_turn(player_name: str):
     decrease_all_quarantines(match_id)
 
 
+# ------- Chat logic --------
+
+
+def gen_chat_message(match_id: int, player_name: str, content: str):
+    
+    if db_is_match_initiated(get_match_name(match_id)) and not is_player_alive(
+        player_name
+    ):
+        print("muerto")
+        raise InvalidPlayer("No puedes enviar mensajes si estás muerto")
+    msg = {
+        "author": player_name,
+        "message": content,
+        "timestamp": time(),
+    }
+    save_chat_message(match_id, msg)
+
+    return msg
+
+
 # ------- Pick Card logic --------
 
 
