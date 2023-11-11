@@ -35,26 +35,20 @@ class _WebStub:
 
 @pytest.mark.asyncio
 async def test_play_cambio_de_lugar(mocker):
-    websocketStub = _WebStub()
-
     player_name = "player"
     target_name = "target"
 
-    def _send_message_to(msg_type, msg, player_name):
-        websocketStub.messages.append({"msg": msg, "type": msg_type})
+    get_player_match = mocker.patch(
+        "Game.app_auxiliars.get_player_match", return_value=1
+    )
+    toggle_places = mocker.patch("Game.app_auxiliars.toggle_places")
+    assign_next_turn_to = mocker.patch("Game.app_auxiliars.assign_next_turn_to")
 
-    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_send_message_to)
-    mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
-    mocker.patch("Game.app_auxiliars.toggle_places")
+    play_cambio_de_lugar(player_name, target_name)
 
-    await play_cambio_de_lugar(player_name, target_name)
-
-    assert websocketStub.buff_size() == 2
-    assert websocketStub.get(0)["type"] == PLAY_NOTIFICATION
-    assert websocketStub.get(0)["msg"] == saltear_defensa_msg(target_name)
-
-    assert websocketStub.get(1)["type"] == PLAY_NOTIFICATION
-    assert websocketStub.get(1)["msg"] == cambio_lugar_msg(player_name, target_name)
+    get_player_match.assert_called_once_with(player_name)
+    toggle_places.assert_called_once_with(player_name, target_name)
+    assign_next_turn_to.assert_called_once_with(1, player_name)
 
 
 def _check_uno_dos_msg(websocketStub, sufix, player_name=""):
@@ -85,7 +79,7 @@ async def test_uno_dos_anulado_msg(mocker):
         False,
         False,
         False,  # Caso indefinido
-    ] 
+    ]
 
     def _send_message_to(msg_type, msg, player_name):
         websocketStub.messages.append({"msg": msg, "type": msg_type})

@@ -19,10 +19,6 @@ manager = ConnectionManager()
 # ------- Auxiliar functions for messages --------
 
 
-def saltear_defensa_msg(target_name):
-    return target_name + " no se defendió"
-
-
 def cambio_lugar_msg(player_name: str, target_name: str):
     return player_name + " cambió de lugar con " + target_name
 
@@ -265,7 +261,6 @@ async def _play_turn_card(
         elif _can_exchange(player_name, card_id):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
-            print("no puede defender, salto de turno")
             end_player_turn(player_name)
     else:
         assign_next_turn_to(match_id, target)
@@ -327,7 +322,7 @@ async def execute_card(match_id: int, def_card_id: int = None):
             play_lanzallamas(target_name)
     elif card_name in ["¡Cambio de Lugar!", "¡Más vale que corras!"]:
         if not def_card_name == "Aquí estoy bien":
-            await play_cambio_de_lugar(player_name, target_name)
+            play_cambio_de_lugar(player_name, target_name)
     elif card_name == "Vigila tus espaldas":
         await play_vigila_tus_espaldas(match_id)
     elif card_name in ["Whisky", "¡Ups!"]:
@@ -339,13 +334,14 @@ async def execute_card(match_id: int, def_card_id: int = None):
     elif card_name == "Análisis":
         await play_analisis(player_name, target_name)
     elif card_name == "Uno, dos..":
-        await play_uno_dos(player_name, target_name)
+        if not def_card_name == "Aquí estoy bien":
+            play_uno_dos(player_name, target_name)
     elif card_name == "¿Es aquí la fiesta?":
         await play_es_aqui_la_fiesta(player_name)
     elif card_name == "Tres, cuatro..":
         await play_tres_cuatro(match_id)
     elif card_name == "Cuerdas podridas":
-        await play_cuerdas_podridas(match_id)
+        play_cuerdas_podridas(match_id)
     elif card_name in ["Seducción", "¿No podemos ser amigos?"]:
         # No necesitan implementación
         pass
@@ -409,11 +405,9 @@ async def play_analisis(player_name: str, target_name: str):
     await show_player_cards_to(target_name, cards, [player_name])
 
 
-async def play_uno_dos(player_name: str, target_name: str):
+def play_uno_dos(player_name: str, target_name: str):
     if not is_in_quarantine(player_name) and not is_in_quarantine(target_name):
-        await play_cambio_de_lugar(player_name, target_name)
-    else:
-        await send_uno_dos_anulado_msg(player_name, target_name)
+        play_cambio_de_lugar(player_name, target_name)
 
 
 def _toggle_positions_in_pairs(players: list[str]):
@@ -435,49 +429,21 @@ async def play_es_aqui_la_fiesta(player_name: str):
 
     await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
 
-    await manager.broadcast(
-        PLAY_NOTIFICATION,
-        "Se eliminaron todos los obstaculos e intercambiaron las posiciones de los jugadores de a pares",
-        match_id,
-    )
-
 
 async def play_tres_cuatro(match_id: int):
     remove_all_barred_doors(match_id)
 
     await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
 
-    await manager.broadcast(
-        PLAY_NOTIFICATION,
-        "Se eliminaron todas las puertas atrancadas",
-        match_id,
-    )
 
-
-async def play_cuerdas_podridas(match_id: int):
+def play_cuerdas_podridas(match_id: int):
     revoke_all_quarantines(match_id)
 
-    await manager.broadcast(
-        PLAY_NOTIFICATION,
-        "Se finalizaron todas las cuarentenas",
-        match_id,
-    )
 
-
-async def play_cambio_de_lugar(player_name: str, target_name: str):
+def play_cambio_de_lugar(player_name: str, target_name: str):
     match_id = get_player_match(player_name)
     toggle_places(player_name, target_name)
     assign_next_turn_to(match_id, player_name)
-
-    await manager.broadcast(
-        PLAY_NOTIFICATION, saltear_defensa_msg(target_name), match_id
-    )
-
-    await manager.broadcast(
-        PLAY_NOTIFICATION,
-        cambio_lugar_msg(player_name, target_name),
-        match_id,
-    )
 
 
 async def play_sospecha(player_name: str, target_name: str):
@@ -576,8 +542,9 @@ async def skip_defense(player_name: str):
     else:
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
+    await manager.broadcast(PLAY_NOTIFICATION, target + " no se defendió", match_id)
+    
     if played_card_name == "Lanzallamas":
-        await manager.broadcast(PLAY_NOTIFICATION, target + " no se defendió", match_id)
         await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
 
 

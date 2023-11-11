@@ -119,9 +119,6 @@ class TestPlayCardMsgFunction(TestCase):
 
 
 class test_check_target_player(TestCase):
-
-    
-
     def setUp(self):
         self.card_name = patch(
             "Game.app_auxiliars.get_card_name", return_value="SomeCard"
@@ -428,52 +425,6 @@ async def test_play_analisis(mocker):
         "timestamp": t,
     }
     assert expected_msg == websocketStub.messages[0]
-
-
-@pytest.mark.asyncio
-async def test_play_cambio_de_lugar(mocker):
-    websocketStubP1 = _WebStub()
-    websocketStubP2 = _WebStub()
-
-    target = Mock()
-    target.name = "test_target"
-    target.position = 0
-
-    player = Mock()
-    player.name = "test_player"
-    target.position = 1
-
-    match = Mock()
-    match.id = 1
-
-    def _toggle_places(player_name, target_name):
-        assert (player_name == player.name and target_name == target.name) or (
-            player_name == target.name and target_name == player.name
-        )
-
-        target.position, player.position = player.position, target.position
-
-    def _broadcast(msg_type, msg, match_id):
-        assert msg_type == PLAY_NOTIFICATION
-        websocketStubP1.messages.append(msg)
-        websocketStubP2.messages.append(msg)
-        assert match_id == match.id
-
-    f1 = mocker.patch("Game.app_auxiliars.get_player_match", return_value=match.id)
-    f2 = mocker.patch("Game.app_auxiliars.toggle_places", side_effect=_toggle_places)
-    f3 = mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
-
-    await play_cambio_de_lugar(player.name, target.name)
-
-    f1.assert_called_once()
-    f2.assert_called_once()
-    assert f3.call_count == 2
-
-    assert websocketStubP1.get(0) == saltear_defensa_msg(target.name)
-    assert websocketStubP2.get(0) == saltear_defensa_msg(target.name)
-
-    assert websocketStubP1.get(1) == cambio_lugar_msg(player.name, target.name)
-    assert websocketStubP2.get(1) == cambio_lugar_msg(player.name, target.name)
 
 
 @pytest.mark.asyncio
