@@ -33,8 +33,7 @@ class _WebStub:
         self.messages = []
 
 
-@pytest.mark.asyncio
-async def test_play_cambio_de_lugar(mocker):
+def test_play_cambio_de_lugar(mocker):
     player_name = "player"
     target_name = "target"
 

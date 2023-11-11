@@ -864,7 +864,11 @@ def pop_top_card(match_id: int) -> int:
 def get_all_players_after(player_name: str) -> list:
     initial_player = get_player_by_name(player_name)
     players = [player_name]
-    match_id = initial_player.match.id
+    match = initial_player.match
+    match_id = match.id
+
+    DIRECTION = match.clockwise
+    match.clockwise = True
 
     next_player_pos = get_next_player_position(
         match_id,
@@ -876,4 +880,6 @@ def get_all_players_after(player_name: str) -> list:
         next_player_pos = get_next_player_position(match_id, next_player_pos)
         next_player_name = get_player_name_by_position(match_id, next_player_pos)
 
+    match.clockwise = DIRECTION
+    
     return players

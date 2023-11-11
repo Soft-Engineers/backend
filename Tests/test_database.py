@@ -1004,5 +1004,13 @@ class test_revoke_all_quarantines(TestCase):
         for player in match.players:
             self.assertEqual(player.in_quarantine, 0)
 
-#class test_get_all_players_after(TestCase):
+"""
+class test_get_all_players_after(TestCase):
 
+    @patch("Database.models.Match.get_next_player_position")
+    def test_get_all_players_after(self):
+        def _get_next_player_position(match_id, position):
+            return (position + 1) % 4
+
+
+"""
