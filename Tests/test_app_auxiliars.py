@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 from Game.app_auxiliars import *
 import random
 from time import time
-
+from Game.app_auxiliars import _toggle_positions_in_pairs
 
 class _WebStub:
     def __init__(self):
@@ -124,3 +124,27 @@ class test_gen_chat_message(TestCase):
         assert msg["author"] == player
         assert msg["message"] == content
         assert msg["timestamp"] <= time()
+
+
+class test_toggle_positions_in_pairs(TestCase):
+
+    @patch("Game.app_auxiliars.toggle_places")
+    def test_toggle_positions_in_pairs(self, mock_toggle_places: Mock):
+
+        players = ["p1", "p2", "p3", "p4"]
+
+        _toggle_positions_in_pairs(players)
+
+        self.assertEqual(mock_toggle_places.call_args_list[0].args, ("p1", "p2"))
+        self.assertEqual(mock_toggle_places.call_args_list[1].args, ("p3", "p4"))
+
+
+        players.append("p5")
+
+        _toggle_positions_in_pairs(players)
+
+        self.assertEqual(mock_toggle_places.call_args_list[2].args, ("p1", "p2"))
+        self.assertEqual(mock_toggle_places.call_args_list[3].args, ("p3", "p4"))
+        
+        self.assertEqual(mock_toggle_places.call_count, 4)
+
