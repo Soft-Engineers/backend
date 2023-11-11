@@ -945,7 +945,7 @@ class test_is_three_steps_from(TestCase):
         mock_get_previous_player_position.side_effect = _get_previous_player_position
         mock_get_player_position.side_effect = _get_player_position
         
-        # Inicio
+        # Inicial
         self.assertTrue(is_three_steps_from("p1", "p4"))
         self.assertTrue(is_three_steps_from("p1", "p3"))
         self.assertFalse(is_three_steps_from("p1", "p2"))
@@ -966,4 +966,43 @@ class test_is_three_steps_from(TestCase):
         self.assertFalse(is_three_steps_from("p5", "p5"))
         self.assertFalse(is_three_steps_from("p5", "p1"))
         
+
+class test_remove_all_barred_doors(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_remove_all_barred_doors(self, mock_get_match):
+
+        match = Mock()
+        match.obstacles = [True, True, False, True]
+        mock_get_match.return_value = match
+        
+        remove_all_barred_doors(1)
+        
+        self.assertEqual(match.obstacles, [False, False, False, False])
+
+class test_revoke_all_quarantines(TestCase):
+    
+    @patch("Database.models.Match._get_match")
+    def test_remove_all_quarantines(self, mock_get_match):
+
+        def gen_playeres_mock(names: list, in_quarantine: list):
+            players = set()
+            for i in range(len(names)):
+                player = Mock()
+                player.player_name = names[i]
+                player.in_quarantine = in_quarantine[i]
+                players.add(player)
+            return players
+
+        players = gen_playeres_mock(["p1", "p2", "p3", "p4"], [2, 0, 1, 0])
+
+        match = Mock()
+        match.players = players
+        mock_get_match.return_value = match
+
+        revoke_all_quarantines(1)
+
+        for player in match.players:
+            self.assertEqual(player.in_quarantine, 0)
+
+#class test_get_all_players_after(TestCase):
 
