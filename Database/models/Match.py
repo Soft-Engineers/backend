@@ -399,6 +399,12 @@ def _get_player_by_position(match_id: int, position: int) -> Player:
 
 
 @db_session
+def get_player_name_by_position(match_id: int, position: int) -> str:
+    match = _get_match(match_id)
+    return match.players.filter(lambda p: p.position == position).first().player_name
+
+
+@db_session
 def get_next_player_position(match_id: int, start: int) -> int:
     match = _get_match(match_id)
     current_player = start
@@ -669,6 +675,22 @@ def set_barred_door_between(player: str, target: str) -> None:
 
 
 @db_session
+def remove_all_barred_doors(match_id: int) -> None:
+    """Remove all obstacles from a match."""
+    match = _get_match(match_id)
+    for i in range(len(match.obstacles)):
+        match.obstacles[i] = False
+
+
+@db_session
+def revoke_all_quarantines(match_id: int) -> None:
+    """Revoke all quarentines from a match."""
+    match = _get_match(match_id)
+    for player in match.players:
+        player.in_quarantine = 0
+
+
+@db_session
 def exist_door_between(player: str, target: str) -> bool:
     """Check if there's an obstacle (barred door or quarantine)
     between two adjacent players."""
@@ -835,3 +857,22 @@ def pop_top_card(match_id: int) -> int:
     match.top_card = None
 
     return card_id
+
+
+@db_session
+def get_all_players_after(player_name: str) -> list:
+    initial_player = get_player_by_name(player_name)
+    players = [player_name]
+    match_id = initial_player.match.id
+
+    next_player_pos = get_next_player_position(
+        match_id,
+        initial_player.position,
+    )
+    next_player_name = get_player_name_by_position(match_id, next_player_pos)
+    while next_player_name != player_name:
+        players.append(next_player_name)
+        next_player_pos = get_next_player_position(match_id, next_player_pos)
+        next_player_name = get_player_name_by_position(match_id, next_player_pos)
+
+    return players

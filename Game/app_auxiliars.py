@@ -265,6 +265,7 @@ async def _play_turn_card(
         elif _can_exchange(player_name, card_id):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
+            print("no puede defender, salto de turno")
             end_player_turn(player_name)
     else:
         assign_next_turn_to(match_id, target)
@@ -339,6 +340,12 @@ async def execute_card(match_id: int, def_card_id: int = None):
         await play_analisis(player_name, target_name)
     elif card_name == "Uno, dos..":
         await play_uno_dos(player_name, target_name)
+    elif card_name == "¿Es aquí la fiesta?":
+        await play_es_aqui_la_fiesta(player_name)
+    elif card_name == "Tres, cuatro..":
+        await play_tres_cuatro(match_id)
+    elif card_name == "Cuerdas podridas":
+        await play_cuerdas_podridas(match_id)
     elif card_name in ["Seducción", "¿No podemos ser amigos?"]:
         # No necesitan implementación
         pass
@@ -409,9 +416,58 @@ async def play_uno_dos(player_name: str, target_name: str):
         await send_uno_dos_anulado_msg(player_name, target_name)
 
 
+def _toggle_positions_in_pairs(players: list[str]):
+    i = 0
+    while i + 1 < len(players):
+        toggle_places(players[i], players[i + 1])
+        i += 2
+
+
+async def play_es_aqui_la_fiesta(player_name: str):
+    match_id = get_player_match(player_name)
+
+    remove_all_barred_doors(match_id)
+    revoke_all_quarantines(match_id)
+
+    players = get_all_players_after(player_name)
+    _toggle_positions_in_pairs(players)
+    assign_next_turn_to(match_id, player_name)
+
+    await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
+
+    await manager.broadcast(
+        PLAY_NOTIFICATION,
+        "Se eliminaron todos los obstaculos e intercambiaron las posiciones de los jugadores de a pares",
+        match_id,
+    )
+
+
+async def play_tres_cuatro(match_id: int):
+    remove_all_barred_doors(match_id)
+
+    await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
+
+    await manager.broadcast(
+        PLAY_NOTIFICATION,
+        "Se eliminaron todas las puertas atrancadas",
+        match_id,
+    )
+
+
+async def play_cuerdas_podridas(match_id: int):
+    revoke_all_quarantines(match_id)
+
+    await manager.broadcast(
+        PLAY_NOTIFICATION,
+        "Se finalizaron todas las cuarentenas",
+        match_id,
+    )
+
+
 async def play_cambio_de_lugar(player_name: str, target_name: str):
     match_id = get_player_match(player_name)
     toggle_places(player_name, target_name)
+    assign_next_turn_to(match_id, player_name)
 
     await manager.broadcast(
         PLAY_NOTIFICATION, saltear_defensa_msg(target_name), match_id

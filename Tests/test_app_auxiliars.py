@@ -73,7 +73,7 @@ async def test_uno_dos_anulado_msg(mocker):
 
     player_name = "player"
     target_name = "target"
-    quarentine_cases = [
+    quarantine_cases = [
         True,
         True,  # Ambos cuarentena
         False,
@@ -92,7 +92,7 @@ async def test_uno_dos_anulado_msg(mocker):
 
     mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_send_message_to)
     mocker.patch("Game.app_auxiliars.get_player_match")
-    mocker.patch("Game.app_auxiliars.is_in_quarantine", side_effect=quarentine_cases)
+    mocker.patch("Game.app_auxiliars.is_in_quarantine", side_effect=quarantine_cases)
 
     await send_uno_dos_anulado_msg(player_name, target_name)
     _check_uno_dos_msg(websocketStub, "ambos jugadores están en cuarentena")
