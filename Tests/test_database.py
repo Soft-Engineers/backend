@@ -909,3 +909,61 @@ class test_discarded(TestCase):
         mock_get_match.return_value = match
         reset_discarded(1)
         self.assertEqual(match.amount_discarded, 0)
+
+
+class test_is_three_steps_from(TestCase):
+    @patch("Database.models.Match.get_player_position")
+    @patch("Database.models.Match.get_previous_player_position")
+    @patch("Database.models.Match.get_next_player_position")
+    @patch("Database.models.Match.get_player_match", return_value=1)
+    def test_is_three_steps_from(
+        self,
+        mock_get_player_match,
+        mock_get_next_player_position,
+        mock_get_previous_player_position,
+        mock_get_player_position,
+    ):
+
+        positions = {
+            "p1": 0,
+            "p2": 1,
+            "p3": 2,
+            "p4": 3,
+            "p5": 4,
+        }
+
+        def _get_next_player_position(match_id, position):
+            return (position + 1) % 5
+
+        def _get_previous_player_position(match_id, position):
+            return (position - 1) % 5
+
+        def _get_player_position(player_name):
+            return positions[player_name]
+
+        mock_get_next_player_position.side_effect = _get_next_player_position
+        mock_get_previous_player_position.side_effect = _get_previous_player_position
+        mock_get_player_position.side_effect = _get_player_position
+        
+        # Inicio
+        self.assertTrue(is_three_steps_from("p1", "p4"))
+        self.assertTrue(is_three_steps_from("p1", "p3"))
+        self.assertFalse(is_three_steps_from("p1", "p2"))
+        self.assertFalse(is_three_steps_from("p1", "p5"))
+        self.assertFalse(is_three_steps_from("p1", "p1"))
+
+        # Intermedio
+        self.assertTrue(is_three_steps_from("p3", "p5"))
+        self.assertTrue(is_three_steps_from("p3", "p1"))
+        self.assertFalse(is_three_steps_from("p3", "p4"))
+        self.assertFalse(is_three_steps_from("p3", "p2"))
+        self.assertFalse(is_three_steps_from("p3", "p3"))
+
+        # Final
+        self.assertTrue(is_three_steps_from("p5", "p3"))
+        self.assertTrue(is_three_steps_from("p5", "p2"))
+        self.assertFalse(is_three_steps_from("p5", "p4"))
+        self.assertFalse(is_three_steps_from("p5", "p5"))
+        self.assertFalse(is_three_steps_from("p5", "p1"))
+        
+
