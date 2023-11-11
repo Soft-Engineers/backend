@@ -35,6 +35,47 @@ class _WebStub:
         return self.messages[index]
 
 
+class TestPlayUnoDos(TestCase):
+    def setUp(self):
+        self.player_name = "PlayerA"
+        self.target_name = "PlayerB"
+        self.mock_is_in_quarantine = patch(
+            "Game.app_auxiliars.is_in_quarantine"
+        ).start()
+        self.mock_play_cambio_de_lugar = patch(
+            "Game.app_auxiliars.play_cambio_de_lugar"
+        ).start()
+
+    def tearDown(self):
+        patch.stopall()
+
+    def test_play_uno_dos_qC(self):
+        self.mock_is_in_quarantine.side_effect = lambda p: p == self.player_name
+
+        play_uno_dos(self.player_name, self.target_name)
+        self.mock_play_cambio_de_lugar.assert_not_called()
+
+    def test_play_uno_dos_qT(self):
+        self.mock_is_in_quarantine.side_effect = lambda p: p == self.target_name
+
+        play_uno_dos(self.player_name, self.target_name)
+        self.mock_play_cambio_de_lugar.assert_not_called()
+
+    def test_play_uno_dos_bothT(self):
+        self.mock_is_in_quarantine.return_value = True
+
+        play_uno_dos(self.player_name, self.target_name)
+        self.mock_play_cambio_de_lugar.assert_not_called()
+
+    def test_play_uno_dos_bothF(self):
+        self.mock_is_in_quarantine.return_value = False
+
+        play_uno_dos(self.player_name, self.target_name)
+        self.mock_play_cambio_de_lugar.assert_called_once_with(
+            self.player_name, self.target_name
+        )
+
+
 @pytest.mark.asyncio
 async def test_pickup_card(mocker):
     websocketStub = _WebStub()
