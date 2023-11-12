@@ -101,12 +101,12 @@ def end_player_turn(player_name: str):
 
     if is_there_position_exchange_victim(match_id):
         assign_next_turn_to(match_id, get_position_exchange_victim(match_id))
+        clean_position_exchange_victim(match_id)
     else:
         set_next_turn(match_id)
     clean_played_card_data(match_id)
     clear_exchange(match_id)
     clear_target_obstacle(match_id)
-    clean_position_exchange_victim(match_id)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
     decrease_all_quarantines(match_id)
 
