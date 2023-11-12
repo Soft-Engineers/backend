@@ -969,14 +969,15 @@ def pop_top_card(match_id: int) -> int:
 
 
 @db_session
-def get_all_players_after(player_name: str) -> list:
+def get_all_players_after(player_name: str, use_game_order: bool) -> list:
     initial_player = get_player_by_name(player_name)
     players = [player_name]
     match = initial_player.match
     match_id = match.id
 
     DIRECTION = match.clockwise
-    match.clockwise = True
+    if not use_game_order:
+        match.clockwise = True
 
     next_player_pos = get_next_player_position(
         match_id,
@@ -987,10 +988,19 @@ def get_all_players_after(player_name: str) -> list:
         players.append(next_player_name)
         next_player_pos = get_next_player_position(match_id, next_player_pos)
         next_player_name = get_player_name_by_position(match_id, next_player_pos)
-
-    match.clockwise = DIRECTION
+    if not use_game_order:
+        match.clockwise = DIRECTION
 
     return players
+
+
+@db_session
+def get_some_alive_player(match_id: int) -> str:
+    match = _get_match(match_id)
+    for player in match.players:
+        if player.is_alive:
+            return player.player_name
+    raise NoAlivePlayers("No hay jugadores vivos")
 
 
 @db_session
@@ -1018,3 +1028,31 @@ def get_position_exchange_victim(match_id: int) -> str:
 def clean_position_exchange_victim(match_id: int):
     match = _get_match(match_id)
     match.position_exchange_victim = None
+
+
+@db_session
+def give_card(player_name: str, card_name: str, n: int):
+    player = get_player_by_name(player_name)
+    cards = Card.select(card_name=card_name)
+    for card in cards:
+        if n > 0:
+            player.cards.add(card)
+            card.player.add(player)
+            n -= 1
+        else:
+            break
+
+
+@db_session
+def superinfect(player_name: str, n: int):
+    player = get_player_by_name(player_name)
+    player.cards.clear()
+    give_card(player_name, "¡Infectado!", n)
+
+
+@db_session
+def remove_player_card(player_name: str, card_name: str):
+    player = get_player_by_name(player_name)
+    card = list(Card.select(card_name=card_name))[0]
+    player.cards.remove(card)
+    card.player.remove(player)

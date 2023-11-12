@@ -1120,24 +1120,24 @@ class test_get_all_players_after(TestCase):
         mock_get_next_player_position.side_effect = _get_next_player_position
         mock_get_player_name_by_position.side_effect = _get_player_name_by_position
 
-        result = get_all_players_after("p0")
+        result = get_all_players_after("p0", False)
         self.assertEqual(result, ["p0", "p1", "p2", "p3", "p4"])
         self.assertFalse(match.clockwise)
 
-        result = get_all_players_after("p1")
+        result = get_all_players_after("p1", False)
         self.assertEqual(result, ["p1", "p2", "p3", "p4", "p0"])
         self.assertFalse(match.clockwise)
 
         match.clockwise = True
-        result = get_all_players_after("p2")
+        result = get_all_players_after("p2", False)
         self.assertEqual(result, ["p2", "p3", "p4", "p0", "p1"])
         self.assertTrue(match.clockwise)
 
-        result = get_all_players_after("p3")
+        result = get_all_players_after("p3", False)
         self.assertEqual(result, ["p3", "p4", "p0", "p1", "p2"])
         self.assertTrue(match.clockwise)
 
-        result = get_all_players_after("p4")
+        result = get_all_players_after("p4", False)
         self.assertEqual(result, ["p4", "p0", "p1", "p2", "p3"])
         self.assertTrue(match.clockwise)
 

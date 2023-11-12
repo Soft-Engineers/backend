@@ -57,3 +57,6 @@ class NoTopCard(DatabaseError):
 
 class NoPositionExchangeVictim(DatabaseError):
     pass
+
+class NoAlivePlayers(DatabaseError):
+    pass
