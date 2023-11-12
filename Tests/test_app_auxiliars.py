@@ -42,13 +42,14 @@ def test_play_cambio_de_lugar(mocker):
     )
     toggle_places = mocker.patch("Game.app_auxiliars.toggle_places")
     assign_next_turn_to = mocker.patch("Game.app_auxiliars.assign_next_turn_to")
+    set_position_exchange_victim = mocker.patch("Game.app_auxiliars.set_position_exchange_victim")
 
     play_cambio_de_lugar(player_name, target_name)
 
     get_player_match.assert_called_once_with(player_name)
     toggle_places.assert_called_once_with(player_name, target_name)
     assign_next_turn_to.assert_called_once_with(1, player_name)
-
+    set_position_exchange_victim.assert_called_once_with(1, target_name)
 
 def _check_uno_dos_msg(websocketStub, sufix, player_name=""):
     assert websocketStub.buff_size() == 1
@@ -145,6 +146,6 @@ class test_toggle_positions_in_pairs(TestCase):
 
         self.assertEqual(mock_toggle_places.call_args_list[2].args, ("p1", "p2"))
         self.assertEqual(mock_toggle_places.call_args_list[3].args, ("p3", "p4"))
-        
+
         self.assertEqual(mock_toggle_places.call_count, 4)
 

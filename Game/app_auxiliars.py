@@ -95,9 +95,14 @@ async def _send_exchange_notification(player1, target, card1, card2):
 def end_player_turn(player_name: str):
     """Clean turn data and set next turn"""
     match_id = get_player_match(player_name)
-    set_next_turn(match_id)
+    
+    if is_there_position_exchange_victim(match_id):
+        assign_next_turn_to(match_id, get_position_exchange_victim(match_id))
+    else:
+        set_next_turn(match_id)
     clean_played_card_data(match_id)
     clear_exchange(match_id)
+    clean_position_exchange_victim(match_id)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
     decrease_all_quarantines(match_id)
 
@@ -252,12 +257,10 @@ async def _play_turn_card(
         await execute_card(match_id=match_id)
         if card_name == "Vuelta y vuelta":
             set_game_state(match_id, GAME_STATE["VUELTA_Y_VUELTA"])
-        elif card_name == "Olvidadizo":
+        elif card_name in ["Olvidadizo", "Cita a ciegas"]:
             set_game_state(match_id, GAME_STATE["DISCARD"])
         elif card_name == "Revelaciones":
             set_game_state(match_id, GAME_STATE["REVELACIONES"])
-        elif card_name == "Cita a ciegas":
-            set_game_state(match_id, GAME_STATE["DISCARD"])
         elif _can_exchange(player_name, card_id):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
@@ -444,6 +447,8 @@ def play_cambio_de_lugar(player_name: str, target_name: str):
     match_id = get_player_match(player_name)
     toggle_places(player_name, target_name)
     assign_next_turn_to(match_id, player_name)
+
+    set_position_exchange_victim(match_id, target_name)
 
 
 async def play_sospecha(player_name: str, target_name: str):

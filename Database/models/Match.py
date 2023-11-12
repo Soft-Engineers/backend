@@ -883,3 +883,28 @@ def get_all_players_after(player_name: str) -> list:
     match.clockwise = DIRECTION
     
     return players
+
+
+@db_session
+def set_position_exchange_victim(match_id: int, player_name: str):
+    match = _get_match(match_id)
+    match.position_exchange_victim = player_name
+
+@db_session
+def is_there_position_exchange_victim(match_id: int) -> bool:
+    match = _get_match(match_id)
+    return match.position_exchange_victim is not None
+
+@db_session
+def get_position_exchange_victim(match_id: int) -> str:
+    match = _get_match(match_id)
+    victim = match.position_exchange_victim
+    if victim is None:
+        raise NoPositionExchangeVictim("No hay víctima de intercambio de posición")
+    return victim
+
+@db_session
+def clean_position_exchange_victim(match_id: int):
+    match = _get_match(match_id)
+    match.position_exchange_victim = None
+

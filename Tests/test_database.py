@@ -1075,3 +1075,67 @@ class test_assign_next_turn_to(TestCase):
         assign_next_turn_to(match.id, player.player_name)
 
         self.assertEqual(match.current_player, 1)
+
+
+class test_set_position_exchange_victim(TestCase):
+
+    @patch("Database.models.Match._get_match")
+    def test_set_position_exchange_victim(self, mock_get_match):
+        
+        player_name = "test_player"
+        
+        match = Mock()
+        mock_get_match.return_value = match
+
+        set_position_exchange_victim(match, player_name)
+
+        self.assertEqual(match.position_exchange_victim, player_name)
+
+class test_is_there_position_exchange_victim(TestCase):
+
+    @patch("Database.models.Match._get_match")
+    def test_is_there_position_exchange_victim(self, mock_get_match):
+        match = Mock()
+        match.position_exchange_victim = "test_player"
+        mock_get_match.return_value = match
+
+        self.assertTrue(is_there_position_exchange_victim(match.id))
+
+    @patch("Database.models.Match._get_match")
+    def test_is_there_position_exchange_victim(self, mock_get_match):
+        match = Mock()
+        match.position_exchange_victim = None
+        mock_get_match.return_value = match
+
+        self.assertFalse(is_there_position_exchange_victim(match.id))
+
+class test_get_position_exchange_victim(TestCase):
+
+    @patch("Database.models.Match._get_match")
+    def test_get_position_exchange_victim(self, mock_get_match):
+        match = Mock()
+        match.position_exchange_victim = "test_player"
+        mock_get_match.return_value = match
+
+        self.assertEqual(get_position_exchange_victim(match.id), "test_player")
+
+    @patch("Database.models.Match._get_match")
+    def test_get_position_exchange_victim(self, mock_get_match):
+        match = Mock()
+        match.position_exchange_victim = None
+        mock_get_match.return_value = match
+
+        with self.assertRaises(NoPositionExchangeVictim):
+            get_position_exchange_victim(match.id)
+
+class test_clean_position_exchange_victim(TestCase):
+
+    @patch("Database.models.Match._get_match")
+    def test_clean_position_exchange_victim(self, mock_get_match):
+        match = Mock()
+        match.position_exchange_victim = "test_player"
+        mock_get_match.return_value = match
+
+        clean_position_exchange_victim(match.id)
+
+        self.assertEqual(match.position_exchange_victim, None)

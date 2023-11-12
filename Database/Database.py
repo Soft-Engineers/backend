@@ -29,6 +29,7 @@ class Match(db.Entity):
     target_player = Optional(str, default=None, nullable=True)
     exchange_card = Optional(int, default=None, nullable=True)
     exchange_player = Optional(str, default=None, nullable=True)
+    position_exchange_victim = Optional(str, default=None, nullable=True)
     last_infected = Optional(str, default=None, nullable=True)
     obstacles = Optional(IntArray, default=[])
     exchange_json = Optional(Json, default={})
