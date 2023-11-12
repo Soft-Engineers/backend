@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, AsyncMock
 from unittest import TestCase
 from Database.Database import *
 from app import *
@@ -8,6 +8,33 @@ from Database.models.Match import _get_match
 from connection.request_handler import *
 import pytest
 from connection.connections import *
+
+
+class _WebStub:
+    def __init__(self):
+        super().__init__()
+        self.messages = []
+        self.accepted = False
+
+    async def accept(self):
+        self.accepted = True
+
+    async def send_message_to(self, type, msg, player_name):
+        self.messages.append(msg)
+
+    async def broadcast(self, type, msg, match_id):
+        self.messages.append(msg)
+
+    def buff_size(self):
+        return len(self.messages)
+
+    def get(self, index):
+        return self.messages[index]
+
+    def reset(self):
+        self.messages = []
+
+socket = _WebStub()
 
 
 class test_parse_request(TestCase):
@@ -111,14 +138,6 @@ async def test_handle_request_skip_defense(mocker):
 
 
 @pytest.mark.asyncio
-async def test_handle_request_leave_match(mocker):
-    mocker.patch("connection.request_handler.parse_request", return_value=(LEAVE_MATCH, {}))
-    mocker.patch("connection.request_handler.leave_match_handler")
-    await handle_request("request", "match_id", "player_name", "websocket")
-    assert True
-
-
-@pytest.mark.asyncio
 async def test_handle_request_exchange_card(mocker):
     mocker.patch("connection.request_handler.parse_request", return_value=(EXCHANGE_CARD, {"card_id": 1}))
     mocker.patch("connection.request_handler.exchange_card_handler")
@@ -158,6 +177,66 @@ async def test_declaration_handler_invalid(mocker):
     set_win.assert_called_once_with("match_id", "Declaración incorrecta")
 
 
+@pytest.mark.asyncio
+async def test_pickup_card_handler(mocker):
+    mocker.patch("connection.request_handler.pickup_card")
+    mocker.patch("connection.request_handler.manager.send_message_to", side_effect=socket.send_message_to)
+    get_player_hand = mocker.patch("connection.request_handler.get_player_hand")
+    get_player_hand.return_value = ["card1", "card2", "card3", "card4"]
+    await pickup_card_handler(None, None, "player_name")
+    get_player_hand.assert_called_once_with("player_name")
+    assert socket.get(0) == ["card1", "card2", "card3", "card4"]
+    socket.reset()
 
 
+@pytest.mark.asyncio
+async def test_play_card_handler(mocker):
+    mocker.patch("connection.request_handler.play_card")
+    mocker.patch("connection.request_handler.manager.send_message_to", side_effect=socket.send_message_to)
+    get_player_hand = mocker.patch("connection.request_handler.get_player_hand")
+    get_player_hand.return_value = ["card1", "card2", "card3", "card4"]
+    await play_card_handler({"card_id": 1, "target": "target"}, None, "player_name")
+    get_player_hand.assert_called_once_with("player_name")
+    assert socket.get(0) == ["card1", "card2", "card3", "card4"]
+    socket.reset()
+
+
+@pytest.mark.asyncio
+async def test_discard_card_handler(mocker):
+    mocker.patch("connection.request_handler.discard_player_card")
+    mocker.patch("connection.request_handler.manager.send_message_to", side_effect=socket.send_message_to)
+    get_player_hand = mocker.patch("connection.request_handler.get_player_hand")
+    get_player_hand.return_value = ["card1", "card2", "card3", "card4"]
+    await discard_card_handler({"card_id": 1}, None, "player_name")
+    get_player_hand.assert_called_once_with("player_name")
+    assert socket.get(0) == ["card1", "card2", "card3", "card4"]
+    socket.reset()
+
+
+@pytest.mark.asyncio
+async def test_skip_defense_handler(mocker):
+    mocker.patch("connection.request_handler.skip_defense")
+    mocker.patch("connection.request_handler.manager.send_message_to", side_effect=socket.send_message_to)
+    get_player_hand = mocker.patch("connection.request_handler.get_player_hand")
+    get_player_hand.return_value = ["card1", "card2", "card3", "card4"]
+    await skip_defense_handler(None, None, "player_name")
+    get_player_hand.assert_called_once_with("player_name")
+    assert socket.get(0) == ["card1", "card2", "card3", "card4"]
+    socket.reset()
+
+
+@pytest.mark.asyncio
+async def test_exchange_card_handler(mocker):
+    exchange_handler = mocker.patch("connection.request_handler.exchange_handler")
+    await exchange_card_handler({"card_id": 1}, None, "player_name")
+    exchange_handler.assert_called_once_with("player_name", 1)
     
+
+@pytest.mark.asyncio
+async def test_play_revelaciones_handler(mocker):
+    play_revelaciones = mocker.patch("connection.request_handler.play_revelaciones")
+    await play_revelaciones_handler({"decision": "decision"}, None, "player_name")
+    play_revelaciones.assert_called_once_with("player_name", "decision")
+
+
+
