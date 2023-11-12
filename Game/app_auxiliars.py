@@ -316,7 +316,7 @@ async def persist_played_card_data(player_name: str, card_id: int, target):
 
 
 async def execute_card(match_id: int, def_card_id: int = None):
-    card_name = get_card_name(get_played_card(match_id))
+    card_name = last_played_card(match_id)
     player_name = get_turn_player(match_id)
     target_name = get_target_player(match_id)
     obstacle = get_target_obstacle(match_id)

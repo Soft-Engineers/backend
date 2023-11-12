@@ -10,9 +10,8 @@ from Game.app_auxiliars import (
     _toggle_positions_in_pairs,
     _check_hacha_target,
     _send_exchange_notification,
-    _play_turn_card,
-    _play_defense_card,
-    _play_exchange_defense_card,
+    _initiate_exchange,
+    _execute_exchange,
 )
 
 
@@ -622,3 +621,355 @@ async def test_play_card(mocker):
     with pytest.raises(GameException) as e:
         await play_card("player", "SomeCard", "target")
         assert str(e.value) == "No puedes jugar carta en este momento"
+
+
+"""
+@pytest.mark.asyncio
+async def test_execute_card(mocker):
+    card_id = 20
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Lanzallamas")
+    mocker.patch("Game.app_auxiliars.get_turn_player", return_value="player")
+    mocker.patch("Game.app_auxiliars.get_target_player", return_value="target")
+    mocker.patch("Game.app_auxiliars.get_target_obstacle", return_value=1)
+    mocker.patch("Game.app_auxiliars.is_la_cosa_alive", return_value=False)
+    mocker.patch("Game.app_auxiliars.set_win")
+
+
+    play_lanzallamas = mocker.patch("Game.app_auxiliars.play_lanzallamas")
+    await execute_card(1, None)
+    play_lanzallamas.assert_called_once_with("target")
+
+    play_lanzallamas.reset_mock()
+    mocker.patch("Game.app_auxiliars.get_card_name", return_value="¡Nada de barbacoas!")
+    await execute_card(1, card_id)
+    play_lanzallamas.assert_not_called()
+
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="¡Cambio de Lugar!")
+    play_cambio_lugar = mocker.patch("Game.app_auxiliars.play_cambio_de_lugar")
+    await execute_card(1, card_id)
+    play_cambio_lugar.assert_called_once_with("player", "target")
+
+    play_cambio_lugar.reset_mock()
+    mocker.patch("Game.app_auxiliars.get_card_name", return_value="Aquí estoy bien")
+    await execute_card(1, card_id)
+    play_cambio_lugar.assert_not_called()
+"""
+
+
+@pytest.mark.asyncio
+async def test_execute_card(mocker):
+    # Mocking necessary functions and values
+    card_id = 20
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Lanzallamas")
+    mocker.patch("Game.app_auxiliars.get_turn_player", return_value="player")
+    mocker.patch("Game.app_auxiliars.get_target_player", return_value="target")
+    mocker.patch("Game.app_auxiliars.get_target_obstacle", return_value=1)
+    mocker.patch("Game.app_auxiliars.is_la_cosa_alive", return_value=False)
+    mocker.patch("Game.app_auxiliars.set_win")
+
+    # Mock play functions
+    play_lanzallamas = mocker.patch("Game.app_auxiliars.play_lanzallamas")
+    play_cambio_lugar = mocker.patch("Game.app_auxiliars.play_cambio_de_lugar")
+    play_whisky = mocker.patch("Game.app_auxiliars.play_whisky")
+    play_vigila_tus_espaldas = mocker.patch(
+        "Game.app_auxiliars.play_vigila_tus_espaldas"
+    )
+    play_que_quede_entre_nosotros = mocker.patch(
+        "Game.app_auxiliars.play_que_quede_entre_nosotros"
+    )
+    play_sospecha = mocker.patch("Game.app_auxiliars.play_sospecha")
+    play_analisis = mocker.patch("Game.app_auxiliars.play_analisis")
+    play_uno_dos = mocker.patch("Game.app_auxiliars.play_uno_dos")
+    play_es_aqui_la_fiesta = mocker.patch("Game.app_auxiliars.play_es_aqui_la_fiesta")
+    play_tres_cuatro = mocker.patch("Game.app_auxiliars.play_tres_cuatro")
+    play_cuerdas_podridas = mocker.patch("Game.app_auxiliars.play_cuerdas_podridas")
+    play_puerta_atrancada = mocker.patch("Game.app_auxiliars.play_puerta_atrancada")
+    play_cuarentena = mocker.patch("Game.app_auxiliars.play_cuarentena")
+    play_hacha = mocker.patch("Game.app_auxiliars.play_hacha")
+
+    # ... mock other play functions as needed
+
+    # Test with 'Lanzallamas' card
+    await execute_card(1, None)
+    play_lanzallamas.assert_called_once_with("target")
+    play_lanzallamas.reset_mock()
+
+    # Test 'Lanzallamas' card with defensive card '¡Nada de barbacoas!'
+    mocker.patch("Game.app_auxiliars.get_card_name", return_value="¡Nada de barbacoas!")
+    await execute_card(1, card_id)
+    play_lanzallamas.assert_not_called()
+
+    # Test '¡Cambio de Lugar!' card
+    mocker.patch(
+        "Game.app_auxiliars.last_played_card", return_value="¡Cambio de Lugar!"
+    )
+    await execute_card(1, card_id)
+    play_cambio_lugar.assert_called_once_with("player", "target")
+    play_cambio_lugar.reset_mock()
+
+    # Test '¡Cambio de Lugar!' card with defensive card 'Aquí estoy bien'
+    mocker.patch("Game.app_auxiliars.get_card_name", return_value="Aquí estoy bien")
+    await execute_card(1, card_id)
+    play_cambio_lugar.assert_not_called()
+
+    # Test 'Whisky' card
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Whisky")
+    await execute_card(1, card_id)
+    play_whisky.assert_awaited_once_with("player")
+    play_whisky.reset_mock()
+
+    # Test 'Que quede entre nosotros...' card
+    mocker.patch(
+        "Game.app_auxiliars.last_played_card",
+        return_value="Que quede entre nosotros...",
+    )
+    await execute_card(1, card_id)
+    play_que_quede_entre_nosotros.assert_awaited_once_with("player", "target")
+    play_que_quede_entre_nosotros.reset_mock()
+
+    # Test 'Sospecha' card
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Sospecha")
+    await execute_card(1, card_id)
+    play_sospecha.assert_awaited_once_with("player", "target")
+    play_sospecha.reset_mock()
+
+    # Test 'Análisis' card
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Análisis")
+    await execute_card(1, card_id)
+    play_analisis.assert_awaited_once_with("player", "target")
+    play_analisis.reset_mock()
+
+    # Test 'Uno, dos..' card with defensive card '¡Es aquí la fiesta!'
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Uno, dos..")
+    await execute_card(1, card_id)
+    play_uno_dos.assert_not_called()
+
+    # Test 'Uno, dos..' card
+    mocker.patch("Game.app_auxiliars.get_card_name", return_value="SomeCard")
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Uno, dos..")
+    await execute_card(1, card_id)
+    play_uno_dos.assert_called_once_with("player", "target")
+    play_uno_dos.reset_mock()
+
+    # Test '¿Es aquí la fiesta?' card
+    mocker.patch(
+        "Game.app_auxiliars.last_played_card", return_value="¿Es aquí la fiesta?"
+    )
+    await execute_card(1, card_id)
+    play_es_aqui_la_fiesta.assert_awaited_once_with("player")
+    play_es_aqui_la_fiesta.reset_mock()
+
+    # Test 'Tres, cuatro...' card
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Tres, cuatro..")
+    await execute_card(1, card_id)
+    play_tres_cuatro.assert_awaited_once_with(1)
+    play_tres_cuatro.reset_mock()
+
+    # Test 'Cuerdas podridas' card
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Cuerdas podridas")
+    await execute_card(1, card_id)
+    play_cuerdas_podridas.assert_called_once_with(1)
+    play_cuerdas_podridas.reset_mock()
+
+    # Test 'Puerta atrancada' card
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Puerta atrancada")
+    await execute_card(1, card_id)
+    play_puerta_atrancada.assert_awaited_once_with("player", "target")
+    play_puerta_atrancada.reset_mock()
+
+    # Test 'Cuarentena' card
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Cuarentena")
+    await execute_card(1, card_id)
+    play_cuarentena.assert_called_once_with("target")
+    play_cuarentena.reset_mock()
+
+    # Test 'Hacha' card
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Hacha")
+    await execute_card(1, card_id)
+    play_hacha.assert_called_once_with(1, 1)
+    play_hacha.reset_mock()
+
+
+@pytest.mark.asyncio
+async def test_show_player_cards_to(mocker):
+    socket.reset()
+    player = "player"
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
+    mocker.patch("Game.app_auxiliars.set_stamp")
+    mocker.patch("Game.app_auxiliars.get_stamp", return_value=1)
+    mocker.patch(
+        "Game.app_auxiliars.manager.send_message_to", side_effect=socket.send_message_to
+    )
+    mocker.patch("Game.app_auxiliars.get_turn_player", return_value=player)
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="SomeCard")
+
+    cards = ["Card1", "Card2"]
+    await show_player_cards_to(player, cards, ["target"])
+
+    expected_msg = {
+        "cards": cards,
+        "cards_owner": player,
+        "trigger_player": player,
+        "trigger_card": "SomeCard",
+        "timestamp": 1,
+    }
+    assert socket.buff_size() == 1
+    assert socket.get(0) == expected_msg
+
+
+@pytest.mark.asyncio
+async def test_exchange_handler(mocker):
+    # Mock necessary functions and values
+    player = "player1"
+    card = 123
+    match_id = 456
+
+    get_player_match_mock = mocker.patch(
+        "Game.app_auxiliars.get_player_match", return_value=match_id
+    )
+    get_game_state_mock = mocker.patch(
+        "Game.app_auxiliars.get_game_state", return_value=GAME_STATE["EXCHANGE"]
+    )
+    get_played_card_mock = mocker.patch(
+        "Game.app_auxiliars.get_played_card", return_value=42
+    )
+    get_turn_player_mock = mocker.patch(
+        "Game.app_auxiliars.get_turn_player", return_value=player
+    )
+    get_target_player_mock = mocker.patch(
+        "Game.app_auxiliars.get_target_player", return_value="target_player"
+    )
+    get_next_player_mock = mocker.patch(
+        "Game.app_auxiliars.get_next_player", return_value="next_player"
+    )
+    initiate_exchange_mock = mocker.patch("Game.app_auxiliars._initiate_exchange")
+    execute_exchange_mock = mocker.patch("Game.app_auxiliars._execute_exchange")
+    vuelta_y_vuelta_mock = mocker.patch("Game.app_auxiliars.vuelta_y_vuelta")
+
+    # Test when the game state is "EXCHANGE" and it's the player's turn
+    await exchange_handler(player, card)
+    initiate_exchange_mock.assert_called_once_with(player, card, "next_player")
+    execute_exchange_mock.assert_not_called()
+    vuelta_y_vuelta_mock.assert_not_called()
+
+    initiate_exchange_mock.reset_mock()
+
+    # Test when the game state is "EXCHANGE" but it's not the player's turn
+    get_turn_player_mock.return_value = "other_player"
+    await exchange_handler(player, card)
+    initiate_exchange_mock.assert_called_once_with(player, card, "next_player")
+    execute_exchange_mock.assert_not_called()
+    vuelta_y_vuelta_mock.assert_not_called()
+
+    initiate_exchange_mock.reset_mock()
+
+    # Test when the game state is "WAIT_EXCHANGE"
+    get_game_state_mock.return_value = GAME_STATE["WAIT_EXCHANGE"]
+    await exchange_handler(player, card)
+    initiate_exchange_mock.assert_not_called()
+    execute_exchange_mock.assert_called_once_with(player, card)
+    vuelta_y_vuelta_mock.assert_not_called()
+
+    execute_exchange_mock.reset_mock()
+
+    # Test when the game state is "VUELTA_Y_VUELTA"
+    get_game_state_mock.return_value = GAME_STATE["VUELTA_Y_VUELTA"]
+    await exchange_handler(player, card)
+    initiate_exchange_mock.assert_not_called()
+    execute_exchange_mock.assert_not_called()
+    vuelta_y_vuelta_mock.assert_called_once_with(player, card)
+
+    # Test when the game state is something else
+    get_game_state_mock.return_value = GAME_STATE["PLAY_TURN"]
+    with pytest.raises(
+        GameException, match="No puedes intercambiar cartas en este momento"
+    ):
+        await exchange_handler(player, card)
+
+
+@pytest.mark.asyncio
+async def test_initiate_exchange(mocker):
+    socket.reset()
+    player = "player1"
+    card = 123
+    target = "player2"
+    match_id = 456
+
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
+    mocker.patch("Game.app_auxiliars.is_player_turn", return_value=False)
+    with pytest.raises(GameException, match="No es tu turno"):
+        await _initiate_exchange(player, card, target)
+
+    mocker.patch("Game.app_auxiliars.is_player_turn", return_value=True)
+    mocker.patch("Game.app_auxiliars.check_valid_exchange")
+    mocker.patch("Game.app_auxiliars.save_exchange")
+    mocker.patch("Game.app_auxiliars.set_match_turn")
+    mocker.patch("Game.app_auxiliars.set_game_state")
+    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=socket.broadcast)
+
+    await _initiate_exchange(player, card, target)
+
+    assert socket.buff_size() == 1
+    assert socket.get(0) == "Esperando intercambio entre " + player + " y " + target
+
+
+@pytest.mark.asyncio
+async def test_execute_exchange(mocker):
+    target = "player2"
+    card2 = 456
+    match_id = 789
+
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=match_id)
+    mocker.patch("Game.app_auxiliars.is_player_turn", return_value=True)
+    mocker.patch("Game.app_auxiliars.get_exchange_player", return_value="player1")
+    mocker.patch("Game.app_auxiliars.get_exchange_card", return_value=123)
+    mocker.patch("Game.app_auxiliars.check_valid_exchange")
+    mocker.patch("Game.app_auxiliars.exchange_players_cards")
+    mocker.patch("Game.app_auxiliars.check_infection")
+    mocker.patch("Game.app_auxiliars.set_match_turn")
+    mocker.patch("Game.app_auxiliars._send_exchange_notification")
+    mocker.patch(
+        "Game.app_auxiliars.last_played_card", return_value="¿No podemos ser amigos?"
+    )
+    mocker.patch("Game.app_auxiliars.get_next_player", return_value="next_player")
+    mocker.patch("Game.app_auxiliars.exist_obstacle_between", return_value=False)
+    set_game_state = mocker.patch("Game.app_auxiliars.set_game_state")
+    clean_played_card = mocker.patch("Game.app_auxiliars.clean_played_card")
+    mocker.patch("Game.app_auxiliars.end_player_turn")
+
+    await _execute_exchange(target, card2)
+
+    set_game_state.assert_called_once_with(match_id, GAME_STATE["EXCHANGE"])
+    clean_played_card.assert_called_once_with(match_id)
+
+
+@pytest.mark.asyncio
+async def test_check_infection(mocker):
+    socket.reset()
+    card1 = 1
+    card2 = 2
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="¡Fallaste!")
+    is_la_cosa = mocker.patch("Game.app_auxiliars.is_lacosa", side_effect=[True, False])
+    mocker.patch("Game.app_auxiliars.is_contagio", return_value=True)
+
+    await check_infection("player", "target", card1, card2)
+    is_la_cosa.assert_not_called()
+
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="SomeCard")
+    infect_player = mocker.patch("Game.app_auxiliars.infect_player")
+    mocker.patch(
+        "Game.app_auxiliars.manager.send_message_to", side_effect=socket.send_message_to
+    )
+
+    await check_infection("player", "target", card1, card2)
+    infect_player.assert_called_once_with("target")
+    assert socket.buff_size() == 1
+    assert socket.get(0) == ""
+
+    mocker.patch("Game.app_auxiliars.is_lacosa", side_effect=[False, True])
+    infect_player.reset_mock()
+    await check_infection("player", "target", card1, card2)
+    infect_player.assert_called_once_with("player")
+    assert socket.buff_size() == 2
+    assert socket.get(1) == ""
