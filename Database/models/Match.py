@@ -590,7 +590,6 @@ def get_quarantined_players(match_id: int) -> list:
             players[player.player_name] = 2
         else:
             players[player.player_name] = 1
-    print(players)
     return players
 
 
