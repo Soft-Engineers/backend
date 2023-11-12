@@ -240,7 +240,6 @@ async def discard_player_card(player_name: str, card_id: int):
         if is_superinfection_case(player_name, get_next_player(match_id)):
             apply_superinfection(player_name)
             await send_superinfection_msg(match_id, player_name)
-
         else:
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
     else:
@@ -278,7 +277,7 @@ async def _play_turn_card(match_id: int, player_name: str, card_id: int, target)
         raise GameException("No es tu turno")
     if get_game_state(match_id) == GAME_STATE["PANIC"] and not is_panic(card_id):
         raise GameException("Debes jugar la carta de Pánico")
-    
+
     superinfection = False
     await persist_played_card_data(player_name, card_id, target)
     if not has_defense(card_id):
@@ -290,7 +289,9 @@ async def _play_turn_card(match_id: int, player_name: str, card_id: int, target)
         elif card_name == "Revelaciones":
             set_game_state(match_id, GAME_STATE["REVELACIONES"])
         elif _can_exchange(player_name, card_id):
-            if is_superinfection_case(player_name, get_next_player(match_id)):
+            if not allows_global_exchange(card_id) and is_superinfection_case(
+                player_name, get_next_player(match_id)
+            ):
                 superinfection = True
                 apply_superinfection(player_name)
             else:
@@ -569,14 +570,23 @@ async def _play_defense_card(
     pick_not_panic_card(player_name)
 
     assign_next_turn_to(match_id, turn_player)
+
+    superinfection = False
     if exist_obstacle_between(turn_player, get_next_player(match_id)):
         end_player_turn(turn_player)
     else:
-        set_game_state(match_id, GAME_STATE["EXCHANGE"])
+        if is_superinfection_case(turn_player, get_next_player(match_id)):
+            apply_superinfection(turn_player)
+            superinfection = True
+        else:
+            set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     await manager.broadcast(
         PLAY_NOTIFICATION, defended_card_msg(player_name, card_id), match_id
     )
+
+    if superinfection:
+        await send_superinfection_msg(match_id, turn_player)
 
 
 async def skip_defense(player_name: str):
@@ -596,12 +606,20 @@ async def skip_defense(player_name: str):
 
     assign_next_turn_to(match_id, turn_player)
 
+    superinfection = False
     if exist_obstacle_between(turn_player, get_next_player(match_id)):
         end_player_turn(turn_player)
     else:
-        set_game_state(match_id, GAME_STATE["EXCHANGE"])
+        if is_superinfection_case(turn_player, get_next_player(match_id)):
+            apply_superinfection(turn_player)
+            superinfection = True
+        else:
+            set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     await manager.broadcast(PLAY_NOTIFICATION, target + " no se defendió", match_id)
+
+    if superinfection:
+        await send_superinfection_msg(match_id, turn_player)
 
     if played_card_name == "Lanzallamas":
         await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
@@ -643,8 +661,13 @@ async def _play_exchange_defense_card(match_id, player_name, card_id):
     if (
         last_played_card(match_id) == "¿No podemos ser amigos?"
     ) and not exist_obstacle_between(turn_player, get_next_player(match_id)):
-        set_game_state(match_id, GAME_STATE["EXCHANGE"])
-        clean_played_card(match_id)
+        if is_superinfection_case(turn_player, get_next_player(match_id)):
+            apply_superinfection(turn_player)
+            await send_superinfection_msg(match_id, turn_player)
+        else:
+            set_game_state(match_id, GAME_STATE["EXCHANGE"])
+            clean_played_card(match_id)
+
     else:
         end_player_turn(turn_player)
 
@@ -710,8 +733,12 @@ async def _execute_exchange(target: str, card2: int):
     if (
         last_played_card(match_id) == "¿No podemos ser amigos?"
     ) and not exist_obstacle_between(player1, get_next_player(match_id)):
-        set_game_state(match_id, GAME_STATE["EXCHANGE"])
-        clean_played_card(match_id)
+        if is_superinfection_case(player1, get_next_player(match_id)):
+            apply_superinfection(player1)
+            await send_superinfection_msg(match_id, player1)
+        else:
+            set_game_state(match_id, GAME_STATE["EXCHANGE"])
+            clean_played_card(match_id)
     else:
         end_player_turn(player1)
 
@@ -818,7 +845,11 @@ async def play_revelaciones(player_name: str, decision: str):
     if finish_revelaciones:
         set_match_turn(match_id, turn_player)
         if not exist_obstacle_between(player_name, get_next_player(match_id)):
-            set_game_state(match_id, GAME_STATE["EXCHANGE"])
+            if is_superinfection_case(player_name, get_next_player(match_id)):
+                apply_superinfection(player_name)
+                await send_superinfection_msg(match_id, player_name)
+            else:
+                set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
             end_player_turn(player_name)
 

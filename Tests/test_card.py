@@ -708,6 +708,7 @@ async def test_vuelta_vuelta(mocker):
 
 @pytest.mark.asyncio
 async def test_play_revelaciones(mocker):
+    mocker.patch("Game.app_auxiliars.is_superinfection_case", return_value=False)
     mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
     in_turn = mocker.patch("Game.app_auxiliars.is_player_turn", return_value=False)
     game_state = mocker.patch(
