@@ -32,11 +32,8 @@ def is_superinfection_case(player_name: str, against_player_name: str):
         is_infected(player_name) and is_lacosa(against_player_name)
     ) and is_superinfected(player_name)
 
-async def apply_superinfection(player_name: str):
-    match_id = get_player_match(player_name)
-
+def apply_superinfection(player_name: str):
     kill_player(player_name)
-    await send_superinfection_msg(match_id, player_name)
     end_player_turn(player_name)
 
 
@@ -241,7 +238,9 @@ async def discard_player_card(player_name: str, card_id: int):
         and not played_card == "Cita a ciegas"
     ):
         if is_superinfection_case(player_name, get_next_player(match_id)):
-            await apply_superinfection(player_name)
+            apply_superinfection(player_name)
+            await send_superinfection_msg(match_id, player_name)
+
         else:
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
     else:
@@ -279,7 +278,8 @@ async def _play_turn_card(match_id: int, player_name: str, card_id: int, target)
         raise GameException("No es tu turno")
     if get_game_state(match_id) == GAME_STATE["PANIC"] and not is_panic(card_id):
         raise GameException("Debes jugar la carta de Pánico")
-
+    
+    superinfection = False
     await persist_played_card_data(player_name, card_id, target)
     if not has_defense(card_id):
         await execute_card(match_id=match_id)
@@ -290,7 +290,11 @@ async def _play_turn_card(match_id: int, player_name: str, card_id: int, target)
         elif card_name == "Revelaciones":
             set_game_state(match_id, GAME_STATE["REVELACIONES"])
         elif _can_exchange(player_name, card_id):
-            set_game_state(match_id, GAME_STATE["EXCHANGE"])
+            if is_superinfection_case(player_name, get_next_player(match_id)):
+                superinfection = True
+                apply_superinfection(player_name)
+            else:
+                set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
             end_player_turn(player_name)
     else:
@@ -303,6 +307,9 @@ async def _play_turn_card(match_id: int, player_name: str, card_id: int, target)
     await manager.broadcast(
         PLAY_NOTIFICATION, play_card_msg(player_name, card_id, target), match_id
     )
+
+    if superinfection:
+        await send_superinfection_msg(match_id, player_name)
 
     if has_defense(card_id):
         await manager.broadcast(
