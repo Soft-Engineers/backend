@@ -32,6 +32,7 @@ def is_superinfection_case(player_name: str, against_player_name: str):
         is_infected(player_name) and is_lacosa(against_player_name)
     ) and is_superinfected(player_name)
 
+
 def apply_superinfection(player_name: str):
     kill_player(player_name)
     end_player_turn(player_name)
@@ -289,8 +290,12 @@ async def _play_turn_card(match_id: int, player_name: str, card_id: int, target)
         elif card_name == "Revelaciones":
             set_game_state(match_id, GAME_STATE["REVELACIONES"])
         elif _can_exchange(player_name, card_id):
-            if not allows_global_exchange(card_id) and is_superinfection_case(
-                player_name, get_next_player(match_id)
+            if (
+                not allows_global_exchange(card_id)
+                and is_superinfection_case(player_name, get_next_player(match_id))
+            ) or (
+                (card_name == "¿No podemos ser amigos?" or card_name == "Seducción")
+                and is_superinfection_case(player_name, target)
             ):
                 superinfection = True
                 apply_superinfection(player_name)
