@@ -798,7 +798,7 @@ def test_exist_door_between(mocker):
     exist = exist_door_between("player1", "player2")
     assert exist == True
 
-    players_pos.side_effect = [3, 0, 3 , 0, 3]
+    players_pos.side_effect = [3, 0, 3, 0, 3]
     match.obstacles = [False, False, False, True]
     exist = exist_door_between("player1", "player2")
     assert exist == True
@@ -814,7 +814,7 @@ def is_adjacent_to_obstacle(mocker):
     mocker.patch("Database.models.Match.get_right_alive_player")
     mocker.patch("Database.models.Match.get_left_alive_player")
     door = mocker.patch("Database.models.Match.get_first_door_between")
-    
+
     door.side_effect = [0, 1]
     res = is_adjacent_to_obstacle("player1", 1)
     assert res == True
@@ -832,9 +832,14 @@ def test_get_right_alive_player(mocker):
     match = mocker.patch("Database.models.Match._get_match")
     mocker.patch("Database.models.Match.get_player_position", return_value=0)
     mocker.patch("Database.models.Match.get_next_player_position", return_value=1)
+
     def _get_player_by_position(match_id, position):
         return mock_match.players[position]
-    mocker.patch("Database.models.Match._get_player_by_position", side_effect=_get_player_by_position)
+
+    mocker.patch(
+        "Database.models.Match._get_player_by_position",
+        side_effect=_get_player_by_position,
+    )
 
     mock_match = Mock()
     mock_match.current_player = 0
@@ -851,13 +856,19 @@ def test_get_right_alive_player(mocker):
     res = get_right_alive_player(1, "player1")
     assert res == player2.player_name
 
+
 def test_get_left_alive_player(mocker):
     match = mocker.patch("Database.models.Match._get_match")
     mocker.patch("Database.models.Match.get_player_position", return_value=1)
     mocker.patch("Database.models.Match.get_next_player_position", return_value=0)
+
     def _get_player_by_position(match_id, position):
         return mock_match.players[position]
-    mocker.patch("Database.models.Match._get_player_by_position", side_effect=_get_player_by_position)
+
+    mocker.patch(
+        "Database.models.Match._get_player_by_position",
+        side_effect=_get_player_by_position,
+    )
 
     mock_match = Mock()
     mock_match.current_player = 1
@@ -873,7 +884,7 @@ def test_get_left_alive_player(mocker):
 
     res = get_left_alive_player(1, "player2")
     assert res == player1.player_name
-    
+
 
 def test_get_alive_players(mocker):
     match = mocker.patch("Database.models.Match._get_match")
@@ -893,7 +904,6 @@ def test_get_alive_players(mocker):
 
     res = get_alive_players(1)
     assert res == [player1.player_name, player3.player_name]
-
 
 
 class test_toggle_places(TestCase):
@@ -1152,12 +1162,11 @@ class test_assign_next_turn_to(TestCase):
 
 
 class test_set_position_exchange_victim(TestCase):
-
     @patch("Database.models.Match._get_match")
     def test_set_position_exchange_victim(self, mock_get_match):
-        
+
         player_name = "test_player"
-        
+
         match = Mock()
         mock_get_match.return_value = match
 
@@ -1165,8 +1174,8 @@ class test_set_position_exchange_victim(TestCase):
 
         self.assertEqual(match.position_exchange_victim, player_name)
 
-class test_is_there_position_exchange_victim(TestCase):
 
+class test_is_there_position_exchange_victim(TestCase):
     @patch("Database.models.Match._get_match")
     def test_is_there_position_exchange_victim(self, mock_get_match):
         match = Mock()
@@ -1183,8 +1192,8 @@ class test_is_there_position_exchange_victim(TestCase):
 
         self.assertFalse(is_there_position_exchange_victim(match.id))
 
-class test_get_position_exchange_victim(TestCase):
 
+class test_get_position_exchange_victim(TestCase):
     @patch("Database.models.Match._get_match")
     def test_get_position_exchange_victim(self, mock_get_match):
         match = Mock()
@@ -1202,8 +1211,8 @@ class test_get_position_exchange_victim(TestCase):
         with self.assertRaises(NoPositionExchangeVictim):
             get_position_exchange_victim(match.id)
 
-class test_clean_position_exchange_victim(TestCase):
 
+class test_clean_position_exchange_victim(TestCase):
     @patch("Database.models.Match._get_match")
     def test_clean_position_exchange_victim(self, mock_get_match):
         match = Mock()

@@ -98,7 +98,7 @@ async def _send_exchange_notification(player1, target, card1, card2):
 def end_player_turn(player_name: str):
     """Clean turn data and set next turn"""
     match_id = get_player_match(player_name)
-    
+
     if is_there_position_exchange_victim(match_id):
         assign_next_turn_to(match_id, get_position_exchange_victim(match_id))
     else:
@@ -489,12 +489,12 @@ def play_cuarentena(target: str):
 
 
 async def play_hacha(target, match_id: int):
-    if isinstance(target, int): 
+    if isinstance(target, int):
         remove_barred_door(target, match_id)
         await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
     else:
         clear_quarantine(target)
-    clear_target_obstacle(match_id) 
+    clear_target_obstacle(match_id)
 
 
 def play_fallaste(player: str, card_id: int) -> bool:
@@ -569,7 +569,7 @@ async def skip_defense(player_name: str):
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
     await manager.broadcast(PLAY_NOTIFICATION, target + " no se defendió", match_id)
-    
+
     if played_card_name == "Lanzallamas":
         await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
 
@@ -611,7 +611,7 @@ async def _play_exchange_defense_card(match_id, player_name, card_id):
         last_played_card(match_id) == "¿No podemos ser amigos?"
     ) and not exist_obstacle_between(turn_player, get_next_player(match_id)):
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
-        clean_played_card_data(match_id)
+        clean_played_card(match_id)
     else:
         end_player_turn(turn_player)
 
@@ -678,7 +678,7 @@ async def _execute_exchange(target: str, card2: int):
         last_played_card(match_id) == "¿No podemos ser amigos?"
     ) and not exist_obstacle_between(player1, get_next_player(match_id)):
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
-        clean_played_card_data(match_id)
+        clean_played_card(match_id)
     else:
         end_player_turn(player1)
 
@@ -727,7 +727,7 @@ async def vuelta_y_vuelta(player: str, card: int):
 
 async def _omit_revelaciones(player_name: str, match_id: int):
     await manager.broadcast(
-        WAIT_NOTIFICATION, f"{player_name} no reveló su mano", match_id
+        PLAY_NOTIFICATION, f"{player_name} no reveló su mano", match_id
     )
 
 
@@ -865,7 +865,6 @@ def check_valid_obstacle(player: str, obstacle: int):
         raise InvalidCard("No existe un obstáculo en esa posición")
     if len(alive_players) != 2 and not is_adjacent_to_obstacle(player, obstacle):
         raise InvalidCard("Debes seleccionar un obstáculo adyacente")
-
 
 
 def check_valid_defense(player: str, defense_card: int):

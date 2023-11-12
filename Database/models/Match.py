@@ -206,6 +206,12 @@ def get_target_player(match_id: int) -> str:
 
 
 @db_session
+def clean_played_card(match_id: int):
+    match = Match[match_id]
+    match.played_card = None
+
+
+@db_session
 def clean_played_card_data(match_id: int):
     match = Match[match_id]
     match.played_card = None
@@ -626,6 +632,7 @@ def get_dead_players(match_id: int) -> list:
             dead_players.append(player.player_name)
     return dead_players
 
+
 @db_session
 def get_alive_players(match_id: int) -> list:
     match = _get_match(match_id)
@@ -704,8 +711,7 @@ def set_barred_door_between(player: str, target: str) -> None:
     elif get_right_alive_player(match_id, player) == target:
         match.obstacles[player_position] = True
     elif get_left_alive_player(match_id, player) == target:
-        match.obstacles[player_position-1] = True
-
+        match.obstacles[player_position - 1] = True
 
 
 @db_session
@@ -757,9 +763,13 @@ def get_first_door_between(player: str, target: str) -> int:
 @db_session
 def is_adjacent_to_obstacle(player: str, index: int) -> bool:
     match = _get_match(get_player_match(player))
-    if index == get_first_door_between(player, get_right_alive_player(match.id, player)):
+    if index == get_first_door_between(
+        player, get_right_alive_player(match.id, player)
+    ):
         return True
-    elif index == get_first_door_between(player, get_left_alive_player(match.id, player)):
+    elif index == get_first_door_between(
+        player, get_left_alive_player(match.id, player)
+    ):
         return True
     return False
 
@@ -979,7 +989,7 @@ def get_all_players_after(player_name: str) -> list:
         next_player_name = get_player_name_by_position(match_id, next_player_pos)
 
     match.clockwise = DIRECTION
-    
+
     return players
 
 
@@ -988,10 +998,12 @@ def set_position_exchange_victim(match_id: int, player_name: str):
     match = _get_match(match_id)
     match.position_exchange_victim = player_name
 
+
 @db_session
 def is_there_position_exchange_victim(match_id: int) -> bool:
     match = _get_match(match_id)
     return match.position_exchange_victim is not None
+
 
 @db_session
 def get_position_exchange_victim(match_id: int) -> str:
@@ -1001,8 +1013,8 @@ def get_position_exchange_victim(match_id: int) -> str:
         raise NoPositionExchangeVictim("No hay víctima de intercambio de posición")
     return victim
 
+
 @db_session
 def clean_position_exchange_victim(match_id: int):
     match = _get_match(match_id)
     match.position_exchange_victim = None
-

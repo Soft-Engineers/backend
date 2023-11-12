@@ -54,10 +54,12 @@ DEFEND_EXCHANGE = [
 ]
 GLOBAL_EXCHANGE = ["Seducción", "¿No podemos ser amigos?"]
 
+
 @db_session
 def can_target_caster(card_id: int) -> bool:
     card_name = get_card_name(card_id)
     return card_name in CAN_TARGET_CASTER
+
 
 @db_session
 def get_card_by_id(card_id: int) -> Card:
