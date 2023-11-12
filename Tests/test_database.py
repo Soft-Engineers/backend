@@ -813,7 +813,7 @@ def test_exist_door_between(mocker):
     assert exist == True
 
 
-def is_adjacent_to_obstacle(mocker):
+def test_is_adjacent_to_obstacle(mocker):
     mocker.patch("Database.models.Match.get_player_match", return_value=1)
     mocker.patch("Database.models.Match.get_right_alive_player")
     mocker.patch("Database.models.Match.get_left_alive_player")
