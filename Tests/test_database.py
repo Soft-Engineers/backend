@@ -779,47 +779,121 @@ class test_is_is_contagio(TestCase):
 
 def test_exist_door_between(mocker):
     mocker.patch("Database.models.Match.get_player_match", return_value=1)
-    mocker.patch("Database.models.Match.len", return_value=4)
     mock_match = mocker.patch("Database.models.Match._get_match")
+    mocker.patch("Database.models.Match.len", return_value=4)
     players_pos = mocker.patch("Database.models.Match.get_player_position")
-
-    def _get_next_player_position(match_id, position):
-        return (position + 1) % 4
-
-    def _get_previous_player_position(match_id, position):
-        return (position - 1) % 4
-
-    mocker.patch(
-        "Database.models.Match.get_next_player_position",
-        side_effect=_get_next_player_position,
-    )
-    mocker.patch(
-        "Database.models.Match.get_previous_player_position",
-        side_effect=_get_previous_player_position,
-    )
+    right_player = mocker.patch("Database.models.Match.get_right_alive_player")
+    left_player = mocker.patch("Database.models.Match.get_left_alive_player")
 
     match = Mock()
     match.obstacles = [False, False, False, False]
     mock_match.return_value = match
-    players_pos.side_effect = [0, 1]
+    players_pos.side_effect = [2, 2, 0, 2]
 
     exist = exist_door_between("player1", "player2")
     assert exist == False
 
-    players_pos.side_effect = [2, 3]
+    players_pos.side_effect = [3, 3, 2, 3]
     match.obstacles = [False, False, True, False]
     exist = exist_door_between("player1", "player2")
     assert exist == True
 
-    players_pos.side_effect = [0, 3]
+    players_pos.side_effect = [3, 0, 3 , 0, 3]
     match.obstacles = [False, False, False, True]
     exist = exist_door_between("player1", "player2")
     assert exist == True
 
-    players_pos.side_effect = [3, 0]
+    players_pos.side_effect = [3, 3, 3, 0]
     match.obstacles = [False, False, False, True]
     exist = exist_door_between("player1", "player2")
     assert exist == True
+
+
+def is_adjacent_to_obstacle(mocker):
+    mocker.patch("Database.models.Match.get_player_match", return_value=1)
+    mocker.patch("Database.models.Match.get_right_alive_player")
+    mocker.patch("Database.models.Match.get_left_alive_player")
+    door = mocker.patch("Database.models.Match.get_first_door_between")
+    
+    door.side_effect = [0, 1]
+    res = is_adjacent_to_obstacle("player1", 1)
+    assert res == True
+
+    door.side_effect = [0, 1]
+    res = is_adjacent_to_obstacle("player1", 2)
+    assert res == False
+
+    door.side_effect = [0, 1]
+    res = is_adjacent_to_obstacle("player1", 1)
+    assert res == True
+
+
+def test_get_right_alive_player(mocker):
+    match = mocker.patch("Database.models.Match._get_match")
+    mocker.patch("Database.models.Match.get_player_position", return_value=0)
+    mocker.patch("Database.models.Match.get_next_player_position", return_value=1)
+    def _get_player_by_position(match_id, position):
+        return mock_match.players[position]
+    mocker.patch("Database.models.Match._get_player_by_position", side_effect=_get_player_by_position)
+
+    mock_match = Mock()
+    mock_match.current_player = 0
+    player1 = Mock()
+    player1.player_name = "player1"
+    player1.position = 0
+    player2 = Mock()
+    player2.player_name = "player2"
+    player2.position = 1
+    mock_match.players = [player1, player2]
+    mock_match.clockwise = True
+    match.return_value = mock_match
+
+    res = get_right_alive_player(1, "player1")
+    assert res == player2.player_name
+
+def test_get_left_alive_player(mocker):
+    match = mocker.patch("Database.models.Match._get_match")
+    mocker.patch("Database.models.Match.get_player_position", return_value=1)
+    mocker.patch("Database.models.Match.get_next_player_position", return_value=0)
+    def _get_player_by_position(match_id, position):
+        return mock_match.players[position]
+    mocker.patch("Database.models.Match._get_player_by_position", side_effect=_get_player_by_position)
+
+    mock_match = Mock()
+    mock_match.current_player = 1
+    player1 = Mock()
+    player1.player_name = "player1"
+    player1.position = 0
+    player2 = Mock()
+    player2.player_name = "player2"
+    player2.position = 1
+    mock_match.players = [player1, player2]
+    mock_match.clockwise = True
+    match.return_value = mock_match
+
+    res = get_left_alive_player(1, "player2")
+    assert res == player1.player_name
+    
+
+def test_get_alive_players(mocker):
+    match = mocker.patch("Database.models.Match._get_match")
+
+    mock_match = Mock()
+    player1 = Mock()
+    player1.is_alive = True
+    player1.player_name = "player1"
+    player2 = Mock()
+    player2.is_alive = False
+    player2.player_name = "player2"
+    player3 = Mock()
+    player3.is_alive = True
+    player3.player_name = "player3"
+    mock_match.players = [player1, player2, player3]
+    match.return_value = mock_match
+
+    res = get_alive_players(1)
+    assert res == [player1.player_name, player3.player_name]
+
 
 
 class test_toggle_places(TestCase):

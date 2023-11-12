@@ -27,6 +27,7 @@ class Match(db.Entity):
     played_card = Optional(int, default=None, nullable=True)
     turn_player = Optional(str, default=None, nullable=True)
     target_player = Optional(str, default=None, nullable=True)
+    target_obstacle = Optional(int, default=None, nullable=True)
     exchange_card = Optional(int, default=None, nullable=True)
     exchange_player = Optional(str, default=None, nullable=True)
     position_exchange_victim = Optional(str, default=None, nullable=True)
