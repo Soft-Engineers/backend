@@ -838,3 +838,47 @@ class test_play_olvidadizo(TestCase):
     def test_play_olvidadizo(self, mock_pick_not_panic_card, *args):
         play_olvidadizo("test_player", 1)
         self.assertEqual(mock_pick_not_panic_card.call_count, 3)
+
+
+class test_can_target_caster(TestCase):
+    @patch("Database.models.Card.get_card_name", return_value="SomeCard")
+    def test_can_target_caster(self, mock_get_card_name):
+        card_id = 1
+        res = can_target_caster(card_id)
+        mock_get_card_name.assert_called_once_with(card_id)
+        self.assertEqual(res, False)
+
+    @patch("Database.models.Card.get_card_name", return_value="Uno, dos..")
+    def test_can_target_caster(self, mock_get_card_name):
+        card_id = 1
+        res = can_target_caster(card_id)
+        mock_get_card_name.assert_called_once_with(card_id)
+        self.assertEqual(res, True)
+
+
+class test_get_card_by_id(TestCase):
+    @patch("Database.models.Card.Card.exists")
+    def test_get_card_by_id_not_exist(self, mock_get_card_by_id):
+        card_id = 1
+        mock_get_card_by_id.return_value = False
+        with self.assertRaises(CardNotFound) as e:
+            get_card_by_id(card_id)
+        self.assertEqual(str(e.exception), "Carta no encontrada")
+
+
+class test_allows_global_exchange(TestCase):
+    @patch("Database.models.Card.get_card_name", return_value="Lanzallamas")
+    def test_allows_global_exchange(self, *args):
+        card_id = 1
+        res = allows_global_exchange(card_id)
+        self.assertEqual(res, False)
+
+    @patch("Database.models.Card.get_card_name", return_value="Seducción")
+    def test_allows_global_exchange(self, *args):
+        card_id = 2
+        res = allows_global_exchange(card_id)
+        self.assertEqual(res, True)
+    
+    def test_allows_global_exchange_none(self, *args):
+        res = allows_global_exchange(None)
+        self.assertEqual(res, False)
