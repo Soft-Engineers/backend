@@ -216,3 +216,10 @@ def toggle_places(playerA_name, playerB_name):
     playerA = get_player_by_name(playerA_name)
     playerB = get_player_by_name(playerB_name)
     playerA.position, playerB.position = playerB.position, playerA.position
+
+
+@db_session
+def is_superinfected(player_name: str) -> bool:
+    player = get_player_by_name(player_name)
+
+    return not False in [card.card_name == "¡Infectado!" for card in player.cards]

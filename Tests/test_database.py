@@ -1164,7 +1164,6 @@ class test_assign_next_turn_to(TestCase):
 class test_set_position_exchange_victim(TestCase):
     @patch("Database.models.Match._get_match")
     def test_set_position_exchange_victim(self, mock_get_match):
-
         player_name = "test_player"
 
         match = Mock()
@@ -1222,3 +1221,34 @@ class test_clean_position_exchange_victim(TestCase):
         clean_position_exchange_victim(match.id)
 
         self.assertEqual(match.position_exchange_victim, None)
+
+
+class test_is_superinfected(TestCase):
+    def __card_mock(self, infectado: list[bool]):
+        cards = []
+        for t in infectado:
+            card = Mock()
+            card.card_name = "¡Infectado!" if t else "g" + get_random_string_lower(10)
+            cards.append(card)
+        return cards
+
+    def __use_the_force(self, n: int):
+        res_b = []
+        for i in range(2**n):
+            res_b.append(str(bin(i))[2:].zfill(n))
+        for s in res_b:
+            res_b[res_b.index(s)] = [i == "1" for i in s]
+        return res_b
+
+    @patch("Database.models.Player.get_player_by_name")
+    def test_is_superinfected(self, mock_get_player_by_name):
+        player = Mock()
+
+        forces = []
+        for i in range(5):
+            forces.append(self.__use_the_force(i))
+
+        for force in forces:
+            player.cards = self.__card_mock(force)
+            mock_get_player_by_name.return_value = player
+            self.assertEqual(is_superinfected(player.player_name), not False in force)
