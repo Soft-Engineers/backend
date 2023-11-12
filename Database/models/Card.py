@@ -19,6 +19,7 @@ TARGET_CARDS = [
     "¡Más vale que corras!",
     "Que quede entre nosotros...",
     "¡Sal de aquí!",
+    "Uno, dos..",
 ]
 TARGET_ADJACENT = [
     "Lanzallamas",
@@ -36,11 +37,15 @@ TARGET_NOT_QUARANTINED = [
     "¡Cambio de Lugar!",
     "¿No podemos ser amigos?",
 ]
+CAN_TARGET_CASTER = [
+    "Uno, dos..",
+]
 # Carta de acción y su defensa
 DEFENSIBLE_CARD = {
     "Lanzallamas": "¡Nada de barbacoas!",
     "¡Cambio de Lugar!": "Aquí estoy bien",
     "¡Más vale que corras!": "Aquí estoy bien",
+    "Uno, dos..": "Aquí estoy bien",
 }
 DEFEND_EXCHANGE = [
     "Aterrador",
@@ -48,6 +53,12 @@ DEFEND_EXCHANGE = [
     "¡Fallaste!",
 ]
 GLOBAL_EXCHANGE = ["Seducción", "¿No podemos ser amigos?"]
+
+
+@db_session
+def can_target_caster(card_id: int) -> bool:
+    card_name = get_card_name(card_id)
+    return card_name in CAN_TARGET_CASTER
 
 
 @db_session

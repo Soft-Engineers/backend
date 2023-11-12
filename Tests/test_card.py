@@ -35,6 +35,47 @@ class _WebStub:
         return self.messages[index]
 
 
+class TestPlayUnoDos(TestCase):
+    def setUp(self):
+        self.player_name = "PlayerA"
+        self.target_name = "PlayerB"
+        self.mock_is_in_quarantine = patch(
+            "Game.app_auxiliars.is_in_quarantine"
+        ).start()
+        self.mock_play_cambio_de_lugar = patch(
+            "Game.app_auxiliars.play_cambio_de_lugar"
+        ).start()
+
+    def tearDown(self):
+        patch.stopall()
+
+    def test_play_uno_dos_qC(self):
+        self.mock_is_in_quarantine.side_effect = lambda p: p == self.player_name
+
+        play_uno_dos(self.player_name, self.target_name)
+        self.mock_play_cambio_de_lugar.assert_not_called()
+
+    def test_play_uno_dos_qT(self):
+        self.mock_is_in_quarantine.side_effect = lambda p: p == self.target_name
+
+        play_uno_dos(self.player_name, self.target_name)
+        self.mock_play_cambio_de_lugar.assert_not_called()
+
+    def test_play_uno_dos_bothT(self):
+        self.mock_is_in_quarantine.return_value = True
+
+        play_uno_dos(self.player_name, self.target_name)
+        self.mock_play_cambio_de_lugar.assert_not_called()
+
+    def test_play_uno_dos_bothF(self):
+        self.mock_is_in_quarantine.return_value = False
+
+        play_uno_dos(self.player_name, self.target_name)
+        self.mock_play_cambio_de_lugar.assert_called_once_with(
+            self.player_name, self.target_name
+        )
+
+
 @pytest.mark.asyncio
 async def test_pickup_card(mocker):
     websocketStub = _WebStub()
@@ -142,6 +183,9 @@ class test_check_target_player(TestCase):
         self.is_in_quarantine = patch(
             "Game.app_auxiliars.is_in_quarantine", return_value=False
         )
+        self.can_target_caster = patch(
+            "Game.app_auxiliars.can_target_caster", return_value=True
+        )
 
         self.card_name.start()
         self.player_alive.start()
@@ -151,6 +195,7 @@ class test_check_target_player(TestCase):
         self.obstacle_between.start()
         self.target_not_quarantine.start()
         self.is_in_quarantine.start()
+        self.can_target_caster.start()
 
     def tearDown(self):
         self.card_name.stop()
@@ -161,6 +206,7 @@ class test_check_target_player(TestCase):
         self.obstacle_between.stop()
         self.target_not_quarantine.stop()
         self.is_in_quarantine.stop()
+        self.can_target_caster.stop()
 
     def test_check_target_player(self):
         check_target_player("test_player", "test_target", 1)
@@ -177,9 +223,10 @@ class test_check_target_player(TestCase):
             check_target_player("test_player", "test_target", 1)
         self.assertEqual(str(e.exception), "Jugador no válido")
 
-    def test_equal_players(self):
+    @patch("Game.app_auxiliars.can_target_caster", return_value=False)
+    def test_equal_players(self, can_target_caster):
         with self.assertRaises(InvalidPlayer) as e:
-            check_target_player("test_player", "test_player", 1)
+            check_target_player("test_player", "test_player", 23)
         self.assertEqual(str(e.exception), "Selecciona a otro jugador como objetivo")
 
     @patch("Game.app_auxiliars.is_adyacent", return_value=False)
@@ -419,52 +466,6 @@ async def test_play_analisis(mocker):
         "timestamp": t,
     }
     assert expected_msg == websocketStub.messages[0]
-
-
-@pytest.mark.asyncio
-async def test_play_cambio_de_lugar(mocker):
-    websocketStubP1 = _WebStub()
-    websocketStubP2 = _WebStub()
-
-    target = Mock()
-    target.name = "test_target"
-    target.position = 0
-
-    player = Mock()
-    player.name = "test_player"
-    target.position = 1
-
-    match = Mock()
-    match.id = 1
-
-    def _toggle_places(player_name, target_name):
-        assert (player_name == player.name and target_name == target.name) or (
-            player_name == target.name and target_name == player.name
-        )
-
-        target.position, player.position = player.position, target.position
-
-    def _broadcast(msg_type, msg, match_id):
-        assert msg_type == PLAY_NOTIFICATION
-        websocketStubP1.messages.append(msg)
-        websocketStubP2.messages.append(msg)
-        assert match_id == match.id
-
-    f1 = mocker.patch("Game.app_auxiliars.get_player_match", return_value=match.id)
-    f2 = mocker.patch("Game.app_auxiliars.toggle_places", side_effect=_toggle_places)
-    f3 = mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_broadcast)
-
-    await play_cambio_de_lugar(player.name, target.name)
-
-    f1.assert_called_once()
-    f2.assert_called_once()
-    assert f3.call_count == 2
-
-    assert websocketStubP1.get(0) == saltear_defensa_msg(target.name)
-    assert websocketStubP2.get(0) == saltear_defensa_msg(target.name)
-
-    assert websocketStubP1.get(1) == cambio_lugar_msg(player.name, target.name)
-    assert websocketStubP2.get(1) == cambio_lugar_msg(player.name, target.name)
 
 
 @pytest.mark.asyncio

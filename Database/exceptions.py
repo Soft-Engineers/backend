@@ -54,3 +54,6 @@ class InvalidPlayer(DatabaseError):
 
 class NoTopCard(DatabaseError):
     pass
+
+class NoPositionExchangeVictim(DatabaseError):
+    pass

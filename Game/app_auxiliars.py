@@ -19,10 +19,6 @@ manager = ConnectionManager()
 # ------- Auxiliar functions for messages --------
 
 
-def saltear_defensa_msg(target_name):
-    return target_name + " no se defendió"
-
-
 def cambio_lugar_msg(player_name: str, target_name: str):
     return player_name + " cambió de lugar con " + target_name
 
@@ -53,6 +49,19 @@ def discard_card_msg(player_name: str, card_name: str):
     else:
         alert = player_name + " ha descartado una carta"
     return alert
+
+
+async def send_uno_dos_anulado_msg(player_name, target_name):
+    msg = "La carta no tiene efecto porque "
+    if is_in_quarantine(player_name) and is_in_quarantine(target_name):
+        msg += "ambos jugadores están en cuarentena"
+    elif is_in_quarantine(player_name):
+        msg += player_name + " está en cuarentena"
+    elif is_in_quarantine(target_name):
+        msg += target_name + " está en cuarentena"
+    else:
+        raise Error("La carta debería ser anulada")
+    await manager.broadcast(PLAY_NOTIFICATION, msg, get_player_match(player_name))
 
 
 def wait_defense_card_msg(player_name: str, card_id: int, target: str):
@@ -89,7 +98,12 @@ async def _send_exchange_notification(player1, target, card1, card2):
 def end_player_turn(player_name: str):
     """Clean turn data and set next turn"""
     match_id = get_player_match(player_name)
-    set_next_turn(match_id)
+
+    if is_there_position_exchange_victim(match_id):
+        assign_next_turn_to(match_id, get_position_exchange_victim(match_id))
+        clean_position_exchange_victim(match_id)
+    else:
+        set_next_turn(match_id)
     clean_played_card_data(match_id)
     clear_exchange(match_id)
     clear_target_obstacle(match_id)
@@ -245,12 +259,10 @@ async def _play_turn_card(match_id: int, player_name: str, card_id: int, target)
         await execute_card(match_id=match_id)
         if card_name == "Vuelta y vuelta":
             set_game_state(match_id, GAME_STATE["VUELTA_Y_VUELTA"])
-        elif card_name == "Olvidadizo":
+        elif card_name in ["Olvidadizo", "Cita a ciegas"]:
             set_game_state(match_id, GAME_STATE["DISCARD"])
         elif card_name == "Revelaciones":
             set_game_state(match_id, GAME_STATE["REVELACIONES"])
-        elif card_name == "Cita a ciegas":
-            set_game_state(match_id, GAME_STATE["DISCARD"])
         elif _can_exchange(player_name, card_id):
             set_game_state(match_id, GAME_STATE["EXCHANGE"])
         else:
@@ -322,7 +334,7 @@ async def execute_card(match_id: int, def_card_id: int = None):
             play_lanzallamas(target_name)
     elif card_name in ["¡Cambio de Lugar!", "¡Más vale que corras!"]:
         if not def_card_name == "Aquí estoy bien":
-            await play_cambio_de_lugar(player_name, target_name)
+            play_cambio_de_lugar(player_name, target_name)
     elif card_name == "Vigila tus espaldas":
         await play_vigila_tus_espaldas(match_id)
     elif card_name in ["Whisky", "¡Ups!"]:
@@ -333,6 +345,15 @@ async def execute_card(match_id: int, def_card_id: int = None):
         await play_sospecha(player_name, target_name)
     elif card_name == "Análisis":
         await play_analisis(player_name, target_name)
+    elif card_name == "Uno, dos..":
+        if not def_card_name == "Aquí estoy bien":
+            play_uno_dos(player_name, target_name)
+    elif card_name == "¿Es aquí la fiesta?":
+        await play_es_aqui_la_fiesta(player_name)
+    elif card_name == "Tres, cuatro..":
+        await play_tres_cuatro(match_id)
+    elif card_name == "Cuerdas podridas":
+        play_cuerdas_podridas(match_id)
     elif card_name in ["Seducción", "¿No podemos ser amigos?"]:
         # No necesitan implementación
         pass
@@ -398,19 +419,47 @@ async def play_analisis(player_name: str, target_name: str):
     await show_player_cards_to(target_name, cards, [player_name])
 
 
-async def play_cambio_de_lugar(player_name: str, target_name: str):
+def play_uno_dos(player_name: str, target_name: str):
+    if not is_in_quarantine(player_name) and not is_in_quarantine(target_name):
+        play_cambio_de_lugar(player_name, target_name)
+
+
+def _toggle_positions_in_pairs(players: list[str]):
+    i = 0
+    while i + 1 < len(players):
+        toggle_places(players[i], players[i + 1])
+        i += 2
+
+
+async def play_es_aqui_la_fiesta(player_name: str):
+    match_id = get_player_match(player_name)
+
+    remove_all_barred_doors(match_id)
+    revoke_all_quarantines(match_id)
+
+    players = get_all_players_after(player_name)
+    _toggle_positions_in_pairs(players)
+    assign_next_turn_to(match_id, player_name)
+
+    await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
+
+
+async def play_tres_cuatro(match_id: int):
+    remove_all_barred_doors(match_id)
+
+    await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
+
+
+def play_cuerdas_podridas(match_id: int):
+    revoke_all_quarantines(match_id)
+
+
+def play_cambio_de_lugar(player_name: str, target_name: str):
     match_id = get_player_match(player_name)
     toggle_places(player_name, target_name)
+    assign_next_turn_to(match_id, player_name)
 
-    await manager.broadcast(
-        PLAY_NOTIFICATION, saltear_defensa_msg(target_name), match_id
-    )
-
-    await manager.broadcast(
-        PLAY_NOTIFICATION,
-        cambio_lugar_msg(player_name, target_name),
-        match_id,
-    )
+    set_position_exchange_victim(match_id, target_name)
 
 
 async def play_sospecha(player_name: str, target_name: str):
@@ -440,12 +489,12 @@ def play_cuarentena(target: str):
 
 
 async def play_hacha(target, match_id: int):
-    if isinstance(target, int): 
+    if isinstance(target, int):
         remove_barred_door(target, match_id)
         await manager.broadcast(OBSTACLES, get_obstacles(match_id), match_id)
     else:
         clear_quarantine(target)
-    clear_target_obstacle(match_id) 
+    clear_target_obstacle(match_id)
 
 
 def play_fallaste(player: str, card_id: int) -> bool:
@@ -519,8 +568,9 @@ async def skip_defense(player_name: str):
     else:
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
 
+    await manager.broadcast(PLAY_NOTIFICATION, target + " no se defendió", match_id)
+
     if played_card_name == "Lanzallamas":
-        await manager.broadcast(PLAY_NOTIFICATION, target + " no se defendió", match_id)
         await manager.broadcast("notificación muerte", target + " ha muerto", match_id)
 
 
@@ -561,7 +611,7 @@ async def _play_exchange_defense_card(match_id, player_name, card_id):
         last_played_card(match_id) == "¿No podemos ser amigos?"
     ) and not exist_obstacle_between(turn_player, get_next_player(match_id)):
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
-        clean_played_card_data(match_id)
+        clean_played_card(match_id)
     else:
         end_player_turn(turn_player)
 
@@ -628,7 +678,7 @@ async def _execute_exchange(target: str, card2: int):
         last_played_card(match_id) == "¿No podemos ser amigos?"
     ) and not exist_obstacle_between(player1, get_next_player(match_id)):
         set_game_state(match_id, GAME_STATE["EXCHANGE"])
-        clean_played_card_data(match_id)
+        clean_played_card(match_id)
     else:
         end_player_turn(player1)
 
@@ -677,7 +727,7 @@ async def vuelta_y_vuelta(player: str, card: int):
 
 async def _omit_revelaciones(player_name: str, match_id: int):
     await manager.broadcast(
-        WAIT_NOTIFICATION, f"{player_name} no reveló su mano", match_id
+        PLAY_NOTIFICATION, f"{player_name} no reveló su mano", match_id
     )
 
 
@@ -779,7 +829,7 @@ def check_target_player(player: str, target: str, card_id: int):
     if card == "Hacha":
         _check_hacha_target(player, target)
         return
-    if player == target:
+    if player == target and not can_target_caster(card_id):
         raise InvalidPlayer("Selecciona a otro jugador como objetivo")
     if requires_adjacent_target(card_id):
         if not is_adyacent(player, target):
@@ -788,6 +838,8 @@ def check_target_player(player: str, target: str, card_id: int):
             raise InvalidCard(
                 f"No puedes jugar {card} a un jugador con un obstáculo en el medio"
             )
+    if card == "Uno, dos.." and not is_three_steps_from(player, target):
+        raise InvalidCard("Solo puedes jugar Uno, dos.. a un jugador a 3 pasos")
     if requires_target_not_quarantined(card_id) and is_in_quarantine(target):
         raise InvalidCard(f"No puedes jugar {card} a un jugador en cuarentena")
     if is_in_quarantine(player) and card == "Lanzallamas":
@@ -813,7 +865,6 @@ def check_valid_obstacle(player: str, obstacle: int):
         raise InvalidCard("No existe un obstáculo en esa posición")
     if len(alive_players) != 2 and not is_adjacent_to_obstacle(player, obstacle):
         raise InvalidCard("Debes seleccionar un obstáculo adyacente")
-
 
 
 def check_valid_defense(player: str, defense_card: int):

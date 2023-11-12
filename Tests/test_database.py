@@ -798,7 +798,7 @@ def test_exist_door_between(mocker):
     exist = exist_door_between("player1", "player2")
     assert exist == True
 
-    players_pos.side_effect = [3, 0, 3 , 0, 3]
+    players_pos.side_effect = [3, 0, 3, 0, 3]
     match.obstacles = [False, False, False, True]
     exist = exist_door_between("player1", "player2")
     assert exist == True
@@ -814,7 +814,7 @@ def is_adjacent_to_obstacle(mocker):
     mocker.patch("Database.models.Match.get_right_alive_player")
     mocker.patch("Database.models.Match.get_left_alive_player")
     door = mocker.patch("Database.models.Match.get_first_door_between")
-    
+
     door.side_effect = [0, 1]
     res = is_adjacent_to_obstacle("player1", 1)
     assert res == True
@@ -832,9 +832,14 @@ def test_get_right_alive_player(mocker):
     match = mocker.patch("Database.models.Match._get_match")
     mocker.patch("Database.models.Match.get_player_position", return_value=0)
     mocker.patch("Database.models.Match.get_next_player_position", return_value=1)
+
     def _get_player_by_position(match_id, position):
         return mock_match.players[position]
-    mocker.patch("Database.models.Match._get_player_by_position", side_effect=_get_player_by_position)
+
+    mocker.patch(
+        "Database.models.Match._get_player_by_position",
+        side_effect=_get_player_by_position,
+    )
 
     mock_match = Mock()
     mock_match.current_player = 0
@@ -851,13 +856,19 @@ def test_get_right_alive_player(mocker):
     res = get_right_alive_player(1, "player1")
     assert res == player2.player_name
 
+
 def test_get_left_alive_player(mocker):
     match = mocker.patch("Database.models.Match._get_match")
     mocker.patch("Database.models.Match.get_player_position", return_value=1)
     mocker.patch("Database.models.Match.get_next_player_position", return_value=0)
+
     def _get_player_by_position(match_id, position):
         return mock_match.players[position]
-    mocker.patch("Database.models.Match._get_player_by_position", side_effect=_get_player_by_position)
+
+    mocker.patch(
+        "Database.models.Match._get_player_by_position",
+        side_effect=_get_player_by_position,
+    )
 
     mock_match = Mock()
     mock_match.current_player = 1
@@ -873,7 +884,7 @@ def test_get_left_alive_player(mocker):
 
     res = get_left_alive_player(1, "player2")
     assert res == player1.player_name
-    
+
 
 def test_get_alive_players(mocker):
     match = mocker.patch("Database.models.Match._get_match")
@@ -893,7 +904,6 @@ def test_get_alive_players(mocker):
 
     res = get_alive_players(1)
     assert res == [player1.player_name, player3.player_name]
-
 
 
 class test_toggle_places(TestCase):
@@ -983,3 +993,232 @@ class test_discarded(TestCase):
         mock_get_match.return_value = match
         reset_discarded(1)
         self.assertEqual(match.amount_discarded, 0)
+
+
+class test_is_three_steps_from(TestCase):
+    @patch("Database.models.Match.get_player_position")
+    @patch("Database.models.Match.get_previous_player_position")
+    @patch("Database.models.Match.get_next_player_position")
+    @patch("Database.models.Match.get_player_match", return_value=1)
+    def test_is_three_steps_from(
+        self,
+        mock_get_player_match,
+        mock_get_next_player_position,
+        mock_get_previous_player_position,
+        mock_get_player_position,
+    ):
+        positions = {
+            "p1": 0,
+            "p2": 1,
+            "p3": 2,
+            "p4": 3,
+            "p5": 4,
+        }
+
+        def _get_next_player_position(match_id, position):
+            return (position + 1) % 5
+
+        def _get_previous_player_position(match_id, position):
+            return (position - 1) % 5
+
+        def _get_player_position(player_name):
+            return positions[player_name]
+
+        mock_get_next_player_position.side_effect = _get_next_player_position
+        mock_get_previous_player_position.side_effect = _get_previous_player_position
+        mock_get_player_position.side_effect = _get_player_position
+
+        # Inicial
+        self.assertTrue(is_three_steps_from("p1", "p4"))
+        self.assertTrue(is_three_steps_from("p1", "p3"))
+        self.assertFalse(is_three_steps_from("p1", "p2"))
+        self.assertFalse(is_three_steps_from("p1", "p5"))
+        self.assertFalse(is_three_steps_from("p1", "p1"))
+
+        # Intermedio
+        self.assertTrue(is_three_steps_from("p3", "p5"))
+        self.assertTrue(is_three_steps_from("p3", "p1"))
+        self.assertFalse(is_three_steps_from("p3", "p4"))
+        self.assertFalse(is_three_steps_from("p3", "p2"))
+        self.assertFalse(is_three_steps_from("p3", "p3"))
+
+        # Final
+        self.assertTrue(is_three_steps_from("p5", "p3"))
+        self.assertTrue(is_three_steps_from("p5", "p2"))
+        self.assertFalse(is_three_steps_from("p5", "p4"))
+        self.assertFalse(is_three_steps_from("p5", "p5"))
+        self.assertFalse(is_three_steps_from("p5", "p1"))
+
+
+class test_remove_all_barred_doors(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_remove_all_barred_doors(self, mock_get_match):
+        match = Mock()
+        match.obstacles = [True, True, False, True]
+        mock_get_match.return_value = match
+
+        remove_all_barred_doors(1)
+
+        self.assertEqual(match.obstacles, [False, False, False, False])
+
+
+class test_revoke_all_quarantines(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_remove_all_quarantines(self, mock_get_match):
+        def gen_playeres_mock(names: list, in_quarantine: list):
+            players = set()
+            for i in range(len(names)):
+                player = Mock()
+                player.player_name = names[i]
+                player.in_quarantine = in_quarantine[i]
+                players.add(player)
+            return players
+
+        players = gen_playeres_mock(["p1", "p2", "p3", "p4"], [2, 0, 1, 0])
+
+        match = Mock()
+        match.players = players
+        mock_get_match.return_value = match
+
+        revoke_all_quarantines(1)
+
+        for player in match.players:
+            self.assertEqual(player.in_quarantine, 0)
+
+
+class test_get_all_players_after(TestCase):
+    @patch("Database.models.Match.get_player_by_name")
+    @patch("Database.models.Match.get_player_name_by_position")
+    @patch("Database.models.Match.get_next_player_position")
+    def test_get_all_players_after(
+        self,
+        mock_get_next_player_position,
+        mock_get_player_name_by_position,
+        mock_get_player_by_name,
+    ):
+        match = Mock()
+        match.clockwise = False
+
+        ps = []
+        for i in range(5):
+            player = Mock()
+            player.player_name = f"p{i}"
+            player.position = i
+            player.match = match
+            ps.append(player)
+
+        mock_get_player_by_name.side_effect = ps
+
+        def _get_next_player_position(match_id, position):
+            return (position + 1) % 5
+
+        def _get_player_name_by_position(match_id, position):
+            for player in ps:
+                if player.position == position:
+                    return player.player_name
+
+        mock_get_next_player_position.side_effect = _get_next_player_position
+        mock_get_player_name_by_position.side_effect = _get_player_name_by_position
+
+        result = get_all_players_after("p0")
+        self.assertEqual(result, ["p0", "p1", "p2", "p3", "p4"])
+        self.assertFalse(match.clockwise)
+
+        result = get_all_players_after("p1")
+        self.assertEqual(result, ["p1", "p2", "p3", "p4", "p0"])
+        self.assertFalse(match.clockwise)
+
+        match.clockwise = True
+        result = get_all_players_after("p2")
+        self.assertEqual(result, ["p2", "p3", "p4", "p0", "p1"])
+        self.assertTrue(match.clockwise)
+
+        result = get_all_players_after("p3")
+        self.assertEqual(result, ["p3", "p4", "p0", "p1", "p2"])
+        self.assertTrue(match.clockwise)
+
+        result = get_all_players_after("p4")
+        self.assertEqual(result, ["p4", "p0", "p1", "p2", "p3"])
+        self.assertTrue(match.clockwise)
+
+
+class test_assign_next_turn_to(TestCase):
+    @patch("Database.models.Match._get_match")
+    @patch("Database.models.Match.get_player_by_name")
+    def test_assign_next_turn_to(self, mock_get_player_by_name, mock_get_match):
+        match = Mock()
+        match.id = 1
+        match.current_player = 42
+        mock_get_match.return_value = match
+
+        player = Mock()
+        player.player_name = "test_player"
+        player.position = 1
+        mock_get_player_by_name.return_value = player
+
+        assign_next_turn_to(match.id, player.player_name)
+
+        self.assertEqual(match.current_player, 1)
+
+
+class test_set_position_exchange_victim(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_set_position_exchange_victim(self, mock_get_match):
+
+        player_name = "test_player"
+
+        match = Mock()
+        mock_get_match.return_value = match
+
+        set_position_exchange_victim(match, player_name)
+
+        self.assertEqual(match.position_exchange_victim, player_name)
+
+
+class test_is_there_position_exchange_victim(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_is_there_position_exchange_victim(self, mock_get_match):
+        match = Mock()
+        match.position_exchange_victim = "test_player"
+        mock_get_match.return_value = match
+
+        self.assertTrue(is_there_position_exchange_victim(match.id))
+
+    @patch("Database.models.Match._get_match")
+    def test_is_there_position_exchange_victim(self, mock_get_match):
+        match = Mock()
+        match.position_exchange_victim = None
+        mock_get_match.return_value = match
+
+        self.assertFalse(is_there_position_exchange_victim(match.id))
+
+
+class test_get_position_exchange_victim(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_get_position_exchange_victim(self, mock_get_match):
+        match = Mock()
+        match.position_exchange_victim = "test_player"
+        mock_get_match.return_value = match
+
+        self.assertEqual(get_position_exchange_victim(match.id), "test_player")
+
+    @patch("Database.models.Match._get_match")
+    def test_get_position_exchange_victim(self, mock_get_match):
+        match = Mock()
+        match.position_exchange_victim = None
+        mock_get_match.return_value = match
+
+        with self.assertRaises(NoPositionExchangeVictim):
+            get_position_exchange_victim(match.id)
+
+
+class test_clean_position_exchange_victim(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_clean_position_exchange_victim(self, mock_get_match):
+        match = Mock()
+        match.position_exchange_victim = "test_player"
+        mock_get_match.return_value = match
+
+        clean_position_exchange_victim(match.id)
+
+        self.assertEqual(match.position_exchange_victim, None)

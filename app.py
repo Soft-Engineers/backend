@@ -64,7 +64,9 @@ async def websocket_endpoint(websocket: WebSocket):
         else:
             await _send_lobby_players(match_id)
 
-        await _send_logs_record(match_id)
+        await manager.send_personal_message(
+            CHAT_RECORD, get_chat_record(match_id), match_id, player_name
+        )
 
         while True:
             if match_exists(match_name) and db_is_match_initiated(match_name):
@@ -93,12 +95,12 @@ async def _send_initial_state(match_id: int, player_name: str):
     await manager.broadcast(QUARANTINE, get_quarantined_players(match_id), match_id)
     await manager.broadcast(DIRECTION, get_direction(match_id), match_id)
     await manager.broadcast(DEFENSE_STAMP, get_stamp(match_id), match_id)
-    await manager.send_personal_message(
-        CHAT_RECORD, get_chat_record(match_id), match_id, player_name
-    )
+    await _send_logs_record(match_id)
+
 
 def _join_match_msg(player_name: str):
     return player_name + " se ha unido a la partida"
+
 
 async def _send_greetings(match_id: int, player_name: str):
     players = get_match_players_names(match_id)
@@ -108,9 +110,7 @@ async def _send_greetings(match_id: int, player_name: str):
     msg = gen_msg_json("", msg_str)
 
     for player in players:
-        await manager.send_personal_message(
-            CHAT_NOTIFICATION, msg, match_id, player
-        )
+        await manager.send_personal_message(CHAT_NOTIFICATION, msg, match_id, player)
 
 
 async def _send_logs_record(match_id: int):
@@ -251,7 +251,9 @@ async def join_game(join_match: JoinMatch):
         else:
             db_add_player(join_match.player_name, join_match.match_name)
             response = {"detail": "ok"}
-            await _send_greetings(get_match_id(join_match.match_name), join_match.player_name)
+            await _send_greetings(
+                get_match_id(join_match.match_name), join_match.player_name
+            )
     except DatabaseError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return response

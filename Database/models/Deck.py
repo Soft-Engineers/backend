@@ -16,12 +16,14 @@ def discard_card(player_name: str, card_id: int):
     discard_deck.cards.add(card)
     card.deck.add(discard_deck)
 
+
 @db_session
 def remove_player_card(player_name: str, card_id: int):
     player = get_player_by_name(player_name)
     card = get_card_by_id(card_id)
     player.cards.remove(card)
     card.player.remove(player)
+
 
 @db_session
 def new_deck_from_discard(match_id: int):
@@ -37,12 +39,12 @@ def pick_random_card(player_name: str) -> int:
     """If the deck is empty, form a new deck from the discard deck"""
     player = get_player_by_name(player_name)
     match_id = player.match.id
-    
+
     if is_deck_empty(match_id) and not is_there_top_card(match_id):
         new_deck_from_discard(match_id)
 
     if is_there_top_card(match_id):
-        
+
         card = get_card_by_id(pop_top_card(match_id))
         player.cards.add(card)
         card.player.add(player)

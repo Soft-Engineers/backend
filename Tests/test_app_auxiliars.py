@@ -6,8 +6,106 @@ from unittest.mock import AsyncMock
 from Game.app_auxiliars import *
 import random
 from time import time
+from Game.app_auxiliars import _toggle_positions_in_pairs
 
 
+class _WebStub:
+    def __init__(self):
+        super().__init__()
+        self.messages = []
+        self.accepted = False
+
+    async def accept(self):
+        self.accepted = True
+
+    async def send_message_to(self, msg, player_name, match_id):
+        self.messages.append(msg)
+
+    async def broadcast(self, type, msg, match_id):
+        self.messages.append(msg)
+
+    def buff_size(self):
+        return len(self.messages)
+
+    def get(self, index):
+        return self.messages[index]
+
+    def reset(self):
+        self.messages = []
+
+
+def test_play_cambio_de_lugar(mocker):
+    player_name = "player"
+    target_name = "target"
+
+    get_player_match = mocker.patch(
+        "Game.app_auxiliars.get_player_match", return_value=1
+    )
+    toggle_places = mocker.patch("Game.app_auxiliars.toggle_places")
+    assign_next_turn_to = mocker.patch("Game.app_auxiliars.assign_next_turn_to")
+    set_position_exchange_victim = mocker.patch(
+        "Game.app_auxiliars.set_position_exchange_victim"
+    )
+
+    play_cambio_de_lugar(player_name, target_name)
+
+    get_player_match.assert_called_once_with(player_name)
+    toggle_places.assert_called_once_with(player_name, target_name)
+    assign_next_turn_to.assert_called_once_with(1, player_name)
+    set_position_exchange_victim.assert_called_once_with(1, target_name)
+
+
+def _check_uno_dos_msg(websocketStub, sufix, player_name=""):
+    assert websocketStub.buff_size() == 1
+    assert websocketStub.get(0)["type"] == PLAY_NOTIFICATION
+    assert (
+        websocketStub.get(0)["msg"]
+        == "La carta no tiene efecto porque " + player_name + sufix
+    )
+    websocketStub.reset()
+
+
+@pytest.mark.asyncio
+async def test_uno_dos_anulado_msg(mocker):
+    websocketStub = _WebStub()
+
+    player_name = "player"
+    target_name = "target"
+    quarantine_cases = [
+        True,
+        True,  # Ambos cuarentena
+        False,
+        True,  # Solo player cuarentena
+        False,
+        False,
+        True,  # Solo target cuarentena
+        False,
+        False,
+        False,
+        False,  # Caso indefinido
+    ]
+
+    def _send_message_to(msg_type, msg, player_name):
+        websocketStub.messages.append({"msg": msg, "type": msg_type})
+
+    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=_send_message_to)
+    mocker.patch("Game.app_auxiliars.get_player_match")
+    mocker.patch("Game.app_auxiliars.is_in_quarantine", side_effect=quarantine_cases)
+
+    await send_uno_dos_anulado_msg(player_name, target_name)
+    _check_uno_dos_msg(websocketStub, "ambos jugadores están en cuarentena")
+
+    await send_uno_dos_anulado_msg(player_name, target_name)
+    _check_uno_dos_msg(websocketStub, " está en cuarentena", player_name)
+
+    await send_uno_dos_anulado_msg(player_name, target_name)
+    _check_uno_dos_msg(websocketStub, " está en cuarentena", target_name)
+
+    with pytest.raises(Error):
+        await send_uno_dos_anulado_msg(player_name, target_name)
+
+
+@pytest.mark.asyncio
 class test_gen_chat_message(TestCase):
     @patch("Game.app_auxiliars.is_player_alive", return_value=False)
     @patch("Game.app_auxiliars.get_match_name", return_value="test_match")
@@ -16,7 +114,7 @@ class test_gen_chat_message(TestCase):
     def test_gen_chat_message_dead(self, *args):
         with pytest.raises(InvalidPlayer):
             gen_chat_message(1, "player", "message")
-    
+
     @patch("Game.app_auxiliars.is_player_alive", return_value=True)
     @patch("Game.app_auxiliars.get_match_name", return_value="test_match")
     @patch("Game.app_auxiliars.db_is_match_initiated", return_value=True)
@@ -31,4 +129,24 @@ class test_gen_chat_message(TestCase):
         assert msg["author"] == player
         assert msg["message"] == content
         assert msg["timestamp"] <= time()
-    
+
+
+class test_toggle_positions_in_pairs(TestCase):
+    @patch("Game.app_auxiliars.toggle_places")
+    def test_toggle_positions_in_pairs(self, mock_toggle_places: Mock):
+
+        players = ["p1", "p2", "p3", "p4"]
+
+        _toggle_positions_in_pairs(players)
+
+        self.assertEqual(mock_toggle_places.call_args_list[0].args, ("p1", "p2"))
+        self.assertEqual(mock_toggle_places.call_args_list[1].args, ("p3", "p4"))
+
+        players.append("p5")
+
+        _toggle_positions_in_pairs(players)
+
+        self.assertEqual(mock_toggle_places.call_args_list[2].args, ("p1", "p2"))
+        self.assertEqual(mock_toggle_places.call_args_list[3].args, ("p3", "p4"))
+
+        self.assertEqual(mock_toggle_places.call_count, 4)

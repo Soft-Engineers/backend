@@ -144,3 +144,70 @@ class test_init_game_aux(TestCase):
                 self.assertFalse(match.deck in card.deck)
 
         self.assertTrue(contains_cosa)
+
+
+class test_set_top_card(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_set_top_card(self, mock_get_match):
+        card_id = 1
+
+        match = Mock()
+        match.id = 1
+        match.top_card = None
+
+        mock_get_match.return_value = match
+
+        set_top_card(card_id, match.id)
+
+        mock_get_match.assert_called_once_with(match.id)
+        self.assertEqual(match.top_card, card_id)
+
+
+class test_is_there_top_card(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_is_there_top_card(self, mock_get_match):
+        match = Mock()
+        match.id = 1
+        match.top_card = None
+
+        mock_get_match.return_value = match
+
+        assert not is_there_top_card(match.id)
+        mock_get_match.assert_called_once_with(match.id)
+
+        match.top_card = 1
+
+        assert is_there_top_card(match.id)
+        mock_get_match.call_count == 2
+
+
+class test_pop_top_card(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_pop_top_card(self, mock_get_match):
+        card_id = 1
+
+        match = Mock()
+        match.id = 1
+        match.top_card = card_id
+
+        mock_get_match.return_value = match
+
+        card = pop_top_card(match.id)
+
+        mock_get_match.assert_called_once_with(match.id)
+
+        self.assertEqual(card, card_id)
+        self.assertEqual(match.top_card, None)
+
+    @patch("Database.models.Match._get_match")
+    def test_pop_top_card_empty(self, mock_get_match):
+        match = Mock()
+        match.id = 1
+        match.top_card = None
+
+        mock_get_match.return_value = match
+
+        with self.assertRaises(NoTopCard):
+            pop_top_card(match.id)
+
+        mock_get_match.assert_called_once_with(match.id)
