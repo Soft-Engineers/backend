@@ -174,8 +174,6 @@ def pick_not_panic_card(player_name: str) -> int:
 async def discard_player_card(player_name: str, card_id: int):
     if card_id is None or card_id == "":
         raise InvalidCard("Debes seleccionar una carta para descartar")
-    if not card_exists(card_id):
-        raise InvalidCard("No existe esa carta")
 
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
@@ -797,8 +795,6 @@ async def play_revelaciones(player_name: str, decision: str):
 def check_valid_exchange(card_id: int, player: str, target: str):
     if card_id is None or card_id == "":
         raise InvalidCard("Debes seleccionar una carta para intercambiar")
-    if player == target and get_game_state(get_player_match(player)) == "EXCHANGE":
-        raise InvalidPlayer("Seleccione otro jugador para intercambiar")
 
     card_name = get_card_name(card_id)
     if not has_card(player, card_id):
