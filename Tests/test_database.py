@@ -8,6 +8,10 @@ from Tests.auxiliar_functions import *
 from app import MAX_LEN_ALIAS
 from Game.app_auxiliars import *
 from Database.models.Match import _get_match_by_name
+from Tests.test_deck import _pset
+from Database.models.Match import (
+    _is_adyacent,
+)
 
 # python3 -m unittest Tests.test_database
 
@@ -1222,3 +1226,241 @@ class test_clean_position_exchange_victim(TestCase):
         clean_position_exchange_victim(match.id)
 
         self.assertEqual(match.position_exchange_victim, None)
+
+
+class test_no_humans_alive(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_no_humans_alive(self, mock_get_match):
+        match = Mock()
+        match.players = [
+            Mock(rol=ROL["HUMANO"], is_alive=False),
+            Mock(rol=ROL["HUMANO"], is_alive=False),
+        ]
+        mock_get_match.return_value = match
+        self.assertTrue(no_humans_alive(match.id))
+
+
+class test_get_winners(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_get_winners(self, mock_get_match):
+        match_mock = Mock()
+        player_mock1 = Mock(player_name="Player1", rol=ROL["HUMANO"], is_alive=True)
+        player_mock2 = Mock(player_name="Player2", rol=ROL["LA_COSA"], is_alive=True)
+        Mock(player_name="Player3", rol=ROL["HUMANO"], is_alive=False)
+
+        match_mock.players.filter.return_value = [player_mock1, player_mock2]
+        mock_get_match.return_value = match_mock
+
+        result = get_winners(1, "La cosa ha muerto")
+        self.assertEqual(result, ["Player1", "Player2"])
+        mock_get_match.assert_called_once_with(1)
+
+    @patch("Database.models.Match._get_match")
+    @patch("Database.models.Match.all_players_alive", return_value=True)
+    def test_get_winner_all_alive(self, mock_all_players_alive, mock_get_match):
+        match_mock = Mock()
+        Mock(player_name="Player1", rol=ROL["HUMANO"], is_alive=True)
+        Mock(player_name="Player3", rol=ROL["HUMANO"], is_alive=False)
+        player_mock2 = Mock(player_name="Player2", rol=ROL["LA_COSA"], is_alive=True)
+
+        match_mock.players.filter.return_value = [player_mock2]
+        mock_get_match.return_value = match_mock
+
+        result = get_winners(1, "No quedan humanos vivos")
+        self.assertEqual(result, ["Player2"])
+
+    @patch("Database.models.Match.all_players_alive", return_value=False)
+    @patch("Database.models.Match._get_match")
+    @patch("Database.models.Match._get_infected_players")
+    @patch("Database.models.Match.get_player_by_name")
+    def test_get_winner_dead_players(
+        self, player_by_name, infected_players, mock_get_match, *args
+    ):
+        match_mock = Mock()
+        match_mock.last_infected = "Player5"
+        player1 = Mock(player_name="Player1", rol=ROL["HUMANO"], is_alive=False)
+        player2 = Mock(player_name="Player2", rol=ROL["HUMANO"], is_alive=False)
+        player3 = Mock(player_name="Player3", rol=ROL["LA_COSA"], is_alive=True)
+        player4 = Mock(player_name="Player4", rol=ROL["INFECTADO"], is_alive=True)
+        player5 = Mock(player_name="Player5", rol=ROL["INFECTADO"], is_alive=True)
+        match_mock.players = _pset([player1, player2, player3, player4, player5])
+
+        infected_players.return_value = _pset([player5, player4, player3])
+        mock_get_match.return_value = match_mock
+        player_by_name.return_value = player5
+
+        result = get_winners(1, "No quedan humanos vivos")
+        assert "Player3" in result
+        assert "Player4" in result
+
+
+class test_get_players_positions(TestCase):
+    @patch("Database.models.Match._get_match_by_name")
+    def test_get_players_positions(self, mock_get_match):
+        match_mock = Mock()
+        player1 = Mock(player_name="Player1", position=1)
+        player2 = Mock(player_name="Player2", position=2)
+        player3 = Mock(player_name="Player3", position=3)
+        player4 = Mock(player_name="Player4", position=4)
+        match_mock.players = [player1, player2, player3, player4]
+        mock_get_match.return_value = match_mock
+        result = get_players_positions("match2")
+
+        expected = []
+        for i in match_mock.players:
+            expected.append({"player_name": i.player_name, "position": i.position})
+        self.assertEqual(result, expected)
+
+
+class test_is_adyacent(TestCase):
+    @patch("Database.models.Match.get_previous_player_position")
+    @patch("Database.models.Match.get_next_player_position")
+    def test_is_adyacent_is_next(self, mock_next_player, mock_previos_player):
+        player = Mock()
+        player.match.id = 1
+        player.position = 1
+        player_target = Mock()
+        player_target.match.id = 1
+        player_target.position = 2
+        mock_next_player.return_value = 2
+        mock_previos_player.return_value = 0
+
+        result = _is_adyacent(player, player_target)
+        self.assertTrue(result)
+
+    @patch("Database.models.Match.get_previous_player_position")
+    @patch("Database.models.Match.get_next_player_position")
+    def test_is_adyacent_is_previous(self, mock_next_player, mock_previos_player):
+        player = Mock()
+        player.match.id = 1
+        player.position = 1
+        player_target = Mock()
+        player_target.match.id = 1
+        player_target.position = 0
+        mock_next_player.return_value = 2
+        mock_previos_player.return_value = 0
+
+        result = _is_adyacent(player, player_target)
+        self.assertTrue(result)
+
+    @patch("Database.models.Match.get_previous_player_position")
+    @patch("Database.models.Match.get_next_player_position")
+    def test_is_not_adyacent(self, mock_next_player, mock_previos_player):
+        player = Mock()
+        player.match.id = 1
+        player.position = 1
+        player_target = Mock()
+        player_target.match.id = 1
+        player_target.position = 3
+        mock_next_player.return_value = 2
+        mock_previos_player.return_value = 0
+
+        result = _is_adyacent(player, player_target)
+        self.assertFalse(result)
+
+
+class test_all_players_alive(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_all_players_alive(self, mock_get_match):
+        match_mock = Mock()
+        player1 = Mock(player_name="Player1", is_alive=True)
+        player2 = Mock(player_name="Player2", is_alive=True)
+        player3 = Mock(player_name="Player3", is_alive=True)
+        player4 = Mock(player_name="Player4", is_alive=True)
+        match_mock.players = [player1, player2, player3, player4]
+        mock_get_match.return_value = match_mock
+        result = all_players_alive(1)
+        self.assertTrue(result)
+
+    @patch("Database.models.Match._get_match")
+    def test_all_players_alive(self, mock_get_match):
+        match_mock = Mock()
+        player1 = Mock(player_name="Player1", is_alive=True)
+        player2 = Mock(player_name="Player2", is_alive=True)
+        player3 = Mock(player_name="Player3", is_alive=True)
+        player4 = Mock(player_name="Player4", is_alive=False)
+        match_mock.players = [player1, player2, player3, player4]
+        mock_get_match.return_value = match_mock
+        result = all_players_alive(1)
+        self.assertFalse(result)
+
+
+class test_get_match_list(TestCase):
+    @patch("Database.models.Match.Match.select")
+    def test_get_match_list(self, mock_select):
+        match1 = Mock()
+        match1.name = "match1"
+        match1.min_players = 4
+        match1.max_players = 12
+        match1.players = _pset(["player1", "player2", "player3"])
+        match2 = Mock()
+        match2.name = "match2"
+        match2.min_players = 5
+        match2.max_players = 11
+        match2.players = _pset(["player4", "player5", "player6"])
+        mock_select.return_value = [match1, match2]
+
+        result = get_match_list()
+        expected = [
+            {
+                "name": "match1",
+                "min_players": 4,
+                "max_players": 12,
+                "players": 3,
+            },
+            {
+                "name": "match2",
+                "min_players": 5,
+                "max_players": 11,
+                "players": 3,
+            },
+        ]
+        self.assertEqual(result, expected)
+
+
+class test_get_quarantined_players(TestCase):
+    @patch("Database.models.Match._get_match")
+    def test_get_quarantined_players(self, mock_get_match):
+        match_mock = Mock()
+        player1 = Mock(player_name="Player1", in_quarantine=5)
+        player2 = Mock(player_name="Player2", in_quarantine=0)
+        player3 = Mock(player_name="Player3", in_quarantine=2)
+        player4 = Mock(player_name="Player4", in_quarantine=0)
+        match_mock.players = [player1, player2, player3, player4]
+        mock_get_match.return_value = match_mock
+        result = get_quarantined_players(1)
+
+        expected = {
+            "Player1": 2,
+            "Player2": 0,
+            "Player3": 1,
+            "Player4": 0,
+        }
+        self.assertEqual(result, expected)
+
+
+class test_kill_player(TestCase):
+    @patch("Database.models.Match.get_player_match")
+    @patch("Database.models.Match.get_player_by_name")
+    @patch("Database.models.Match.get_discard_deck")
+    def test_kill_player(self, mock_get_discard_deck, get_player, *args):
+        player_mock = Mock()
+        player_mock.is_alive = True
+        player_mock.in_quarantine = 1
+        player_mock.cards = _pset([])
+        for i in range(4):
+            card = Mock()
+            card.player = _pset([player_mock])
+            player_mock.cards.add(card)
+
+        mock_discard = Mock()
+        mock_discard.cards = _pset([])
+        mock_get_discard_deck.return_value = mock_discard
+        get_player.return_value = player_mock
+
+        kill_player("Player1")
+
+        self.assertFalse(player_mock.is_alive)
+        self.assertEqual(player_mock.in_quarantine, 0)
+        self.assertEqual(player_mock.cards.count(), 0)
+        self.assertEqual(mock_discard.cards.count(), 4)

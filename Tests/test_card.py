@@ -878,7 +878,7 @@ class test_allows_global_exchange(TestCase):
         card_id = 2
         res = allows_global_exchange(card_id)
         self.assertEqual(res, True)
-    
+
     def test_allows_global_exchange_none(self, *args):
         res = allows_global_exchange(None)
         self.assertEqual(res, False)

@@ -128,6 +128,7 @@ class test_set_quarantine(TestCase):
         set_quarantine("test_player")
         self.assertEqual(player.in_quarantine, 10)
 
+
 class test_clear_quarantine(TestCase):
     @patch("Database.models.Player.get_player_by_name")
     def test_clear_quarantine(self, mock_get_player_by_name):
@@ -144,7 +145,7 @@ class test_get_player_id(TestCase):
         with self.assertRaises(PlayerNotFound) as e:
             get_player_id("test_player")
         self.assertEqual(str(e.exception), "Jugador no encontrado")
-    
+
     @patch("Database.models.Player.player_exists", return_value=True)
     @patch("Database.models.Player.Player.get")
     def test_player_exist(self, mock_get, mock_player_exists):

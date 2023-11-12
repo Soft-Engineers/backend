@@ -237,4 +237,3 @@ class test_remove_player_card(TestCase):
 
         self.assertFalse(card in player.cards)
         self.assertFalse(player in card.player)
-

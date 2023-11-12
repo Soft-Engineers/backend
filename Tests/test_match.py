@@ -667,5 +667,3 @@ async def test_send_greetings(mocker):
     del expected["message_content"]["timestamp"]
 
     assert found == expected
-
-
