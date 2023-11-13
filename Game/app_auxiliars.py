@@ -369,6 +369,8 @@ async def execute_card(match_id: int, def_card_id: int = None):
 
     if not is_la_cosa_alive(match_id):
         await set_win(match_id, "La cosa ha muerto")
+    elif len(get_alive_players(match_id)) == 1:
+        await set_win(match_id, "No quedan humanos vivos")
 
 
 # --------- Card effects logic --------
