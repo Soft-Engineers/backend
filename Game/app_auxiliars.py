@@ -472,7 +472,15 @@ async def play_sospecha(player_name: str, target_name: str):
 async def play_aterrador(match: int, player: str):
     turn_player = get_turn_player(match)
     exchange_card = get_card_name(get_exchange_card(match))
-    await show_player_cards_to(turn_player, [exchange_card], [player])
+    set_stamp(match)
+    msg = {
+            "cards": [exchange_card],
+            "cards_owner": turn_player,
+            "trigger_player": player,
+            "trigger_card": "Aterrador",
+            "timestamp": get_stamp(match),
+        }
+    await manager.send_message_to(REVEALED_CARDS, msg, player)
 
 
 async def play_vigila_tus_espaldas(match_id: int):
@@ -844,6 +852,8 @@ def check_target_player(player: str, target: str, card_id: int):
         raise InvalidCard(f"No puedes jugar {card} a un jugador en cuarentena")
     if is_in_quarantine(player) and card == "Lanzallamas":
         raise InvalidCard("No puedes jugar Lanzallamas mientras estás en cuarentena")
+    if is_in_quarantine(player) and card in ["¡Cambio de Lugar!", "¡Más vale que corras!"]:
+        raise InvalidCard("No puedes cambiar de lugar mientras estás en cuarentena")
 
 
 def _check_hacha_target(player: str, target: str):
