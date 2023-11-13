@@ -14,6 +14,7 @@ from connection.connections import WebSocket
 from connection.request_handler import handle_request
 from Game.app_auxiliars import *
 from connection.socket_messages import *
+from time import time
 
 MAX_LEN_ALIAS = 8
 MIN_LEN_ALIAS = 1
@@ -65,7 +66,10 @@ async def websocket_endpoint(websocket: WebSocket):
             await _send_lobby_players(match_id)
 
         await manager.send_personal_message(
-            CHAT_RECORD, get_chat_records_for(match_id, player_name), match_id, player_name
+            CHAT_RECORD,
+            get_chat_records_for(match_id, player_name),
+            match_id,
+            player_name,
         )
 
         while True:
@@ -99,7 +103,7 @@ async def _send_initial_state(match_id: int, player_name: str):
 
 
 def _join_match_msg(player_name: str):
-    return player_name + " se ha unido a la partida"
+    return player_name + " se unió a la sala"
 
 
 async def _send_greetings(match_id: int, player_name: str):
@@ -203,7 +207,8 @@ async def player_creator(name_player: str = Form()):
     Create a new player
     """
     invalid_fields = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED, detail="Nombre debe tener entre 1 y 8 caracteres"
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Nombre debe tener entre 1 y 8 caracteres",
     )
     if len(name_player) > MAX_LEN_ALIAS or len(name_player) < MIN_LEN_ALIAS:
         raise invalid_fields
@@ -347,6 +352,7 @@ async def left_lobby(lobby_left: PlayerInMatch):
         data_msg = {
             "message": lobby_left.player_name + " abandonó la sala",
             "players": db_get_players(lobby_left.match_name),
+            "timestamp": time()
         }
         await manager.broadcast("player_left", data_msg, match_id)
         response = {"detail": lobby_left.player_name + " abandonó la sala"}

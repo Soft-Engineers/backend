@@ -130,7 +130,6 @@ def gen_chat_message(match_id: int, player_name: str, content: str):
     ):
         raise InvalidPlayer("No puedes enviar mensajes si estás muerto")
     msg = gen_msg_json(player_name, content)
-    save_chat_message(match_id, msg)
 
     return msg
 

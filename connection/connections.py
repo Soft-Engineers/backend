@@ -109,3 +109,22 @@ class ConnectionManager:
                 await socket.send_json(msg)
         except Exception as e:
             print(e)
+
+        self.persist_broadcast(message_type, message_content, match_id, copy_connections)
+
+    def persist_broadcast(self, message_type, message_content, match_id, copy_connections):
+        if message_type == "player_left":
+            for player in copy_connections.keys():
+                if not player == message_content["message"].split(" ")[0]:
+                    msg = {
+                        "author": "",
+                        "message": message_content["message"],
+                        "timestamp": message_content["timestamp"],
+                        "target": player,
+                    }
+                    save_chat_message(match_id, msg)
+        elif message_type == CHAT_NOTIFICATION:
+            msg_copy = message_content.copy()
+            for player in copy_connections.keys():
+                msg_copy["target"] = player
+                save_chat_message(match_id, msg_copy)
