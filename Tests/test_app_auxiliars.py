@@ -12,6 +12,7 @@ from Game.app_auxiliars import (
     _send_exchange_notification,
     _initiate_exchange,
     _execute_exchange,
+    _play_exchange_defense_card,
 )
 
 
@@ -979,3 +980,145 @@ async def test_check_infection(mocker):
     infect_player.assert_called_once_with("player")
     assert socket.buff_size() == 2
     assert socket.get(1) == ""
+
+
+
+@pytest.mark.asyncio
+async def test_skip_defense(mocker):
+    socket.reset()
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
+    mocker.patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["PLAY_TURN"])
+
+    with pytest.raises(GameException) as e:
+        await skip_defense("player")
+        assert str(e.value) == "No puedes saltar la defensa en este momento"
+    
+    mocker.patch("Game.app_auxiliars.get_game_state", return_value=GAME_STATE["WAIT_DEFENSE"])
+    mocker.patch("Game.app_auxiliars.is_player_turn", return_value=False)
+    with pytest.raises(GameException) as e:
+        await skip_defense("player")
+        assert str(e.value) == "No es tu turno"
+    
+    mocker.patch("Game.app_auxiliars.is_player_turn", return_value=True)
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="Lanzallamas")
+    mocker.patch("Game.app_auxiliars.get_target_player", return_value="target")
+    mocker.patch("Game.app_auxiliars.get_turn_player", return_value="player")
+    mocker.patch("Game.app_auxiliars.execute_card")
+    mocker.patch("Game.app_auxiliars.assign_next_turn_to")
+
+    match = Mock()
+    match.game_state = GAME_STATE["PLAY_TURN"]
+    def _set_game_state(match_id, game_state):
+        match.game_state = game_state
+    
+    mocker.patch("Game.app_auxiliars.set_game_state", side_effect=_set_game_state)
+    mocker.patch("Game.app_auxiliars.get_next_player")
+    mocker.patch("Game.app_auxiliars.exist_obstacle_between", return_value=False)
+    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=socket.broadcast)
+
+    await skip_defense("player")
+    assert socket.buff_size() == 2
+    assert socket.get(0) == "target" + " no se defendió"
+    assert socket.get(1) == "target" + " ha muerto"
+
+    socket.reset()
+
+
+@pytest.mark.asyncio
+async def test_play_exchange_defense_card(mocker):
+    card_id = 1 
+    card = "Aterrador"
+    mocker.patch("Game.app_auxiliars.check_valid_defense")
+    mocker.patch("Game.app_auxiliars.get_card_name", return_value=card)
+    mocker.patch("Game.app_auxiliars.get_turn_player", return_value="player")
+
+    mocker.patch("Game.app_auxiliars.defend_exchange", return_value=False)
+    with pytest.raises(GameException) as e:
+        await _play_exchange_defense_card(1, "player", card_id)
+        assert str(e.value) == "No puedes defenderte con " + card
+
+    mocker.patch("Game.app_auxiliars.defend_exchange", return_value=True)
+    mocker.patch("Game.app_auxiliars.discard_card")
+    mocker.patch("Game.app_auxiliars.pick_not_panic_card")
+    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=socket.broadcast)
+    mocker.patch("Game.app_auxiliars.set_match_turn")
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="SomeCard")
+    mocker.patch("Game.app_auxiliars.end_player_turn")
+    play_aterrador = mocker.patch("Game.app_auxiliars.play_aterrador")
+
+    await _play_exchange_defense_card(1, "player", card_id)
+    play_aterrador.assert_called_once_with(1, "player")
+    assert socket.buff_size() == 1
+    assert socket.get(0) == "player" + " se defendió del intercambio con " + card
+    socket.reset()
+
+    mocker.patch("Game.app_auxiliars.get_card_name", return_value="¡Fallaste!")
+    play_fallaste = mocker.patch("Game.app_auxiliars.play_fallaste", return_value=True)
+    mocker.patch("Game.app_auxiliars.last_played_card", return_value="¿No podemos ser amigos?")
+    mocker.patch("Game.app_auxiliars.get_player_in_turn", return_value="next_player")
+    mocker.patch("Game.app_auxiliars.get_next_player")
+    mocker.patch("Game.app_auxiliars.exist_obstacle_between", return_value=False)
+
+    await _play_exchange_defense_card(1, "player", card_id)
+    play_fallaste.assert_called_once_with("player", 1)
+
+    assert socket.buff_size() == 2
+    assert socket.get(0) == "player" + " se defendió del intercambio con " + "¡Fallaste!"
+    assert socket.get(1) == "next_player" + " debe intercambiar en lugar de " + "player"
+    socket.reset()
+
+
+
+
+@pytest.mark.asyncio
+async def test_persist_played_card_data(mocker):
+    card_name = "SomeCard"
+    mocker.patch("Game.app_auxiliars.get_card_name", return_value=card_name)
+    mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
+    mocker.patch("Game.app_auxiliars.has_card", return_value=False)
+
+    with pytest.raises(InvalidCard) as e:
+        await persist_played_card_data("player", 1, "target")
+        assert str(e.value) == "No tienes esa carta en tu mano"
+    
+    mocker.patch("Game.app_auxiliars.has_card", return_value=True)
+    mocker.patch("Game.app_auxiliars.is_defensa", return_value=True)
+
+    with pytest.raises(InvalidCard) as e:
+        await persist_played_card_data("player", 1, "target")
+        assert str(e.value) == "No puedes jugar una carta de defensa ahora"
+    
+    mocker.patch("Game.app_auxiliars.is_defensa", return_value=False)
+    mocker.patch("Game.app_auxiliars.is_contagio", return_value=True)
+
+    with pytest.raises(InvalidCard) as e:
+        await persist_played_card_data("player", 1, "target")
+        assert str(e.value) == "No puedes jugar una carta " + card_name
+
+    mocker.patch("Game.app_auxiliars.is_contagio", return_value=False)
+    mocker.patch("Game.app_auxiliars.isinstance", return_value=True)
+
+    with pytest.raises(InvalidCard) as e:
+        await persist_played_card_data("player", 1, "target")
+        assert str(e.value) == "No puedes jugar " + card_name + " a un obstáculo"
+    
+    mocker.patch("Game.app_auxiliars.isinstance", return_value=False)
+    mocker.patch("Game.app_auxiliars.requires_target", return_value=True)
+
+    with pytest.raises(InvalidCard) as e:
+        await persist_played_card_data("player", 1, None)
+        assert str(e.value) == "Esta carta requiere un objetivo"
+    
+    mocker.patch("Game.app_auxiliars.check_target_player")
+    mocker.patch("Game.app_auxiliars.set_played_card")
+    mocker.patch("Game.app_auxiliars.set_turn_player")
+    mocker.patch("Game.app_auxiliars.set_target_player")
+    discard_card = mocker.patch("Game.app_auxiliars.discard_card")
+
+    await persist_played_card_data("player", 1, "target")
+    discard_card.assert_called_once_with("player", 1)
+    
+
+
+
+

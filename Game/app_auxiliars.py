@@ -557,7 +557,7 @@ async def skip_defense(player_name: str):
     if not is_player_turn(player_name):
         raise GameException("No puedes saltear defensa ahora")
 
-    played_card_name = get_card_name(get_played_card(match_id))
+    played_card_name = last_played_card(match_id)
     target = get_target_player(match_id)
     turn_player = get_turn_player(match_id)
 
