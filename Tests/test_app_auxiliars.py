@@ -13,6 +13,8 @@ from Game.app_auxiliars import (
     _initiate_exchange,
     _execute_exchange,
     _play_exchange_defense_card,
+    _play_turn_card,
+    _play_defense_card,
 )
 
 
@@ -1117,8 +1119,33 @@ async def test_persist_played_card_data(mocker):
 
     await persist_played_card_data("player", 1, "target")
     discard_card.assert_called_once_with("player", 1)
-    
+    socket.reset()
 
 
 
+@pytest.mark.asyncio
+async def test_play_defense_card(mocker):
+    mocker.patch("Game.app_auxiliars.check_valid_defense")
+    mocker.patch("Game.app_auxiliars.get_played_card")
+    mocker.patch("Game.app_auxiliars.can_defend", return_value=False)
+    mocker.patch("Game.app_auxiliars.get_card_name", side_effect=["SomeCard", "SomeCard2", "SomeCard"])
 
+    with pytest.raises(GameException) as e:
+        await _play_defense_card(1, "player", 1, "target")
+        assert str(e.value) == f"No puedes defender SomeCard con SomeCard2"
+
+    mocker.patch("Game.app_auxiliars.can_defend", return_value=True)
+    mocker.patch("Game.app_auxiliars.get_turn_player")
+    mocker.patch("Game.app_auxiliars.execute_card")
+    mocker.patch("Game.app_auxiliars.discard_card")
+    mocker.patch("Game.app_auxiliars.pick_not_panic_card")
+    mocker.patch("Game.app_auxiliars.assign_next_turn_to")
+    mocker.patch("Game.app_auxiliars.get_next_player")
+    mocker.patch("Game.app_auxiliars.exist_obstacle_between", return_value=False)
+    mocker.patch("Game.app_auxiliars.set_game_state")
+    mocker.patch("Game.app_auxiliars.manager.broadcast", side_effect=socket.broadcast)
+
+    await _play_defense_card(1, "player", 1, "target")
+
+    assert socket.buff_size() == 1
+    assert socket.get(0) == "player" + " se defendió con " + "SomeCard"
