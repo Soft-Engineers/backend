@@ -1019,3 +1019,24 @@ def get_position_exchange_victim(match_id: int) -> str:
 def clean_position_exchange_victim(match_id: int):
     match = _get_match(match_id)
     match.position_exchange_victim = None
+
+
+@db_session
+def give_card(player_name: str, card_name: str, n: int):
+    player = get_player_by_name(player_name)
+    cards = Card.select(card_name=card_name)
+    for card in cards:
+        if n > 0:
+            player.cards.add(card)
+            card.player.add(player)
+            n -= 1
+        else:
+            break
+
+
+@db_session
+def remove_player_card(player_name: str, card_name: str):
+    player = get_player_by_name(player_name)
+    card = list(Card.select(card_name=card_name))[0]
+    player.cards.remove(card)
+    card.player.remove(player)
