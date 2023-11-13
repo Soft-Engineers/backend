@@ -65,7 +65,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await _send_lobby_players(match_id)
 
         await manager.send_personal_message(
-            CHAT_RECORD, get_chat_record(match_id), match_id, player_name
+            CHAT_RECORD, get_chat_records_for(match_id, player_name), match_id, player_name
         )
 
         while True:

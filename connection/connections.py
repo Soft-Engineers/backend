@@ -1,9 +1,9 @@
 from threading import Lock
 from fastapi import WebSocket
 from collections import defaultdict
-from Database.models.Match import check_match_existence, save_log
+from Database.models.Match import check_match_existence, save_log, save_chat_message
 from Database.models.Player import player_exists, get_player_match
-from connection.socket_messages import PLAY_NOTIFICATION, INFECTED
+from connection.socket_messages import PLAY_NOTIFICATION, INFECTED, CHAT_NOTIFICATION
 
 
 class ManagerException(Exception):
@@ -62,6 +62,11 @@ class ConnectionManager:
     async def send_personal_message(
         self, message_type: str, message_content, match_id: int, player_name: str
     ):
+        if message_type == CHAT_NOTIFICATION:
+            msg_copy = message_content.copy()
+            msg_copy["target"] = player_name
+            save_chat_message(match_id, msg_copy)
+
         msg = self.__gen_msg(message_type, message_content)
         connections = self._get_connections_and_lock(match_id)
         copy_connections = connections.copy()
