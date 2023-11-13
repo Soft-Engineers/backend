@@ -33,13 +33,13 @@ def test_player_with_invalid_name():
             data={"name_player": get_random_string_lower(MIN_LEN_ALIAS - 1)},
         )
         assert response.status_code == 401
-        assert response.json() == {"detail": "Campo inválido"}
+        assert response.json() == {"detail": "Nombre debe tener entre 1 y 8 caracteres"}
 
 
 def test_player_with_invalid_name2():
     response = client.post("/player/create", data={"name_player": "test_player" * 10})
     assert response.status_code == 401
-    assert response.json() == {"detail": "Campo inválido"}
+    assert response.json() == {"detail": "Nombre debe tener entre 1 y 8 caracteres"}
 
 
 # test player is host
