@@ -143,6 +143,47 @@ class test_gen_chat_message(TestCase):
         assert msg["timestamp"] <= time()
 
 
+class test_get_chat_records_for(TestCase):
+    @patch("Game.app_auxiliars.get_chat_record")
+    def test_get_chat_record_for(self, mock_get_chat_record):
+        records = [
+            {
+                "author": "player1",
+                "message": "message1",
+                "timestamp": 1,
+            },
+            {
+                "author": "player2",
+                "message": "message2",
+                "timestamp": 2,
+                "target": "player1",
+            },
+            {
+                "author": "player3",
+                "message": "message3",
+                "timestamp": 3,
+                "target": "player2",
+            },
+        ]
+        expected = [
+            {
+                "author": "player1",
+                "message": "message1",
+                "timestamp": 1,
+            },
+            {
+                "author": "player2",
+                "message": "message2",
+                "timestamp": 2,
+            }
+        ]
+        mock_get_chat_record.return_value = records
+        filtered = get_chat_records_for(1, "player1")
+
+        mock_get_chat_record.assert_called_once_with(1)
+        self.assertEqual(filtered, expected)
+
+
 class test_toggle_positions_in_pairs(TestCase):
     @patch("Game.app_auxiliars.toggle_places")
     def test_toggle_positions_in_pairs(self, mock_toggle_places: Mock):

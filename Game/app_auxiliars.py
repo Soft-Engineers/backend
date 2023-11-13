@@ -134,6 +134,18 @@ def gen_chat_message(match_id: int, player_name: str, content: str):
 
     return msg
 
+def get_chat_records_for(match_id: int, player_name: str):
+    records = get_chat_record(match_id)
+    filtered_records = []
+    for record in records:
+        if "target" in record:
+            if record["target"] == player_name:
+                del record["target"]
+                filtered_records.append(record)
+        else:
+            filtered_records.append(record)
+    return filtered_records
+        
 
 # ------- Pick Card logic --------
 
