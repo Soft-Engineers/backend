@@ -405,7 +405,7 @@ def test_discard_card_msg(mocker):
 
     # Test when not in quarantine and no special card played
     result = discard_card_msg("Player1", "Card1")
-    assert result == "Player1 ha descartado una carta"
+    assert result == "Player1 descartó una carta"
 
     # Test when in quarantine
     mocker.patch("Game.app_auxiliars.is_in_quarantine", return_value=True)
@@ -421,7 +421,7 @@ def test_discard_card_msg(mocker):
     # Test when last played card is "Cita a ciegas"
     mocker.patch("Game.app_auxiliars.last_played_card", return_value="Cita a ciegas")
     result = discard_card_msg("Player4", "Card4")
-    assert result == "Player4 ha intercambiado una carta con el mazo"
+    assert result == "Player4 intercambió una carta con el mazo"
 
 
 @pytest.mark.asyncio
@@ -520,6 +520,12 @@ async def test_discard_player_card(mocker):
         await discard_player_card("player", None)
         assert str(e.value) == "Debes seleccionar una carta para descartar"
 
+    mocker.patch("Game.app_auxiliars.is_player_turn", return_value=False)
+    with pytest.raises(GameException) as e:
+        await discard_player_card("player", "SomeCard")
+        assert str(e.value) == "No es tu turno"
+
+    mocker.patch("Game.app_auxiliars.is_player_turn", return_value=True)
     mocker.patch("Game.app_auxiliars.get_player_match", return_value=1)
     mocker.patch("Game.app_auxiliars.get_card_name", return_value="SomeCard")
     last_card = mocker.patch(
@@ -573,7 +579,7 @@ async def test_discard_player_card(mocker):
 
     await discard_player_card("player", "SomeCard")
     assert socket.buff_size() == 1
-    assert socket.get(0) == "player" + " ha intercambiado una carta con el mazo"
+    assert socket.get(0) == "player" + " intercambió una carta con el mazo"
 
     last_card.return_value = "Olvidadizo"
     mocker.patch("Game.app_auxiliars.play_olvidadizo")

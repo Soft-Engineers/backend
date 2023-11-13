@@ -131,7 +131,7 @@ async def test_pickup_card(mocker):
     await pickup_card(player.name)
     assert websocketStub.buff_size() == 1
     assert (
-        websocketStub.get(0) == "Cuarentena: " + player.name + " ha robado " + card.name
+        websocketStub.get(0) == "Cuarentena: " + player.name + " robó " + card.name
     )
 
 

@@ -24,7 +24,7 @@ def cambio_lugar_msg(player_name: str, target_name: str):
 
 
 def pick_card_msg(player_name: str, card_id: int):
-    alert = "Cuarentena: " + player_name + " ha robado " + get_card_name(card_id)
+    alert = "Cuarentena: " + player_name + " robó " + get_card_name(card_id)
     return alert
 
 
@@ -45,9 +45,9 @@ def discard_card_msg(player_name: str, card_name: str):
     elif last_played_card(match_id) == "Olvidadizo":
         alert = player_name + " descartó 3 cartas y robó 3 nuevas"
     elif last_played_card(match_id) == "Cita a ciegas":
-        alert = player_name + " ha intercambiado una carta con el mazo"
+        alert = player_name + " intercambió una carta con el mazo"
     else:
-        alert = player_name + " ha descartado una carta"
+        alert = player_name + " descartó una carta"
     return alert
 
 
@@ -174,6 +174,8 @@ def pick_not_panic_card(player_name: str) -> int:
 async def discard_player_card(player_name: str, card_id: int):
     if card_id is None or card_id == "":
         raise InvalidCard("Debes seleccionar una carta para descartar")
+    if not is_player_turn(player_name):
+        raise GameException("No es tu turno")
 
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
