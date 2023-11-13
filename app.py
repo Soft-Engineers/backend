@@ -119,7 +119,7 @@ async def _send_logs_record(match_id: int, player_name: str):
     for log in all_logs:
         if "$" in log:
             if log.split("$")[1] == player_name:
-                logs.append("LA COSA TE INFECTO!!")
+                logs.append("LA COSA TE INFECTÓ!!")
         else:
             logs.append(log)
     await manager.broadcast(LOGS_RECORD, logs, match_id)
