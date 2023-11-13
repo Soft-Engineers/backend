@@ -65,7 +65,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await _send_lobby_players(match_id)
 
         await manager.send_personal_message(
-            CHAT_RECORD, get_chat_record(match_id), match_id, player_name
+            CHAT_RECORD, get_chat_records_for(match_id, player_name), match_id, player_name
         )
 
         while True:
@@ -95,7 +95,7 @@ async def _send_initial_state(match_id: int, player_name: str):
     await manager.broadcast(QUARANTINE, get_quarantined_players(match_id), match_id)
     await manager.broadcast(DIRECTION, get_direction(match_id), match_id)
     await manager.broadcast(DEFENSE_STAMP, get_stamp(match_id), match_id)
-    await _send_logs_record(match_id)
+    await _send_logs_record(match_id, player_name)
 
 
 def _join_match_msg(player_name: str):
@@ -113,8 +113,16 @@ async def _send_greetings(match_id: int, player_name: str):
         await manager.send_personal_message(CHAT_NOTIFICATION, msg, match_id, player)
 
 
-async def _send_logs_record(match_id: int):
-    await manager.broadcast(LOGS_RECORD, get_logs(match_id), match_id)
+async def _send_logs_record(match_id: int, player_name: str):
+    all_logs = get_logs(match_id)
+    logs = []
+    for log in all_logs:
+        if "$" in log:
+            if log.split("$")[1] == player_name:
+                logs.append("LA COSA TE INFECTÓ!!")
+        else:
+            logs.append(log)
+    await manager.broadcast(LOGS_RECORD, logs, match_id)
 
 
 async def _send_lobby_players(match_id: int):
@@ -195,7 +203,7 @@ async def player_creator(name_player: str = Form()):
     Create a new player
     """
     invalid_fields = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED, detail="Campo inválido"
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Nombre debe tener entre 1 y 8 caracteres"
     )
     if len(name_player) > MAX_LEN_ALIAS or len(name_player) < MIN_LEN_ALIAS:
         raise invalid_fields
@@ -293,6 +301,7 @@ async def start_game(match_player: PlayerInMatch):
 
     started_match(match_name)
     reset_chat_record(match_id)
+    await manager.broadcast(CHAT_RECORD, [], match_id)
     set_game_state(match_id, GAME_STATE["DRAW_CARD"])
     start_alert = ("LA PARTIDA COMIENZA!!!",)
     await manager.broadcast("start_match", start_alert, match_id)

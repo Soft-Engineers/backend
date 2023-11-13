@@ -52,9 +52,9 @@ card_templates = [
     CardTemplate(
         "Sospecha", [T(4, 4), T(7, 1), T(8, 1), T(9, 1), T(10, 1)], CardType.ACCION
     ),
-    CardTemplate(
-        "Determinación", [T(4, 2), T(6, 1), T(9, 1), T(10, 1)], CardType.ACCION
-    ),
+    #CardTemplate(
+    #    "Determinación", [T(4, 2), T(6, 1), T(9, 1), T(10, 1)], CardType.ACCION
+    #),
     CardTemplate("Whisky", [T(4, 1), T(6, 1), T(10, 1)], CardType.ACCION),
     CardTemplate(
         "¡Cambio de Lugar!", [T(4, 2), T(7, 1), T(9, 1), T(11, 1)], CardType.ACCION
@@ -79,7 +79,7 @@ card_templates = [
     CardTemplate("Cuarentena", [T(5, 1), T(9, 1)], CardType.OBSTACULO),
     CardTemplate("Revelaciones", [T(8, 1)], CardType.PANICO),
     CardTemplate("Cuerdas podridas", [T(6, 1), T(9, 1)], CardType.PANICO),
-    CardTemplate("¡Sal de aquí!", [T(5, 1)], CardType.PANICO),
+    #CardTemplate("¡Sal de aquí!", [T(5, 1)], CardType.PANICO),
     CardTemplate("Olvidadizo", [T(4, 1)], CardType.PANICO),
     CardTemplate("Uno, dos..", [T(5, 1), T(9, 1)], CardType.PANICO),
     CardTemplate("Tres, cuatro..", [T(4, 1), T(9, 1)], CardType.PANICO),

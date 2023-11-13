@@ -32,7 +32,6 @@ async def handle_request(request, match_id, player_name, websocket):
             PLAY_CARD: play_card_handler,
             DISCARD_CARD: discard_card_handler,
             SKIP_DEFENSE: skip_defense_handler,
-            LEAVE_MATCH: leave_match_handler,
             EXCHANGE_CARD: exchange_card_handler,
             DECLARE: declaration_handler,
             REVELACIONES: play_revelaciones_handler,
@@ -76,10 +75,6 @@ async def discard_card_handler(content, match_id, player_name):
 async def skip_defense_handler(content, match_id, player_name):
     await skip_defense(player_name)
     await manager.send_message_to(CARDS, get_player_hand(player_name), player_name)
-
-
-async def leave_match_handler(content, match_id, player_name):
-    pass
 
 
 async def exchange_card_handler(content, match_id, player_name):

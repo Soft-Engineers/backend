@@ -211,3 +211,29 @@ class test_pop_top_card(TestCase):
             pop_top_card(match.id)
 
         mock_get_match.assert_called_once_with(match.id)
+
+
+class test_remove_player_card(TestCase):
+    @patch("Database.models.Deck.get_player_by_name")
+    @patch("Database.models.Deck.get_card_by_id")
+    def test_remove_player_card(self, mock_get_card_by_id, mock_get_player_by_name):
+        player_name = "player1"
+        card_id = 1
+        player = Mock()
+
+        card = Mock()
+        card.player = []
+        card.player.append(player)
+        player.cards = []
+        player.cards.append(card)
+
+        mock_get_player_by_name.return_value = player
+        mock_get_card_by_id.return_value = card
+
+        remove_player_card(player_name, card_id)
+
+        mock_get_player_by_name.assert_called_once_with(player_name)
+        mock_get_card_by_id.assert_called_once_with(card_id)
+
+        self.assertFalse(card in player.cards)
+        self.assertFalse(player in card.player)

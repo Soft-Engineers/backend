@@ -24,7 +24,7 @@ def cambio_lugar_msg(player_name: str, target_name: str):
 
 
 def pick_card_msg(player_name: str, card_id: int):
-    alert = "Cuarentena: " + player_name + " ha robado " + get_card_name(card_id)
+    alert = "Cuarentena: " + player_name + " robó " + get_card_name(card_id)
     return alert
 
 
@@ -45,9 +45,9 @@ def discard_card_msg(player_name: str, card_name: str):
     elif last_played_card(match_id) == "Olvidadizo":
         alert = player_name + " descartó 3 cartas y robó 3 nuevas"
     elif last_played_card(match_id) == "Cita a ciegas":
-        alert = player_name + " ha intercambiado una carta con el mazo"
+        alert = player_name + " intercambió una carta con el mazo"
     else:
-        alert = player_name + " ha descartado una carta"
+        alert = player_name + " descartó una carta"
     return alert
 
 
@@ -134,6 +134,18 @@ def gen_chat_message(match_id: int, player_name: str, content: str):
 
     return msg
 
+def get_chat_records_for(match_id: int, player_name: str):
+    records = get_chat_record(match_id)
+    filtered_records = []
+    for record in records:
+        if "target" in record:
+            if record["target"] == player_name:
+                del record["target"]
+                filtered_records.append(record)
+        else:
+            filtered_records.append(record)
+    return filtered_records
+        
 
 # ------- Pick Card logic --------
 
@@ -174,8 +186,8 @@ def pick_not_panic_card(player_name: str) -> int:
 async def discard_player_card(player_name: str, card_id: int):
     if card_id is None or card_id == "":
         raise InvalidCard("Debes seleccionar una carta para descartar")
-    if not card_exists(card_id):
-        raise InvalidCard("No existe esa carta")
+    if not is_player_turn(player_name):
+        raise GameException("No es tu turno")
 
     match_id = get_player_match(player_name)
     game_state = get_game_state(match_id)
@@ -318,7 +330,7 @@ async def persist_played_card_data(player_name: str, card_id: int, target):
 
 
 async def execute_card(match_id: int, def_card_id: int = None):
-    card_name = get_card_name(get_played_card(match_id))
+    card_name = last_played_card(match_id)
     player_name = get_turn_player(match_id)
     target_name = get_target_player(match_id)
     obstacle = get_target_obstacle(match_id)
@@ -371,6 +383,8 @@ async def execute_card(match_id: int, def_card_id: int = None):
 
     if not is_la_cosa_alive(match_id):
         await set_win(match_id, "La cosa ha muerto")
+    elif len(get_alive_players(match_id)) == 1:
+        await set_win(match_id, "No quedan humanos vivos")
 
 
 # --------- Card effects logic --------
@@ -470,7 +484,15 @@ async def play_sospecha(player_name: str, target_name: str):
 async def play_aterrador(match: int, player: str):
     turn_player = get_turn_player(match)
     exchange_card = get_card_name(get_exchange_card(match))
-    await show_player_cards_to(turn_player, [exchange_card], [player])
+    set_stamp(match)
+    msg = {
+            "cards": [exchange_card],
+            "cards_owner": turn_player,
+            "trigger_player": player,
+            "trigger_card": "Aterrador",
+            "timestamp": get_stamp(match),
+        }
+    await manager.send_message_to(REVEALED_CARDS, msg, player)
 
 
 async def play_vigila_tus_espaldas(match_id: int):
@@ -555,7 +577,7 @@ async def skip_defense(player_name: str):
     if not is_player_turn(player_name):
         raise GameException("No puedes saltear defensa ahora")
 
-    played_card_name = get_card_name(get_played_card(match_id))
+    played_card_name = last_played_card(match_id)
     target = get_target_player(match_id)
     turn_player = get_turn_player(match_id)
 
@@ -797,8 +819,6 @@ async def play_revelaciones(player_name: str, decision: str):
 def check_valid_exchange(card_id: int, player: str, target: str):
     if card_id is None or card_id == "":
         raise InvalidCard("Debes seleccionar una carta para intercambiar")
-    if player == target and get_game_state(get_player_match(player)) == "EXCHANGE":
-        raise InvalidPlayer("Seleccione otro jugador para intercambiar")
 
     card_name = get_card_name(card_id)
     if not has_card(player, card_id):
@@ -844,6 +864,8 @@ def check_target_player(player: str, target: str, card_id: int):
         raise InvalidCard(f"No puedes jugar {card} a un jugador en cuarentena")
     if is_in_quarantine(player) and card == "Lanzallamas":
         raise InvalidCard("No puedes jugar Lanzallamas mientras estás en cuarentena")
+    if is_in_quarantine(player) and card in ["¡Cambio de Lugar!", "¡Más vale que corras!"]:
+        raise InvalidCard("No puedes cambiar de lugar mientras estás en cuarentena")
 
 
 def _check_hacha_target(player: str, target: str):

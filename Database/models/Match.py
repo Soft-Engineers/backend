@@ -679,7 +679,8 @@ def kill_player(player_name: str):
     """Kills a player and discards all his cards"""
     player = get_player_by_name(player_name)
     discard = get_discard_deck(get_player_match(player_name))
-    for card in player.cards:
+    player_cards = player.cards.copy()
+    for card in player_cards:
         player.cards.remove(card)
         card.player.remove(player)
         discard.cards.add(card)
