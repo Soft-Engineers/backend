@@ -667,3 +667,50 @@ async def test_send_greetings(mocker):
     del expected["message_content"]["timestamp"]
 
     assert found == expected
+
+
+def test_last_played_card(mocker):
+    match = Mock()
+    match.played_card = None
+    mocker.patch("Database.models.Match._get_match", return_value=match)
+    card = last_played_card(1)
+    assert card == ""
+
+    card_name = "test_card"
+    mocker.patch("Database.models.Match.get_card_name", return_value=card_name)
+    match.played_card = "test_card"
+    card = last_played_card(1)
+    assert card == "test_card"
+
+
+def test_is_player_turn(mocker):
+    player = Mock()
+    player.position = 2
+    match = Mock()
+    match.current_player = 2
+
+    mocker.patch("Database.models.Match.get_player_by_name", return_value=player)
+    mocker.patch("Database.models.Match.get_player_match")
+    mocker.patch("Database.models.Match.get_match_turn", return_value=match.current_player)
+
+    assert is_player_turn("test_player") == True
+
+
+def test_decrease_all_quarantines(mocker):
+    match = Mock()
+    player1 = Mock()
+    player2 = Mock()
+    player3 = Mock()
+
+    player1.in_quarantine = 0
+    player2.in_quarantine = 1
+    player3.in_quarantine = 2
+    match.players = [player1, player2, player3]
+    mocker.patch("Database.models.Match._get_match", return_value=match)
+
+    decrease_all_quarantines(1)
+    assert player1.in_quarantine == 0
+    assert player2.in_quarantine == 0
+    assert player3.in_quarantine == 1
+
+
