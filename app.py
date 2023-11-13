@@ -95,7 +95,7 @@ async def _send_initial_state(match_id: int, player_name: str):
     await manager.broadcast(QUARANTINE, get_quarantined_players(match_id), match_id)
     await manager.broadcast(DIRECTION, get_direction(match_id), match_id)
     await manager.broadcast(DEFENSE_STAMP, get_stamp(match_id), match_id)
-    await _send_logs_record(match_id)
+    await _send_logs_record(match_id, player_name)
 
 
 def _join_match_msg(player_name: str):
@@ -113,8 +113,16 @@ async def _send_greetings(match_id: int, player_name: str):
         await manager.send_personal_message(CHAT_NOTIFICATION, msg, match_id, player)
 
 
-async def _send_logs_record(match_id: int):
-    await manager.broadcast(LOGS_RECORD, get_logs(match_id), match_id)
+async def _send_logs_record(match_id: int, player_name: str):
+    all_logs = get_logs(match_id)
+    logs = []
+    for log in all_logs:
+        if "$" in log:
+            if log.split("$")[1] == player_name:
+                logs.append("LA COSA TE INFECTO!!")
+        else:
+            logs.append(log)
+    await manager.broadcast(LOGS_RECORD, logs, match_id)
 
 
 async def _send_lobby_players(match_id: int):

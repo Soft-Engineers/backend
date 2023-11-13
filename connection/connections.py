@@ -3,7 +3,7 @@ from fastapi import WebSocket
 from collections import defaultdict
 from Database.models.Match import check_match_existence, save_log
 from Database.models.Player import player_exists, get_player_match
-from connection.socket_messages import PLAY_NOTIFICATION
+from connection.socket_messages import PLAY_NOTIFICATION, INFECTED
 
 
 class ManagerException(Exception):
@@ -75,6 +75,9 @@ class ConnectionManager:
         self, message_type: str, message_content, player_name: str
     ):
         match_id = get_player_match(player_name)
+
+        if message_type == INFECTED:
+            save_log(match_id, "$" + player_name)
 
         await self.send_personal_message(
             message_type, message_content, match_id, player_name
