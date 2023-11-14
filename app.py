@@ -356,4 +356,6 @@ async def left_lobby(lobby_left: PlayerInMatch):
         }
         await manager.broadcast("player_left", data_msg, match_id)
         response = {"detail": lobby_left.player_name + " abandonó la sala"}
+        manager.disconnect(player_name, match_id)
+        
     return response
