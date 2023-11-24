@@ -18,7 +18,8 @@ from time import time
 
 MAX_LEN_ALIAS = 8
 MIN_LEN_ALIAS = 1
-
+DIRECTIONS = ["localhost", "lacosa.duckdns.org"]
+PORTS = [3000, 5173]
 description = """
             La Cosa
 
@@ -26,7 +27,10 @@ description = """
             ## The FUN is guaranteed! 
 """
 
-origins = ["http://localhost:3000", "http://localhost:5173"]
+origins = []
+for direction in DIRECTIONS:
+    for port in PORTS:
+        origins.append("http://" + direction + ":" + str(port))
 
 tags_metadata = [
     {"name": "Player", "description": "Operations with players."},
@@ -352,10 +356,10 @@ async def left_lobby(lobby_left: PlayerInMatch):
         data_msg = {
             "message": lobby_left.player_name + " abandonó la sala",
             "players": db_get_players(lobby_left.match_name),
-            "timestamp": time()
+            "timestamp": time(),
         }
         await manager.broadcast("player_left", data_msg, match_id)
         response = {"detail": lobby_left.player_name + " abandonó la sala"}
         manager.disconnect(player_name, match_id)
-        
+
     return response
