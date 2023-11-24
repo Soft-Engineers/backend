@@ -3,6 +3,9 @@
 start: 
 	uvicorn app:app --reload
 
+start-exposed: 
+	uvicorn app:app --reload --host 0.0.0.0
+
 clean:
 	@echo "Cleaning up..."
 	@rm -f Database/lacosa.sqlite
