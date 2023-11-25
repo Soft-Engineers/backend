@@ -18,8 +18,8 @@ from time import time
 
 MAX_LEN_ALIAS = 8
 MIN_LEN_ALIAS = 1
-DIRECTIONS = ["localhost", "lacosa.duckdns.org"]
-PORTS = [3000, 5173]
+DIRECTIONS = ["localhost", "lacosa.duckdns.org", "lacosa.surge.sh"]
+PORTS = [3000, 5173, 80]
 description = """
             La Cosa
 
@@ -29,6 +29,7 @@ description = """
 
 origins = []
 for direction in DIRECTIONS:
+    origins.append("http://" + direction)
     for port in PORTS:
         origins.append("http://" + direction + ":" + str(port))
 
